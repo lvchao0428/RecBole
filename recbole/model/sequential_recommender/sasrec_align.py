@@ -110,11 +110,23 @@ class SASRecAlign(SequentialRecommender):
         self.use_cross = config["use_cross"] if "use_cross" in config else False
         self.use_align = config["use_align"] if "use_align" in config else True
         self.text_cross_layer_num = config["text_cross_layer_num"] if "text_cross_layer_num" in config else 3
+        # Cross-output dropout and learnable text gate configs
+        self.cross_dropout_prob = float(config["cross_dropout_prob"]) if "cross_dropout_prob" in config else 0.0
+        self.text_gate_init = float(config["text_gate_init"]) if "text_gate_init" in config else 0.5
+        self.text_gate_reg_l2 = float(config["text_gate_reg_l2"]) if "text_gate_reg_l2" in config else 0.0
+        self.text_gate_reg_entropy = float(config["text_gate_reg_entropy"]) if "text_gate_reg_entropy" in config else 0.0
+        # learnable global gate alpha in [0,1] via sigmoid
+        self.text_gate_param = nn.Parameter(torch.tensor(self.text_gate_init, dtype=torch.float32))
+        # Explicit switch to fully disable text features and mimic pure SASRec
+        self.disable_text_feature = bool(config["disable_text_feature"]) if "disable_text_feature" in config else False
+        # Training utilities
+        self.freeze_backbone = bool(config["freeze_backbone"]) if "freeze_backbone" in config else False
+        # Exclude Top-K nearest neighbors in InfoNCE negatives to mitigate false negatives
+        self.align_exclude_topk = int(config["align_exclude_topk"]) if "align_exclude_topk" in config else 0
         # New: simple non-cross enhancements
         self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
         self.text_tail_threshold = int(config["text_tail_threshold"]) if "text_tail_threshold" in config else 0
-        # Text MLP regularization
-        self.text_mlp_dropout = float(config["text_mlp_dropout"]) if "text_mlp_dropout" in config else 0.0
+        # Text MLP normalization
         self.text_mlp_bn = bool(config["text_mlp_bn"]) if "text_mlp_bn" in config else False
         # Normalization toggles for projections and fused item embeddings
         self.text_proj_norm_flag = bool(config["text_proj_norm"]) if "text_proj_norm" in config else True
@@ -130,8 +142,10 @@ class SASRecAlign(SequentialRecommender):
             # Fallback to legacy key
             item_text_emb_path_base = config["item_text_emb_path"] if "item_text_emb_path" in config else None
 
-        emb_base = self._load_text_embeddings(item_text_emb_path_base, self.n_items)
-        emb_llm = self._load_text_embeddings(item_text_emb_path_llm, self.n_items)
+        if self.disable_text_feature:
+            emb_base = None
+            emb_llm = None
+        else: emb_base = self._load_text_embeddings(item_text_emb_path_base, self.n_items); emb_llm = self._load_text_embeddings(item_text_emb_path_llm, self.n_items)
 
         if self.normalize_text:
             with torch.no_grad():
@@ -193,6 +207,8 @@ class SASRecAlign(SequentialRecommender):
         self.item_concat_predictor = None
         self.text_proj_norm = None
         self.fused_item_norm = None
+        self.text_cross_dropout = None
+        self.item_fusion_cross_dropout = None
         
         # Item-side fusion modules for integrating text into scoring
         self.item_fusion_cross = None
@@ -202,16 +218,21 @@ class SASRecAlign(SequentialRecommender):
         if text_in_dim > 0:
             if self.use_cross:
                 self.text_cross = DCNV2Cross(text_in_dim, num_layers=self.text_cross_layer_num)
-                # Simple deep tower to the model hidden size
-                self.text_deep = MLPLayers([text_in_dim, self.hidden_size], dropout=self.text_mlp_dropout, bn=self.text_mlp_bn)
+                # Simple deep tower to the model hidden size (no dropout; dropout only on cross outputs)
+                self.text_deep = MLPLayers([text_in_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
                 self.text_predictor = nn.Linear(text_in_dim + self.hidden_size, self.hidden_size)
                 
                 # Item-side fusion: combine item embedding with text features
                 # Input: [item_emb(hidden_size), text_features(text_in_dim)]
                 fusion_input_dim = self.hidden_size + text_in_dim
                 self.item_fusion_cross = DCNV2Cross(fusion_input_dim, num_layers=self.text_cross_layer_num)
-                self.item_fusion_deep = MLPLayers([fusion_input_dim, self.hidden_size], dropout=self.text_mlp_dropout, bn=self.text_mlp_bn)
+                # Item fusion deep tower (no dropout; dropout only on cross outputs)
+                self.item_fusion_deep = MLPLayers([fusion_input_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
                 self.item_fusion_predictor = nn.Linear(fusion_input_dim + self.hidden_size, self.hidden_size)
+                # dropout on cross outputs
+                if self.cross_dropout_prob > 0.0:
+                    self.text_cross_dropout = nn.Dropout(self.cross_dropout_prob)
+                    self.item_fusion_cross_dropout = nn.Dropout(self.cross_dropout_prob)
             else:
                 self.item_text_proj = nn.Linear(text_in_dim, self.hidden_size)
                 # Concatenation-based fusion (no-cross): [item_emb, text_proj] -> hidden_size
@@ -257,6 +278,19 @@ class SASRecAlign(SequentialRecommender):
 
         # parameters initialization
         self.apply(self._init_weights)
+        # apply freezing if needed
+        self.set_freeze(self.freeze_backbone)
+
+    def set_freeze(self, freeze: bool) -> None:
+        """Freeze or unfreeze backbone (ID/position embeddings + transformer encoder + layer norms)."""
+        # item & position embeddings
+        self.item_embedding.weight.requires_grad_(not freeze)
+        self.position_embedding.weight.requires_grad_(not freeze)
+        # encoder and input LayerNorm
+        for p in self.trm_encoder.parameters():
+            p.requires_grad_(not freeze)
+        for p in self.LayerNorm.parameters():
+            p.requires_grad_(not freeze)
 
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Embedding)):
@@ -315,6 +349,8 @@ class SASRecAlign(SequentialRecommender):
             return torch.zeros((raw.size(0), self.hidden_size), device=raw.device)
         if self.use_cross and self.text_cross is not None and self.text_deep is not None and self.text_predictor is not None:
             cross_out = self.text_cross(raw)
+            if self.text_cross_dropout is not None:
+                cross_out = self.text_cross_dropout(cross_out)
             deep_out = self.text_deep(raw)
             fused = torch.cat([cross_out, deep_out], dim=1)
             proj = self.text_predictor(fused)
@@ -331,7 +367,19 @@ class SASRecAlign(SequentialRecommender):
             return torch.zeros(1, device=a.device)
         a = F.normalize(a, dim=1)
         b = F.normalize(b, dim=1)
-        logits = torch.matmul(a, b.t()) / self.temperature
+        sim = torch.matmul(a, b.t())
+        # optional exclusion of Top-K nearest neighbors (except diagonal)
+        if getattr(self, "align_exclude_topk", 0) and self.align_exclude_topk > 0:
+            with torch.no_grad():
+                sim_for_topk = sim.clone()
+                sim_for_topk.fill_diagonal_(-1e9)
+                # top-k indices to exclude per row
+                _, topk_idx = torch.topk(sim_for_topk, k=min(self.align_exclude_topk, sim_for_topk.size(1) - 1), dim=1, largest=True)
+                exclude_mask = torch.zeros_like(sim, dtype=torch.bool)
+                exclude_mask.scatter_(1, topk_idx, True)
+                exclude_mask.fill_diagonal_(False)
+            sim = sim.masked_fill(exclude_mask, -1e9)
+        logits = sim / self.temperature
         labels = torch.arange(a.size(0), device=a.device)
         return nn.CrossEntropyLoss()(logits, labels)
     
@@ -367,34 +415,38 @@ class SASRecAlign(SequentialRecommender):
         
         if self.use_cross and self.item_fusion_predictor is not None:
             # Apply gating/weighting to text features before cross fusion for stability
+            alpha = torch.sigmoid(self.text_gate_param)
             if self.text_item_gate_all is not None:
                 if item_ids is None:
                     gate = self.text_item_gate_all
                 else:
                     gate = self.text_item_gate_all[all_ids]
                 gate = gate.to(item_emb.device).unsqueeze(1)
-                scaled_text = (self.text_weight * gate) * text_raw
+                scaled_text = (alpha * self.text_weight * gate) * text_raw
             else:
-                scaled_text = self.text_weight * text_raw
+                scaled_text = (alpha * self.text_weight) * text_raw
 
             # Fuse item embeddings with scaled text features using cross network
             fusion_input = torch.cat([item_emb, scaled_text], dim=1)
             cross_out = self.item_fusion_cross(fusion_input)
+            if self.item_fusion_cross_dropout is not None:
+                cross_out = self.item_fusion_cross_dropout(cross_out)
             deep_out = self.item_fusion_deep(fusion_input)
             fused = torch.cat([cross_out, deep_out], dim=1)
             fused_emb = self.item_fusion_predictor(fused)
         else:
             # Concatenation fusion (no-cross): [item_emb, scaled text_proj] -> predictor -> hidden_size
             text_proj = self._project_text(text_raw)
+            alpha = torch.sigmoid(self.text_gate_param)
             if self.text_item_gate_all is not None:
                 if item_ids is None:
                     gate = self.text_item_gate_all
                 else:
                     gate = self.text_item_gate_all[all_ids]
                 gate = gate.to(item_emb.device).unsqueeze(1)
-                scaled_text = (self.text_weight * gate) * text_proj
+                scaled_text = (alpha * self.text_weight * gate) * text_proj
             else:
-                scaled_text = self.text_weight * text_proj
+                scaled_text = (alpha * self.text_weight) * text_proj
             concat = torch.cat([item_emb, scaled_text], dim=1)
             fused_emb = self.item_concat_predictor(concat)
         if self.fused_item_norm is not None:
@@ -489,6 +541,16 @@ class SASRecAlign(SequentialRecommender):
                 except Exception:
                     pass
                 self._align_debug_logged = True
+
+        # Regularization on text gate alpha
+        if self.text_gate_reg_l2 > 0.0 or self.text_gate_reg_entropy > 0.0:
+            alpha = torch.sigmoid(self.text_gate_param)
+            if self.text_gate_reg_l2 > 0.0:
+                loss = loss + self.text_gate_reg_l2 * (alpha ** 2)
+            if self.text_gate_reg_entropy > 0.0:
+                eps = 1e-8
+                entropy = -(alpha * torch.log(alpha + eps) + (1.0 - alpha) * torch.log(1.0 - alpha + eps))
+                loss = loss + self.text_gate_reg_entropy * entropy
 
         return loss
 

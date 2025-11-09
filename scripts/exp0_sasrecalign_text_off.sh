@@ -1,29 +1,29 @@
 #!/bin/bash
-# 实验6: Yelp2018 SASRec + LLM + Cross (无Align)
+# 实验0: SASRecAlign 关闭文本分支（等价于原始 SASRec）
 
 BASE_DIR="/home/charlie/project/RecBole"
 cd $BASE_DIR
 
-EXP_NAME="yelp_exp6_sasrec_llm_cross"
+EXP_NAME="exp0_sasrecalign_text_off"
 MODEL="SASRec_Align"
-DATASET="yelp2018"
-CONFIG_FILE="yelp_sasrec_llm_cross.yaml"
+DATASET="Amazon_Beauty"
+CONFIG_FILES="sasrec_align_text_off.yaml"
 
-LOG_DIR="results/yelp_experiments"
+LOG_DIR="results/sasrec_experiments"
 mkdir -p $LOG_DIR
 
 echo "=========================================="
 echo "实验: $EXP_NAME"
 echo "模型: $MODEL"
 echo "数据集: $DATASET"
-echo "配置文件: $CONFIG_FILE"
+echo "配置文件: $CONFIG_FILES"
 echo "开始时间: $(date)"
 echo "=========================================="
 
 python run_recbole.py \
     --model $MODEL \
     --dataset $DATASET \
-    --config_files $CONFIG_FILE \
+    --config_files $CONFIG_FILES \
     > ${LOG_DIR}/${EXP_NAME}.log 2>&1
 
 if [ $? -eq 0 ]; then
