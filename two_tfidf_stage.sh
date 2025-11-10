@@ -6,4 +6,5 @@ python scripts/exp_align_two_stage.py \
   --stage2_lr 3e-5 \
   --temperatures 0.05 0.07 \
   --weights 0.05 0.1 0.2 \
-  --exclude_topk 0
+  --exclude_topk 0 \
+  --base_emb dataset/Amazon_Beauty/item_text_emb.base.npy
