@@ -145,6 +145,7 @@ def _fit_tfidf_svd(
     min_df: int = 2,
     max_features: Optional[int] = None,
     random_state: int = 42,
+    pre_svd_l2: bool = True,
 ) -> np.ndarray:
     """Compute TF-IDF then reduce with TruncatedSVD, then L2 normalize rows.
 
@@ -159,6 +160,9 @@ def _fit_tfidf_svd(
         dtype=np.float32,
     )
     tfidf = vectorizer.fit_transform(texts)
+    # Optional: row-wise L2 normalization before SVD (to align with Qwen3 flow)
+    if pre_svd_l2:
+        tfidf = l2_normalize(tfidf, norm="l2", axis=1, copy=False)
 
     # Handle edge cases where vocabulary is tiny
     svd_k = max(1, min(n_components, tfidf.shape[1] - 1 if tfidf.shape[1] > 1 else 1))
@@ -185,6 +189,7 @@ def _fit_on_train_transform_all(
     min_df: int = 2,
     max_features: Optional[int] = None,
     random_state: int = 42,
+    pre_svd_l2: bool = True,
 ) -> np.ndarray:
     """Fit TF-IDF and SVD on train_texts only, then transform all_texts.
 
@@ -201,6 +206,10 @@ def _fit_on_train_transform_all(
     # Fit only on training texts
     tfidf_train = vectorizer.fit_transform(train_texts)
     tfidf_all = vectorizer.transform(all_texts)
+    # Optional: row-wise L2 before SVD fit/transform (align with Qwen3)
+    if pre_svd_l2:
+        tfidf_train = l2_normalize(tfidf_train, norm="l2", axis=1, copy=False)
+        tfidf_all = l2_normalize(tfidf_all, norm="l2", axis=1, copy=False)
 
     # Handle edge cases where vocabulary is tiny
     svd_k = max(1, min(n_components, tfidf_train.shape[1] - 1 if tfidf_train.shape[1] > 1 else 1))
@@ -231,6 +240,8 @@ def build_item_text_emb(
     min_df: int = 2,
     max_features: Optional[int] = None,
     dtype: str = "float16",
+    svd_random_state: int = 42,
+    pre_svd_l2: bool = True,
 ) -> str:
     """Main pipeline to build base item text embeddings and save to output_path.
 
@@ -276,6 +287,8 @@ def build_item_text_emb(
             ngram_range=(ngram_min, ngram_max),
             min_df=min_df,
             max_features=max_features,
+            random_state=svd_random_state,
+            pre_svd_l2=pre_svd_l2,
         )
     else:
         emb = _fit_on_train_transform_all(
@@ -286,6 +299,8 @@ def build_item_text_emb(
             ngram_range=(ngram_min, ngram_max),
             min_df=min_df,
             max_features=max_features,
+            random_state=svd_random_state,
+            pre_svd_l2=pre_svd_l2,
         )
 
     # Cast dtype if requested
@@ -328,6 +343,12 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--svd_dim", type=int, default=256, help="Output embedding dimension")
     p.add_argument(
+        "--svd_random_state",
+        type=int,
+        default=42,
+        help="Random state for TruncatedSVD (aligns with Qwen3 script).",
+    )
+    p.add_argument(
         "--ngram_min", type=int, default=1, help="Minimum n for character n-grams"
     )
     p.add_argument(
@@ -348,6 +369,11 @@ def parse_args() -> argparse.Namespace:
         default="float16",
         help="Output dtype for the saved matrix",
     )
+    p.add_argument(
+        "--no_pre_svd_l2",
+        action="store_true",
+        help="Disable row-wise L2 normalization before SVD (enabled by default).",
+    )
     return p.parse_args()
 
 
@@ -365,6 +391,8 @@ def main():
         min_df=args.min_df,
         max_features=args.max_features,
         dtype=args.dtype,
+        svd_random_state=args.svd_random_state,
+        pre_svd_l2=(not args.no_pre_svd_l2),
     )
 
 

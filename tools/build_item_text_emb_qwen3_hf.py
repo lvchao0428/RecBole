@@ -54,7 +54,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--model_name_or_path", required=True, help="HF model id or local path (e.g., Qwen/Qwen2-7B-Instruct)")
     p.add_argument("--output", required=True, help="Output .npy path for embeddings")
     p.add_argument("--batch_size", type=int, default=16)
-    p.add_argument("--max_length", type=int, default=128)
+    p.add_argument(
+        "--max_length",
+        type=int,
+        default=0,
+        help="Max sequence length for tokenizer truncation; 0 means no truncation (default: 0).",
+    )
     p.add_argument("--dtype", choices=["float16", "bfloat16", "float32"], default="float16")
     p.add_argument("--device", default=None, help="cuda device like cuda:0, or cpu; default: auto")
     p.add_argument("--device_map", default=None, help="set to 'auto' to shard across devices (HF accelerate)")
@@ -67,6 +72,11 @@ def parse_args() -> argparse.Namespace:
         "--use_chat_template",
         action="store_true",
         help="Wrap prompt using tokenizer.apply_chat_template like chat demo.",
+    )
+    p.add_argument(
+        "--no_chat_template",
+        action="store_true",
+        help="Disable chat template even if available; always use plain prompt template.",
     )
     p.add_argument(
         "--use_causal_lm",
@@ -124,6 +134,8 @@ def encode_batch(
     device: torch.device,
     torch_dtype: torch.dtype,
 ) -> np.ndarray:
+    # Determine truncation policy from max_length (0 or negative → no truncation)
+    do_trunc = isinstance(max_length, int) and max_length > 0
     if getattr(tokenizer, "pad_token_id", None) is None:
         # No padding token available: encode one by one
         outs = []
@@ -131,8 +143,8 @@ def encode_batch(
             enc = tokenizer(
                 txt,
                 padding=False,
-                truncation=True,
-                max_length=max_length,
+                truncation=do_trunc,
+                max_length=(max_length if do_trunc else None),
                 return_tensors="pt",
             )
             enc = {k: v.to(device) for k, v in enc.items()}
@@ -152,8 +164,8 @@ def encode_batch(
         enc = tokenizer(
             texts,
             padding=True,
-            truncation=True,
-            max_length=max_length,
+            truncation=do_trunc,
+            max_length=(max_length if do_trunc else None),
             return_tensors="pt",
         )
         enc = {k: v.to(device) for k, v in enc.items()}
@@ -164,8 +176,8 @@ def encode_batch(
                 enc_i = tokenizer(
                     txt,
                     padding=False,
-                    truncation=True,
-                    max_length=max_length,
+                    truncation=do_trunc,
+                    max_length=(max_length if do_trunc else None),
                     return_tensors="pt",
                 )
                 enc_i = {k: v.to(device) for k, v in enc_i.items()}
@@ -253,6 +265,8 @@ def main():
     model.eval()
 
     # Build texts in internal id order (after tokenizer, to allow chat templates)
+    # Default behavior: if chat template is available, enable it unless explicitly disabled
+    use_chat = hasattr(tokenizer, "apply_chat_template") and (not args.no_chat_template)
     df = df.sort_values("internal_item_id")
     texts: List[str] = []
     for _, row in df.iterrows():
@@ -263,7 +277,7 @@ def main():
             if len(raw.strip()) == 0:
                 raw = args.placeholder_text
         base_prompt = args.prompt_template.replace("{text}", raw.strip())
-        if args.use_chat_template and hasattr(tokenizer, "apply_chat_template"):
+        if use_chat:
             messages = [{"role": "user", "content": base_prompt}]
             chat_text = tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=False
@@ -272,7 +286,8 @@ def main():
         else:
             texts.append(base_prompt)
 
-    print(f"Encoding {len(texts)} items with batch_size={args.batch_size} max_length={args.max_length}...")
+    max_len_str = str(args.max_length) if isinstance(args.max_length, int) and args.max_length > 0 else "unlimited"
+    print(f"Encoding {len(texts)} items with batch_size={args.batch_size} max_length={max_len_str}...")
     all_emb = []
     with tqdm(total=len(texts), unit="items") as pbar:
         for i in range(0, len(texts), args.batch_size):
