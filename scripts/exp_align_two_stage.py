@@ -20,7 +20,9 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from recbole.quick_start import run_recbole, load_data_and_model
-from recbole.utils import get_trainer
+from recbole.utils import get_trainer, get_model
+from recbole.config import Config
+from recbole.data import create_dataset, data_preparation
 import shutil
 # Reduce CUDA fragmentation issues (use new env var; old one deprecated)
 os.environ.setdefault("PYTORCH_ALLOC_CONF", "cuda_malloc_backend:expandable_segments")
@@ -100,6 +102,7 @@ def main():
     parser.add_argument("--llm_emb", default="dataset/Amazon_Beauty/item_text_emb.qwen3.npy")
     parser.add_argument("--temperatures", type=float, nargs="+", default=[0.05, 0.07])
     parser.add_argument("--weights", type=float, nargs="+", default=[0.05, 0.1, 0.2])
+    parser.add_argument("--preflight", action="store_true", default=True, help="Enable preflight checks before Stage1/Stage2")
     args = parser.parse_args()
 
     os.makedirs(args.checkpoint_root, exist_ok=True)
@@ -119,6 +122,7 @@ def main():
             "dataset": dataset_to_use,
             "field_separator": "\t",
             "TIME_FIELD": "timestamp",
+            # ensure deterministic tokenization of sequence-like fields if used
             "seq_separator": " ",
             "load_col": {
                 "inter": ["user_id", "item_id", "timestamp"],
@@ -152,6 +156,35 @@ def main():
             common_cfg["use_llm"] = True
             common_cfg["item_text_emb_path_llm"] = args.llm_emb
 
+        # ---------------- Preflight before Stage 1 ----------------
+        if args.preflight:
+            # Build a temporary config/dataset/model to validate text branch and grad path
+            tmp_cfg = dict(common_cfg)
+            tmp_cfg["freeze_backbone"] = False  # construct model unfrozen for inspection
+            try:
+                cfg = Config(model=tmp_cfg["model"], dataset=tmp_cfg["dataset"], config_dict=tmp_cfg)
+                ds = create_dataset(cfg)
+                model_cls = get_model(cfg["model"])
+                model_tmp = model_cls(cfg, ds).to(cfg["device"])
+                # Check text availability
+                has_text = False
+                base_rows = getattr(model_tmp, "item_text_emb_base", None)
+                llm_rows = getattr(model_tmp, "item_text_emb_llm", None)
+                if args.mode == "base":
+                    has_text = (base_rows is not None) and (base_rows.size(0) == model_tmp.n_items)
+                else:
+                    has_text = (llm_rows is not None) and (llm_rows.size(0) == model_tmp.n_items)
+                assert has_text, "Preflight failed: text embeddings not loaded or rows mismatch with n_items"
+                # Simulate Stage1 freeze and ensure there are sufficient trainable params (> 100 as a sanity threshold)
+                if hasattr(model_tmp, "set_freeze"):
+                    model_tmp.set_freeze(True)
+                trainable_params = sum(p.numel() for p in model_tmp.parameters() if p.requires_grad)
+                assert trainable_params > 100, f"Preflight failed: too few trainable params in Stage1 freeze mode ({trainable_params})"
+                print(f"[Preflight] OK: text branch ready; trainable_params(Stage1)={trainable_params}")
+            except Exception as e:
+                print(f"[Preflight] ERROR: {e}")
+                sys.exit(1)
+
         # ---------------- Stage 1: Freeze backbone ----------------
         stage1_cfg = dict(common_cfg)
         stage1_cfg.update(
@@ -181,6 +214,25 @@ def main():
         config2["model"] = "SASRec_Align"
         if hasattr(model2, "set_freeze"):
             model2.set_freeze(False)
+        # Stage2 preflight (lightweight)
+        if args.preflight:
+            try:
+                # Verify text still present and consistent
+                has_text2 = False
+                base_rows2 = getattr(model2, "item_text_emb_base", None)
+                llm_rows2 = getattr(model2, "item_text_emb_llm", None)
+                if args.mode == "base":
+                    has_text2 = (base_rows2 is not None) and (base_rows2.size(0) == model2.n_items)
+                else:
+                    has_text2 = (llm_rows2 is not None) and (llm_rows2.size(0) == model2.n_items)
+                assert has_text2, "Preflight(Stage2) failed: text embeddings missing/mismatch after loading checkpoint"
+                # Ensure enough trainable params in unfreeze mode
+                tp2 = sum(p.numel() for p in model2.parameters() if p.requires_grad)
+                assert tp2 > 100, f"Preflight(Stage2) failed: too few trainable params ({tp2})"
+                print(f"[Preflight] OK(Stage2): text ready; trainable_params={tp2}")
+            except Exception as e:
+                print(f"[Preflight] ERROR(Stage2): {e}")
+                sys.exit(1)
         # small LR & stage2 epochs
         config2["learning_rate"] = float(args.stage2_lr)
         config2["epochs"] = int(args.stage2_epochs)
