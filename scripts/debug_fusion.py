@@ -14,7 +14,7 @@ from recbole.model.sequential_recommender.sasrec_align import SASRecAlign
 def check_fusion_modules(config_file):
     """检查不同配置下的融合模块"""
     config = Config(
-        model="SASRecAlign",
+        model="SASRec_Align",
         dataset="Amazon_Beauty", 
         config_file_list=[config_file],
         config_dict={"device": "cpu"}
@@ -47,6 +47,12 @@ def check_fusion_modules(config_file):
     print(f"use_cross: {model.use_cross}")
     print(f"use_align: {model.use_align}")
     print(f"use_llm: {model.use_llm}")
+    try:
+        alpha = float(torch.sigmoid(model.text_gate_param).item()) if hasattr(model, "text_gate_param") else None
+    except Exception:
+        alpha = None
+    if alpha is not None:
+        print(f"text gate alpha (sigmoid): {alpha:.4f}")
     
     # 检查文本embeddings
     print(f"\n文本embedding状态:")
@@ -65,26 +71,36 @@ def check_fusion_modules(config_file):
     print(f"- item_fusion_cross: {'已创建' if model.item_fusion_cross is not None else '未创建'}")
     print(f"- item_fusion_deep: {'已创建' if model.item_fusion_deep is not None else '未创建'}")
     print(f"- item_fusion_predictor: {'已创建' if model.item_fusion_predictor is not None else '未创建'}")
+    print(f"- item_concat_predictor: {'已创建' if model.item_concat_predictor is not None else '未创建'}")
     
-    # 测试融合路径
-    if model.item_fusion_predictor is not None:
-        test_ids = torch.tensor([1, 2, 3])
-        with torch.no_grad():
-            # 获取原始 embeddings
-            orig_emb = model.item_embedding(test_ids)
-            # 获取融合后的 embeddings
-            fused_emb = model._get_fused_item_embeddings(test_ids)
-            
-            # 检查是否不同
-            is_different = not torch.allclose(orig_emb, fused_emb)
-            print(f"\n融合测试:")
-            print(f"- 原始 embedding 形状: {orig_emb.shape}")
-            print(f"- 融合 embedding 形状: {fused_emb.shape}")
-            print(f"- 是否经过融合: {'是' if is_different else '否'}")
-            
-            if is_different:
-                diff_norm = (fused_emb - orig_emb).norm().item()
-                print(f"- 差异 L2 范数: {diff_norm:.6f}")
+    # 测试融合路径（无论 cross / concat，都进行对比）
+    test_ids = torch.tensor([1, 2, 3])
+    with torch.no_grad():
+        # 获取原始 embeddings
+        orig_emb = model.item_embedding(test_ids)
+        # 获取融合后的 embeddings
+        fused_emb = model._get_fused_item_embeddings(test_ids)
+        
+        # 检查是否不同
+        is_different = not torch.allclose(orig_emb, fused_emb)
+        print(f"\n融合测试:")
+        print(f"- 原始 embedding 形状: {orig_emb.shape}")
+        print(f"- 融合 embedding 形状: {fused_emb.shape}")
+        print(f"- 是否经过融合: {'是' if is_different else '否'}")
+        
+        if is_different:
+            diff_norm = (fused_emb - orig_emb).norm().item()
+            print(f"- 差异 L2 范数: {diff_norm:.6f}")
+    
+    # 文本启用比例（若存在 tail gate）
+    try:
+        if hasattr(model, "text_item_gate_all") and model.text_item_gate_all is not None:
+            gate_vec = model.text_item_gate_all.detach().cpu()
+            enabled = int((gate_vec > 0).sum().item())
+            total = int(gate_vec.numel())
+            print(f"\n文本item gate 启用统计: enabled={enabled}/{total} ({enabled/total:.2%})")
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     # 测试不同配置

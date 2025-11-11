@@ -46,7 +46,7 @@ train_neg_sample_args: null
 item_text_emb_path_llm: dataset/Amazon_Beauty/item_text_emb.qwen3.npy
 use_llm: true
 use_cross: false
-use_align: true
+use_align: false
 alignment_weight: 0.1
 temperature: 0.07
 detach_text_emb: true
@@ -85,7 +85,7 @@ text_gate_reg_entropy: 0.0
 # Text fusion stabilizers
 #text_proj_norm: true        # enable LayerNorm after text projection/fusion
 #fused_item_norm: true       # enable LayerNorm on fused item embeddings
-#text_weight: 0.4
+text_weight: 0.8
 #text_tail_threshold: 5
 
 
