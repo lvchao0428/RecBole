@@ -11,6 +11,13 @@ import os
 from typing import List, Dict, Any
 from copy import deepcopy
 
+# Ensure project root is on sys.path when running this script directly
+import sys
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from recbole.quick_start import run_recbole
 
 
