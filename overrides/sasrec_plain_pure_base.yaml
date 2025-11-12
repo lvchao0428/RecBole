@@ -21,10 +21,10 @@ text_gate_reg_entropy: 0.0005
 text_gate_reg_l2: 0.0
 text_tail_threshold: 0
 
-# Efficiency
-epochs: 20
+# Efficiency (longer training with early stop)
+epochs: 60
 eval_step: 2
-stopping_step: 5
+stopping_step: 10
 eval_batch_size: 32
 
 

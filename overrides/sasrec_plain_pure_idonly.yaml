@@ -1,0 +1,23 @@
+---
+# Pure ID-only baseline using SASRecAlign (no text, no align, no cross)
+# Fair schedule aligned with pure-text overrides
+
+disable_text_feature: true
+use_align: false
+alignment_weight: 0.0
+use_cross: false
+
+# Scoring/stabilization (kept consistent)
+cosine_score: true
+text_proj_norm: false
+fused_item_norm: false
+normalize_text: true
+detach_text_emb: true
+
+# Efficiency (same as others)
+epochs: 60
+eval_step: 2
+stopping_step: 10
+eval_batch_size: 32
+
+
