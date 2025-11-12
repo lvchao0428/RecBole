@@ -1,0 +1,30 @@
+---
+# Pure text enhancement (Plain) for TF-IDF base embeddings
+# - No alignment, no cross
+# - Shared-HP style stable defaults
+
+use_align: false
+alignment_weight: 0.0
+use_cross: false
+
+# Stabilization
+normalize_text: true
+detach_text_emb: true
+text_proj_norm: true
+fused_item_norm: true
+cosine_score: true
+
+# Gating and text strength
+text_weight: 0.4
+text_gate_init: 0.3
+text_gate_reg_entropy: 0.0005
+text_gate_reg_l2: 0.0
+text_tail_threshold: 0
+
+# Efficiency
+epochs: 20
+eval_step: 2
+stopping_step: 5
+eval_batch_size: 32
+
+
