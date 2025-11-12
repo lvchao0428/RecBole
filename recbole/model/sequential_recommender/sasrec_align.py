@@ -245,6 +245,8 @@ class SASRecAlign(SequentialRecommender):
                 self.fused_item_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
         self._align_debug_logged = False
+        # Gate-alpha logging flag (first training step)
+        self._gate_debug_logged = False
         
         # Cache for fused item embeddings to improve efficiency
         self._fused_item_emb_cache = None
@@ -551,6 +553,18 @@ class SASRecAlign(SequentialRecommender):
                 eps = 1e-8
                 entropy = -(alpha * torch.log(alpha + eps) + (1.0 - alpha) * torch.log(1.0 - alpha + eps))
                 loss = loss + self.text_gate_reg_entropy * entropy
+
+        # Log gate alpha on first training step (independent of alignment branch)
+        if (not self._gate_debug_logged) and self.training:
+            try:
+                alpha_val = float(torch.sigmoid(self.text_gate_param).detach().cpu().item())
+                self.logger.info(
+                    "SASRecAlign: first-step text_gate_alpha=%.6f (use_llm=%s, use_cross=%s, use_align=%s, text_mode=%s)",
+                    alpha_val, str(self.use_llm), str(self.use_cross), str(self.use_align), getattr(self, "_text_mode", "unknown")
+                )
+            except Exception:
+                pass
+            self._gate_debug_logged = True
 
         return loss
 
