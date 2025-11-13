@@ -1,0 +1,5 @@
+---
+# Override for exp8 derivative: keep alignment but switch to Plain (no cross)
+use_cross: false
+
+

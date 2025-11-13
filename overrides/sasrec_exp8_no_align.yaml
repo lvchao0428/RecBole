@@ -1,0 +1,6 @@
+---
+# Override for exp8 derivative: disable alignment to isolate its effect
+use_align: false
+alignment_weight: 0.0
+
+
