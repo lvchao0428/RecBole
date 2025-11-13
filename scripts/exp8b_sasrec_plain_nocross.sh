@@ -7,7 +7,7 @@ cd $BASE_DIR
 EXP_NAME="exp8b_sasrec_plain_nocross"
 MODEL="SASRec_Align"
 DATASET="Amazon_Beauty"
-CONFIG_FILES="sasrec_align_qwen3_gate_l2.yaml,overrides/sasrec_exp8_plain_nocross.yaml"
+CONFIG_FILES="sasrec_align_qwen3_gate_l2.yaml overrides/sasrec_exp8_plain_nocross.yaml"
 
 LOG_DIR="results/sasrec_experiments"
 mkdir -p $LOG_DIR
