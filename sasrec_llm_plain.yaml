@@ -1,5 +1,5 @@
 ---
-model: SASRecAlign
+model: SASRec_Align
 
 # Model parameters - unified to 256
 hidden_size: 256

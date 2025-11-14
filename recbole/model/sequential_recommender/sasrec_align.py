@@ -126,6 +126,10 @@ class SASRecAlign(SequentialRecommender):
         # New: simple non-cross enhancements
         self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
         self.text_tail_threshold = int(config["text_tail_threshold"]) if "text_tail_threshold" in config else 0
+        # Control whether text features participate in item embedding fusion (alignment can still run)
+        self.fuse_text_feature = (
+            bool(config["fuse_text_feature"]) if "fuse_text_feature" in config else True
+        )
         # Text MLP normalization
         self.text_mlp_bn = bool(config["text_mlp_bn"]) if "text_mlp_bn" in config else False
         # Normalization toggles for projections and fused item embeddings
@@ -160,6 +164,23 @@ class SASRecAlign(SequentialRecommender):
 
         self.register_buffer("item_text_emb_base", emb_base if emb_base is not None else None)
         self.register_buffer("item_text_emb_llm", emb_llm if emb_llm is not None else None)
+
+        if self.disable_text_feature:
+            # Safety: when text branch is explicitly disabled, never fuse text embeddings
+            self.fuse_text_feature = False
+        else:
+            if self.use_llm:
+                if self.item_text_emb_llm is None:
+                    raise ValueError(
+                        "SASRecAlign: use_llm=True but item_text_emb_path_llm is missing "
+                        "or points to an invalid file."
+                    )
+            else:
+                if self.item_text_emb_base is None:
+                    raise ValueError(
+                        "SASRecAlign: text features are enabled but item_text_emb_path_base "
+                        "is missing or invalid."
+                    )
 
         # Precompute item popularity for optional tail gating (no extra IO during training)
         pop_counts = None
@@ -408,6 +429,8 @@ class SASRecAlign(SequentialRecommender):
             or (self.use_cross and self.item_fusion_predictor is None)
             or ((not self.use_cross) and (self.item_text_proj is None or self.item_concat_predictor is None))
         ):
+            return item_emb
+        if not self.fuse_text_feature:
             return item_emb
             
         # Get text features for items
