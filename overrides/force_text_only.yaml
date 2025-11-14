@@ -1,0 +1,20 @@
+---
+# 强制只使用文本特征的极端配置
+# 如果这个配置的结果还是和纯ID一样，说明文本特征根本没有加载成功
+
+# 让ID嵌入几乎不起作用
+hidden_size: 256
+initializer_range: 0.0001  # 极小的初始化，让ID嵌入接近0
+
+# 最大化文本特征
+text_weight: 100.0         # 极大的文本权重
+text_gate_init: 10.0       # sigmoid(10) ≈ 0.9999
+
+# 确保文本特征启用
+disable_text_feature: false
+use_llm: false
+use_cross: false
+
+# 快速测试
+epochs: 5
+eval_step: 1
