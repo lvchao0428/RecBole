@@ -23,11 +23,11 @@ def check_text_features(config_files):
     config = Config(model='SASRec_Align', dataset='Amazon_Beauty', config_file_list=config_files)
     
     print("\n=== 配置检查 ===")
-    print(f"disable_text_feature: {config['disable_text_feature']}")
-    print(f"use_llm: {config['use_llm']}")
-    print(f"use_cross: {config['use_cross']}")
-    print(f"text_weight: {config.get('text_weight', 1.0)}")
-    print(f"text_gate_init: {config.get('text_gate_init', 0.5)}")
+    print(f"disable_text_feature: {config['disable_text_feature'] if 'disable_text_feature' in config else False}")
+    print(f"use_llm: {config['use_llm'] if 'use_llm' in config else False}")
+    print(f"use_cross: {config['use_cross'] if 'use_cross' in config else False}")
+    print(f"text_weight: {config['text_weight'] if 'text_weight' in config else 1.0}")
+    print(f"text_gate_init: {config['text_gate_init'] if 'text_gate_init' in config else 0.5}")
     
     # 创建数据集和模型
     dataset = create_dataset(config)
