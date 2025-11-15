@@ -161,7 +161,63 @@ def run_recbole(
     )
 
     logger.info(set_color("best valid ", "yellow") + f": {best_valid_result}")
-    logger.info(set_color("test result", "yellow") + f": {test_result}")
+    # -------------------- 公共工具函数 --------------------
+    def _estimate_model_mem_mb() -> float:
+        """根据参数量和 dtype 估算显存(MB)。不考虑激活/梯度，仅供参考。"""
+        total_bytes = 0
+        for p in model.parameters():
+            elem_size = p.element_size()  # bytes per element
+            total_bytes += p.numel() * elem_size
+        return total_bytes / (1024 ** 2)  # MB
+
+    def _log_diagnostics(stage: str, result_dict):
+        # 1) 估算模型显存占用
+        mem_mb = _estimate_model_mem_mb()
+        logger.info(set_color(f"{stage} model_mem(MB)", "blue") + f": {mem_mb:.1f}")
+
+        # 2) 可训练参数
+        train_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        logger.info(set_color(f"{stage} trainable params", "blue") + f": {train_params / 1e6:.2f}M")
+
+        # 3) 关键配置
+        def _log_group(title: str, keys):
+            kv = {k: config[k] for k in keys if k in config}
+            logger.info(set_color(f"{stage} {title}", "cyan") + f": {kv}")
+
+        _log_group("optim_args", ["learning_rate", "train_batch_size", "epochs", "loss_type"])
+        _log_group(
+            "text_args",
+            [
+                "disable_text_feature",
+                "use_llm",
+                "use_cross",
+                "use_align",
+                "fuse_text_feature",
+                "alignment_weight",
+                "item_text_emb_path_base",
+                "item_text_emb_path_llm",
+            ],
+        )
+        _log_group(
+            "reg_args",
+            [
+                "weight_decay",
+                "label_smoothing",
+                "token_dropout_prob",
+                "text_gate_reg_l2",
+                "text_gate_reg_entropy",
+            ],
+        )
+
+        # 4) 结果本身
+        color = "green" if stage == "valid" else "yellow"
+        logger.info(set_color(f"{stage} result", color) + f": {result_dict}")
+
+    # ---------- 打印 Validation 诊断 ----------
+    _log_diagnostics("valid", best_valid_result)
+
+    # ---------- 打印 Test 诊断 ----------
+    _log_diagnostics("test", test_result)
 
     result = {
         "best_valid_score": best_valid_score,
