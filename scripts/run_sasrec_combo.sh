@@ -8,11 +8,13 @@
 set -e
 
 CFG_FILE=$1
-if [[ -z "$CFG_FILE" ]]; then
-  echo "[Usage] bash scripts/run_sasrec_combo.sh <yaml_cfg> [dataset]"; exit 1
+if [ -z "$CFG_FILE" ]; then
+  echo "[Usage] bash scripts/run_sasrec_combo.sh <yaml_cfg> [dataset]"
+  exit 1
 fi
-if [[ ! -f "$CFG_FILE" ]]; then
-  echo "[Error] config file '$CFG_FILE' not found!"; exit 1
+if [ ! -f "$CFG_FILE" ]; then
+  echo "[Error] config file '$CFG_FILE' not found!"
+  exit 1
 fi
 
 DATASET=${2:-Amazon_Beauty}
@@ -38,7 +40,7 @@ python run_recbole.py \
   > "$LOG_DIR/${EXP_NAME}.log" 2>&1
 
 status=$?
-if [[ $status -eq 0 ]]; then
+if [ "$status" -eq 0 ]; then
   echo "✓ Finished   $(date)"
   echo "--- Test summary ---"
   grep -A 5 "test result" "$LOG_DIR/${EXP_NAME}.log" | tail -6 || true
