@@ -1,0 +1,12 @@
+epochs: 10
+eval_step: 2
+valid_metric: NDCG@10
+
+# ID-only baseline: disable text and alignment branches
+disable_text_feature: true
+use_align: false
+use_llm: false
+use_cross: false
+fuse_text_feature: false
+
+
