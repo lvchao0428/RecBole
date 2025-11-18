@@ -181,7 +181,21 @@ class Trainer(AbstractTrainer):
         Returns:
             torch.optim: the optimizer
         """
-        params = kwargs.pop("params", self.model.parameters())
+        # If model provides grouped parameters, prefer that; else fall back to flat params.
+        params = kwargs.pop("params", None)
+        if params is None and hasattr(self.model, "get_optimizer_grouped_parameters"):
+            try:
+                grouped = self.model.get_optimizer_grouped_parameters(self.config)
+                if isinstance(grouped, list) and len(grouped) > 0:
+                    params = grouped
+            except Exception as e:
+                if hasattr(self, "logger"):
+                    self.logger.warning(
+                        "get_optimizer_grouped_parameters failed, fallback to default params: %s",
+                        str(e),
+                    )
+        if params is None:
+            params = self.model.parameters()
         learner = kwargs.pop("learner", self.learner)
         learning_rate = kwargs.pop("learning_rate", self.learning_rate)
         weight_decay = kwargs.pop("weight_decay", self.weight_decay)

@@ -315,6 +315,85 @@ class SASRecAlign(SequentialRecommender):
         for p in self.LayerNorm.parameters():
             p.requires_grad_(not freeze)
 
+    def get_optimizer_grouped_parameters(self, config):
+        """Build optimizer param groups for lightweight, per-module learning rates.
+        
+        Groups:
+          - text_head: text projection modules used for alignment/projection
+          - dnn_cross: item-side fusion (cross/deep/predictor) and global text gate
+          - backbone: SASRec backbone (ID/position embeddings + Transformer encoder + LayerNorm)
+        
+        Config keys (optional, fall back to global learning_rate/weight_decay):
+          - lr_text_head, lr_dnn_cross, lr_backbone
+          - wd_text_head, wd_dnn_cross, wd_backbone
+        """
+        # Base fallbacks
+        base_lr = float(config["learning_rate"])
+        base_wd = float(config["weight_decay"])
+        lr_text_head = float(config["lr_text_head"]) if "lr_text_head" in config else base_lr
+        lr_dnn_cross = float(config["lr_dnn_cross"]) if "lr_dnn_cross" in config else base_lr
+        lr_backbone = float(config["lr_backbone"]) if "lr_backbone" in config else base_lr
+        wd_text_head = float(config["wd_text_head"]) if "wd_text_head" in config else base_wd
+        wd_dnn_cross = float(config["wd_dnn_cross"]) if "wd_dnn_cross" in config else base_wd
+        wd_backbone = float(config["wd_backbone"]) if "wd_backbone" in config else base_wd
+
+        def collect_params(modules, extra_params=None):
+            params = []
+            for m in modules:
+                if m is None:
+                    continue
+                for p in m.parameters(recurse=True):
+                    if p.requires_grad:
+                        params.append(p)
+            if extra_params:
+                for p in extra_params:
+                    if p is not None and getattr(p, "requires_grad", False):
+                        params.append(p)
+            return params
+
+        # text_head: projection from raw/base+llm text to hidden_size
+        text_head_modules = []
+        if self.use_cross:
+            # cross-side text projection tower
+            text_head_modules.extend([self.text_cross, self.text_deep, self.text_predictor])
+        else:
+            # non-cross single linear projection
+            text_head_modules.append(self.item_text_proj)
+        if self.text_proj_norm is not None:
+            text_head_modules.append(self.text_proj_norm)
+
+        # dnn/cross: item-side fusion modules + global gate + fused norm
+        dnn_cross_modules = []
+        if self.use_cross:
+            dnn_cross_modules.extend([self.item_fusion_cross, self.item_fusion_deep, self.item_fusion_predictor])
+        else:
+            dnn_cross_modules.append(self.item_concat_predictor)
+        if self.fused_item_norm is not None:
+            dnn_cross_modules.append(self.fused_item_norm)
+        dnn_extra_params = [self.text_gate_param]
+
+        # backbone: SASRec core
+        backbone_modules = [self.item_embedding, self.position_embedding, self.trm_encoder, self.LayerNorm]
+
+        g_text = collect_params(text_head_modules)
+        g_dnn = collect_params(dnn_cross_modules, extra_params=dnn_extra_params)
+        g_backbone = collect_params(backbone_modules)
+
+        groups = []
+        if len(g_text) > 0:
+            groups.append({"params": g_text, "lr": lr_text_head, "weight_decay": wd_text_head})
+        if len(g_dnn) > 0:
+            groups.append({"params": g_dnn, "lr": lr_dnn_cross, "weight_decay": wd_dnn_cross})
+        if len(g_backbone) > 0:
+            groups.append({"params": g_backbone, "lr": lr_backbone, "weight_decay": wd_backbone})
+
+        # Any leftover trainable params fall back to base lr/wd
+        covered = {id(p) for g in groups for p in g["params"]}
+        rest = [p for p in self.parameters() if p.requires_grad and id(p) not in covered]
+        if len(rest) > 0:
+            groups.append({"params": rest, "lr": base_lr, "weight_decay": base_wd})
+        return groups
+
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Embedding)):
             module.weight.data.normal_(mean=0.0, std=self.initializer_range)
