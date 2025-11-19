@@ -1,2 +1,0 @@
-python3 scripts/extract_metrics_to_csv.py \
-  --from-string "INFO  test result: OrderedDict([('recall@5', 0.0421), ('recall@10', 0.0533), ('recall@20', 0.0672), ('mrr@5', 0.0287), ('mrr@10', 0.0302), ('mrr@20', 0.0311), ('ndcg@5', 0.032), ('ndcg@10', 0.0356), ('ndcg@20', 0.0391), ('hit@5', 0.0421), ('hit@10', 0.0533), ('hit@20', 0.0672), ('precision@5', 0.0084), ('precision@10', 0.0053), ('precision@20', 0.0034)])"

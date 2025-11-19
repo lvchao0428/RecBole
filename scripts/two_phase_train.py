@@ -202,9 +202,9 @@ def main():
                             ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
                         except Exception:
                             ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
-                        model_a.load_state_dict(ckpt_b["state_dict"])
+                        model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
                         model_a.load_other_parameter(ckpt_b.get("other_parameter"))
-                        logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
+                        logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
                     # Optional: early finish inside Phase-A when reaching ndcg_target
                     callback_fn = None
                     if ndcg_target is not None:
@@ -304,9 +304,9 @@ def main():
                     ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
                 except Exception:
                     ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
-                model_a.load_state_dict(ckpt_b["state_dict"])
+                model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
                 model_a.load_other_parameter(ckpt_b.get("other_parameter"))
-                logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
+                logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
             # If baseline is provided, compute target for early gate
             ndcg_target = None if args.ndcg_baseline is None else args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
             callback_fn = None
