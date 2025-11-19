@@ -109,6 +109,9 @@ def main():
     parser.add_argument("--ndcg_gain_threshold", type=float, default=0.01, help="required relative gain over baseline, e.g., 0.01 for +1%")
     parser.add_argument("--phase_a_auto_to_b", action="store_true", help="if pass condition met, continue to Phase-B automatically")
     parser.add_argument("--phase_a_require_pass_for_b", action="store_true", help="only enter Phase-B if pass condition is met")
+    # Optional ID-only burn-in before Phase-A
+    parser.add_argument("--backbone_burnin_epochs", type=int, default=0, help="ID-only burn-in epochs before Phase-A")
+    parser.add_argument("--burnin_eval_step", type=int, default=2, help="validation interval (epochs) in burn-in stage")
     args, _ = parser.parse_known_args()
 
     if args.only_phase_a and args.only_phase_b:
@@ -118,6 +121,38 @@ def main():
     res_a = None
     phase_a_ckpt = None
     phase_a_passed = False
+    burnin_ckpt = None
+
+    # Optional: short ID-only burn-in to stabilize backbone before freezing in Phase-A
+    if not args.only_phase_b and args.backbone_burnin_epochs and args.backbone_burnin_epochs > 0:
+        burnin_dict = {
+            "freeze_backbone": False,
+            "epochs": int(args.backbone_burnin_epochs),
+            "eval_step": int(args.burnin_eval_step),
+            "valid_metric": args.phase_a_valid_metric,
+            # Disable text/align in burn-in
+            "disable_text_feature": True,
+            "use_align": False,
+            "fuse_text_feature": False,
+            "use_llm": False,
+        }
+        if args.checkpoint_dir:
+            burnin_dict["checkpoint_dir"] = args.checkpoint_dir
+        if args.seed is not None:
+            burnin_dict["seed"] = int(args.seed)
+
+        config_burn = Config(
+            model=args.model,
+            dataset=args.dataset,
+            config_file_list=_split_config_files(args.config_files),
+            config_dict=burnin_dict,
+        )
+        logger_burn, dataset_burn, train_burn, valid_burn, test_burn, model_burn, trainer_burn = _build_and_prepare(config_burn)
+        logger_burn.info(set_color("[Burn-in] ID-only warmup", "cyan") + f": epochs={burnin_dict['epochs']}, eval_step={burnin_dict['eval_step']}")
+        res_burn = _train_and_eval_phase(logger_burn, trainer_burn, train_burn, valid_burn, test_burn, saved=True)
+        burnin_ckpt = res_burn.get("saved_model_file")
+        if burnin_ckpt:
+            logger_burn.info(set_color("[Burn-in] Saved checkpoint", "green") + f": {burnin_ckpt}")
     if not args.only_phase_b:
         if args.phase_a_grid:
             # Parse grids
@@ -160,6 +195,15 @@ def main():
                     )
                     logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
                     logger_a.info(set_color("[Phase-A:grid] setting", "cyan") + f": alignment_weight={aw}, temperature={tau}")
+                    # Load burn-in checkpoint if available
+                    if burnin_ckpt and os.path.exists(burnin_ckpt):
+                        try:
+                            ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
+                        except Exception:
+                            ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
+                        model_a.load_state_dict(ckpt_b["state_dict"])
+                        model_a.load_other_parameter(ckpt_b.get("other_parameter"))
+                        logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
                     res = _train_and_eval_phase(logger_a, trainer_a, train_a, valid_a, test_a, saved=args.save)
                     ckpt_path = res["saved_model_file"] if args.save else None
                     if ckpt_path:
@@ -221,6 +265,15 @@ def main():
                     set_color("[Phase-A] lr groups", "cyan")
                     + f": lr_text_head={config_a['lr_text_head']}, lr_dnn_cross={config_a['lr_dnn_cross']}"
                 )
+            # Load burn-in checkpoint if available
+            if burnin_ckpt and os.path.exists(burnin_ckpt):
+                try:
+                    ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
+                except Exception:
+                    ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
+                model_a.load_state_dict(ckpt_b["state_dict"])
+                model_a.load_other_parameter(ckpt_b.get("other_parameter"))
+                logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
             res_a = _train_and_eval_phase(logger_a, trainer_a, train_a, valid_a, test_a, saved=args.save)
             phase_a_ckpt = res_a["saved_model_file"] if args.save else None
             if phase_a_ckpt:
