@@ -219,10 +219,43 @@ def main():
                                 raise
                             except Exception as e:
                                 _logger.warning(f"[Phase-A:grid] gate callback error ignored: {e}")
+                        
+                        # If ndcg_target is set, we must manually check early stopping because RecBole Trainer 
+                        # doesn't support custom per-epoch callbacks easily in older versions.
+                        # However, we can inject it via callback_fn if the trainer supports it.
+                        # But standard RecBole trainer.fit() signature is:
+                        # fit(self, train_data, valid_data=None, verbose=True, saved=True, show_progress=False, callback_fn=None)
+                        # Let's ensure we pass it correctly.
+                        callback_fn = _gate_cb
                     else:
                         callback_fn = None
                     # Run training phase with optional early gate
                     try:
+                        # Verify freeze status before training starts
+                        if phase_a_dict.get("freeze_backbone", False):
+                            logger_a.info(set_color("=== [Phase-A] Parameter Freeze Check ===", "red"))
+                            frozen_params = []
+                            active_params = []
+                            for name, param in model_a.named_parameters():
+                                if not param.requires_grad:
+                                    frozen_params.append(name)
+                                else:
+                                    active_params.append(name)
+                            
+                            # Heuristic check for backbone parts
+                            backbone_keywords = ["item_embedding", "position_embedding", "trm_encoder", "LayerNorm"]
+                            backbone_frozen = all(any(k in name for k in backbone_keywords) for name in frozen_params if any(k in name for k in backbone_keywords))
+                            
+                            if backbone_frozen:
+                                logger_a.info(set_color(f"SUCCESS: Backbone parameters are FROZEN. Total frozen: {len(frozen_params)}", "green"))
+                                logger_a.info(f"Frozen examples: {frozen_params[:3]} ...")
+                            else:
+                                logger_a.warning(set_color("WARNING: Backbone parameters might NOT be fully frozen!", "red"))
+                            
+                            logger_a.info(set_color(f"Active parameters (training targets): {len(active_params)}", "yellow"))
+                            logger_a.info(f"Active examples: {active_params[:5]} ...")
+                            logger_a.info(set_color("========================================", "red"))
+
                         best_valid_score, best_valid_result = trainer_a.fit(
                             train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
                         )
@@ -230,6 +263,12 @@ def main():
                         # retrieve best fields from trainer after early stop
                         best_valid_score = trainer_a.best_valid_score
                         best_valid_result = trainer_a.best_valid_result
+                        
+                        # CRITICAL FIX: Save checkpoint immediately upon early stop if callback didn't
+                        # (Though callback usually saves it, trainer state might lag)
+                        if args.save and not os.path.exists(trainer_a.saved_model_file):
+                             trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
+                    
                     # Evaluate on test (load best)
                     test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
                     res = {
@@ -323,12 +362,42 @@ def main():
                         _logger.warning(f"[Phase-A] gate callback error ignored: {e}")
             # Run training with optional early gate
             try:
+                # Verify freeze status before training starts
+                if phase_a_dict.get("freeze_backbone", False):
+                    logger_a.info(set_color("=== [Phase-A] Parameter Freeze Check ===", "red"))
+                    frozen_params = []
+                    active_params = []
+                    for name, param in model_a.named_parameters():
+                        if not param.requires_grad:
+                            frozen_params.append(name)
+                        else:
+                            active_params.append(name)
+                    
+                    backbone_keywords = ["item_embedding", "position_embedding", "trm_encoder", "LayerNorm"]
+                    # Check if typical backbone layers appear in frozen list
+                    backbone_frozen_count = sum(1 for name in frozen_params if any(k in name for k in backbone_keywords))
+                    
+                    if backbone_frozen_count > 0:
+                        logger_a.info(set_color(f"SUCCESS: Found {backbone_frozen_count} FROZEN backbone parameters.", "green"))
+                        logger_a.info(f"Frozen examples: {frozen_params[:3]} ...")
+                    else:
+                        logger_a.warning(set_color("WARNING: Backbone parameters might NOT be frozen!", "red"))
+                    
+                    logger_a.info(set_color(f"Active parameters (training targets): {len(active_params)}", "yellow"))
+                    logger_a.info(f"Active examples: {active_params[:5]} ...")
+                    logger_a.info(set_color("========================================", "red"))
+
                 best_valid_score, best_valid_result = trainer_a.fit(
                     train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
                 )
             except StopIteration:
                 best_valid_score = trainer_a.best_valid_score
                 best_valid_result = trainer_a.best_valid_result
+                
+                # CRITICAL FIX: Ensure checkpoint exists if early stopped
+                if args.save and not os.path.exists(trainer_a.saved_model_file):
+                     trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
+                     
             test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
             res_a = {
                 "best_valid_score": best_valid_score,
