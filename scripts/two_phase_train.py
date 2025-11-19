@@ -459,8 +459,8 @@ def main():
         if "lr_text_head" in config_b:
             logger_b.info(
                 set_color("[Phase-B] lr groups", "cyan")
-                + f": lr_text_head={config_b.get('lr_text_head')}, lr_dnn_cross={config_b.get('lr_dnn_cross')}, "
-                  f"lr_backbone={config_b.get('lr_backbone')}"
+                + f": lr_text_head={config_b['lr_text_head']}, lr_dnn_cross={config_b['lr_dnn_cross']}, "
+                  f"lr_backbone={config_b['lr_backbone']}"
             )
 
         # Determine checkpoint to resume Phase-B
