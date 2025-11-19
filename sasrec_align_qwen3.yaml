@@ -34,7 +34,7 @@ eval_args:
   group_by: user
   order: TO
   split: {'LS': 'valid_and_test'}
-  mode:  {'valid': 'uni100','test':'full'}
+  mode:  {'valid': 'full','test':'full'}
 eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
 topk: [5, 10, 20]
 metrics: [Recall, MRR, NDCG, Hit, Precision]
@@ -65,7 +65,7 @@ cosine_scale: 10.0
 # Text fusion stabilizers
 text_proj_norm: true
 fused_item_norm: true
-text_weight: 0.4
+text_weight: 1.0
 text_tail_threshold: 5
 
 # New switches (neutral defaults)
