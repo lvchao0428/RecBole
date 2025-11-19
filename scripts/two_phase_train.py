@@ -164,7 +164,8 @@ def main():
             if len(align_list) == 0 or len(tau_list) == 0:
                 raise ValueError("Empty grid for alignment_weight or temperature.")
             if args.ndcg_baseline is None:
-                getLogger().warning("ndcg_baseline not provided; pass gating will be disabled.")
+                getLogger().warning("ndcg_baseline not provided; pass gating will be disabled. "
+                                    "If you need early finish on reaching gain threshold, please specify --ndcg_baseline as your strong baseline.")
             ndcg_target = None if args.ndcg_baseline is None else args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
 
             best_tuple = None  # (ndcg10, alignment_weight, temperature, res, ckpt)
@@ -204,7 +205,39 @@ def main():
                         model_a.load_state_dict(ckpt_b["state_dict"])
                         model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                         logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
-                    res = _train_and_eval_phase(logger_a, trainer_a, train_a, valid_a, test_a, saved=args.save)
+                    # Optional: early finish inside Phase-A when reaching ndcg_target
+                    callback_fn = None
+                    if ndcg_target is not None:
+                        def _gate_cb(epoch_idx, valid_score, _trainer=trainer_a, _logger=logger_a, _target=ndcg_target):
+                            try:
+                                if valid_score >= _target:
+                                    # Save current checkpoint and stop this phase immediately
+                                    _trainer._save_checkpoint(epoch_idx, verbose=True)
+                                    _logger.info(set_color("[Phase-A:grid] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
+                                    raise StopIteration  # break fit()
+                            except StopIteration:
+                                raise
+                            except Exception as e:
+                                _logger.warning(f"[Phase-A:grid] gate callback error ignored: {e}")
+                    else:
+                        callback_fn = None
+                    # Run training phase with optional early gate
+                    try:
+                        best_valid_score, best_valid_result = trainer_a.fit(
+                            train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                        )
+                    except StopIteration:
+                        # retrieve best fields from trainer after early stop
+                        best_valid_score = trainer_a.best_valid_score
+                        best_valid_result = trainer_a.best_valid_result
+                    # Evaluate on test (load best)
+                    test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
+                    res = {
+                        "best_valid_score": best_valid_score,
+                        "best_valid_result": best_valid_result,
+                        "test_result": test_result,
+                        "saved_model_file": trainer_a.saved_model_file,
+                    }
                     ckpt_path = res["saved_model_file"] if args.save else None
                     if ckpt_path:
                         logger_a.info(set_color("[Phase-A:grid] Saved checkpoint", "green") + f": {ckpt_path}")
@@ -274,7 +307,35 @@ def main():
                 model_a.load_state_dict(ckpt_b["state_dict"])
                 model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                 logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint", "green") + f": {burnin_ckpt}")
-            res_a = _train_and_eval_phase(logger_a, trainer_a, train_a, valid_a, test_a, saved=args.save)
+            # If baseline is provided, compute target for early gate
+            ndcg_target = None if args.ndcg_baseline is None else args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
+            callback_fn = None
+            if ndcg_target is not None:
+                def _gate_cb(epoch_idx, valid_score, _trainer=trainer_a, _logger=logger_a, _target=ndcg_target):
+                    try:
+                        if valid_score >= _target:
+                            _trainer._save_checkpoint(epoch_idx, verbose=True)
+                            _logger.info(set_color("[Phase-A] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
+                            raise StopIteration
+                    except StopIteration:
+                        raise
+                    except Exception as e:
+                        _logger.warning(f"[Phase-A] gate callback error ignored: {e}")
+            # Run training with optional early gate
+            try:
+                best_valid_score, best_valid_result = trainer_a.fit(
+                    train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                )
+            except StopIteration:
+                best_valid_score = trainer_a.best_valid_score
+                best_valid_result = trainer_a.best_valid_result
+            test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
+            res_a = {
+                "best_valid_score": best_valid_score,
+                "best_valid_result": best_valid_result,
+                "test_result": test_result,
+                "saved_model_file": trainer_a.saved_model_file,
+            }
             phase_a_ckpt = res_a["saved_model_file"] if args.save else None
             if phase_a_ckpt:
                 logger_a.info(set_color("[Phase-A] Saved checkpoint", "green") + f": {phase_a_ckpt}")
