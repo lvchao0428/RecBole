@@ -1,0 +1,6 @@
+---
+# Absolute path for TF-IDF (base) text embeddings
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+
+
+
