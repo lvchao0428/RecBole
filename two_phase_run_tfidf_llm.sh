@@ -14,7 +14,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_qwen3.yaml overrides/stability_enhance.yaml overrides/text_base_abs.yaml" \
+  --config_files "sasrec_align_qwen3.yaml overrides/stability_enhance_with_id_ln.yaml overrides/text_base_abs.yaml" \
   --phase_a_grid \
   --align_grid "0.05,0.1,0.2" \
   --tau_grid "0.05,0.07" \

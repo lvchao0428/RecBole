@@ -235,8 +235,13 @@ class SASRecAlign(SequentialRecommender):
         self.item_fusion_cross = None
         self.item_fusion_deep = None
         self.item_fusion_predictor = None
+        self.item_emb_norm = None  # New: LN for item embedding before fusion
         
         if text_in_dim > 0:
+            if self.fused_item_norm_flag:
+                # Use same eps as backbone
+                self.item_emb_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+
             if self.use_cross:
                 self.text_cross = DCNV2Cross(text_in_dim, num_layers=self.text_cross_layer_num)
                 # Simple deep tower to the model hidden size (no dropout; dropout only on cross outputs)
@@ -531,7 +536,12 @@ class SASRecAlign(SequentialRecommender):
                 scaled_text = (alpha * self.text_weight) * text_raw
 
             # Fuse item embeddings with scaled text features using cross network
-            fusion_input = torch.cat([item_emb, scaled_text], dim=1)
+            # Stabilize: normalize item_emb before concatenation if configured
+            item_emb_for_fusion = item_emb
+            if self.item_emb_norm is not None:
+                item_emb_for_fusion = self.item_emb_norm(item_emb)
+
+            fusion_input = torch.cat([item_emb_for_fusion, scaled_text], dim=1)
             cross_out = self.item_fusion_cross(fusion_input)
             if self.item_fusion_cross_dropout is not None:
                 cross_out = self.item_fusion_cross_dropout(cross_out)
@@ -551,7 +561,13 @@ class SASRecAlign(SequentialRecommender):
                 scaled_text = (alpha * self.text_weight * gate) * text_proj
             else:
                 scaled_text = (alpha * self.text_weight) * text_proj
-            concat = torch.cat([item_emb, scaled_text], dim=1)
+            
+            # Stabilize here too
+            item_emb_for_fusion = item_emb
+            if self.item_emb_norm is not None:
+                item_emb_for_fusion = self.item_emb_norm(item_emb)
+                
+            concat = torch.cat([item_emb_for_fusion, scaled_text], dim=1)
             fused_emb = self.item_concat_predictor(concat)
         if self.fused_item_norm is not None:
             fused_emb = self.fused_item_norm(fused_emb)
