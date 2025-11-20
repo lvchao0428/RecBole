@@ -220,6 +220,26 @@ class SASRecAlign(SequentialRecommender):
             else:
                 text_in_dim = 0
 
+        # --- New: Text Amplifier / SENet configuration ---
+        self.num_text_views = int(config["num_text_views"]) if "num_text_views" in config else 1
+        self.text_use_senet = bool(config["text_use_senet"]) if "text_use_senet" in config else False
+        self.text_amplifier = None
+        
+        if text_in_dim > 0 and self.text_use_senet:
+             # Import dynamically to avoid top-level dependency if not needed
+             try:
+                 from recbole.model.sequential_recommender.text_amplifier import TextFeatureAmplifier
+                 self.logger.info(f"SASRecAlign: initializing TextFeatureAmplifier with {self.num_text_views} views, SENet=True.")
+                 self.text_amplifier = TextFeatureAmplifier(
+                     input_dim=text_in_dim,
+                     output_dim=self.hidden_size,
+                     num_views=self.num_text_views,
+                     apply_senet=True
+                 )
+             except ImportError:
+                 self.logger.warning("SASRecAlign: TextFeatureAmplifier not found. SENet disabled.")
+                 self.text_use_senet = False
+
         # Build text projection/fusion modules
         self.text_cross = None
         self.text_deep = None
@@ -242,6 +262,11 @@ class SASRecAlign(SequentialRecommender):
                 # Use same eps as backbone
                 self.item_emb_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
+            # Logic:
+            # 1. If use_cross=True, use DCN branch.
+            # 2. Else, if text_amplifier is active, use it as the 'linear' projection replacement.
+            # 3. Else, use standard linear item_text_proj.
+            
             if self.use_cross:
                 self.text_cross = DCNV2Cross(text_in_dim, num_layers=self.text_cross_layer_num)
                 # Simple deep tower to the model hidden size (no dropout; dropout only on cross outputs)
@@ -260,9 +285,18 @@ class SASRecAlign(SequentialRecommender):
                     self.text_cross_dropout = nn.Dropout(self.cross_dropout_prob)
                     self.item_fusion_cross_dropout = nn.Dropout(self.cross_dropout_prob)
             else:
-                self.item_text_proj = nn.Linear(text_in_dim, self.hidden_size)
+                # Non-Cross Branch
+                if self.text_amplifier is not None:
+                    # Use amplifier (SENet) instead of simple linear
+                    # It serves the same role: text_in_dim -> hidden_size
+                    # We assign it to self.item_text_proj so standard forward logic works (it's a Module)
+                    self.item_text_proj = self.text_amplifier
+                else:
+                    self.item_text_proj = nn.Linear(text_in_dim, self.hidden_size)
+
                 # Concatenation-based fusion (no-cross): [item_emb, text_proj] -> hidden_size
                 self.item_concat_predictor = nn.Linear(self.hidden_size * 2, self.hidden_size)
+
 
             if self.text_proj_norm_flag:
                 self.text_proj_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
