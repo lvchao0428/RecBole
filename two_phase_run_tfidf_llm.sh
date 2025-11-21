@@ -16,7 +16,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_qwen3.yaml overrides/stability_enhance_with_id_ln.yaml overrides/text_base_abs.yaml" \
   --phase_a_grid \
-  --align_grid "0.05,0.1,0.2" \
+  --align_grid "0.01,0.05,0.1" \
   --tau_grid "0.05,0.07" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \

@@ -48,8 +48,8 @@ item_text_emb_path_base: dataset/Amazon_Beauty/item_text_emb.base.npy
 use_llm: false          # A: Base only
 use_align: true         # enable alignment loss
 use_cross: true         # enable DCN-V2 style cross for text features
-text_cross_layer_num: 3
-alignment_weight: 0.1
+text_cross_layer_num: 2
+alignment_weight: 0.05
 temperature: 0.07
 detach_text_emb: true
 normalize_text: true
@@ -58,14 +58,14 @@ use_fusion: false
 # Regularization & scoring (recommended defaults matching cross setups)
 weight_decay: 1e-5
 label_smoothing: 0.1
-token_dropout_prob: 0.1
+token_dropout_prob: 0.2
 cosine_score: true
 cosine_scale: 10.0
 
 # Text fusion stabilizers
 text_proj_norm: true        # LayerNorm after text projection/fusion
 fused_item_norm: true       # LayerNorm on fused item embeddings
-text_weight: 0.4
+text_weight: 0.8
 text_tail_threshold: 5
 
 # New switches (neutral defaults)

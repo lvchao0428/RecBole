@@ -485,6 +485,22 @@ def main():
                       f"Phase-B best_valid={res_b['best_valid_result']}\n"
                       f"Phase-B test={res_b['test_result']}")
 
+        # Log Hyperparameters
+        hyper_keys = [
+            "epochs", "train_batch_size", "learning_rate",
+            "lr_text_head", "lr_dnn_cross", "lr_backbone",
+            "n_layers", "n_heads", "hidden_size", "inner_size",
+            "hidden_dropout_prob", "attn_dropout_prob", "cross_dropout_prob", "token_dropout_prob",
+            "weight_decay", "text_gate_reg_l2", "text_gate_reg_entropy", "label_smoothing",
+            "alignment_weight", "temperature", "text_weight",
+            "use_cross", "use_llm", "use_align", "freeze_backbone"
+        ]
+        summary_lines = [set_color("[Hyperparameters Summary]", "blue")]
+        for key in hyper_keys:
+            if key in config_b:
+                summary_lines.append(f"  {key:<25}: {config_b[key]}")
+        logger_b.info("\n".join(summary_lines))
+
 
 if __name__ == "__main__":
     main()

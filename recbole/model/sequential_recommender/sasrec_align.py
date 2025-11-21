@@ -267,15 +267,21 @@ class SASRecAlign(SequentialRecommender):
             # 2. Else, if text_amplifier is active, use it as the 'linear' projection replacement.
             # 3. Else, use standard linear item_text_proj.
             
+            # Determine input dimension for fusion/projection modules
+            # If SENet is active, it transforms raw text (text_in_dim) -> hidden_size
+            current_text_dim = text_in_dim
+            if self.text_amplifier is not None:
+                current_text_dim = self.hidden_size
+            
             if self.use_cross:
-                self.text_cross = DCNV2Cross(text_in_dim, num_layers=self.text_cross_layer_num)
+                self.text_cross = DCNV2Cross(current_text_dim, num_layers=self.text_cross_layer_num)
                 # Simple deep tower to the model hidden size (no dropout; dropout only on cross outputs)
-                self.text_deep = MLPLayers([text_in_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
-                self.text_predictor = nn.Linear(text_in_dim + self.hidden_size, self.hidden_size)
+                self.text_deep = MLPLayers([current_text_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
+                self.text_predictor = nn.Linear(current_text_dim + self.hidden_size, self.hidden_size)
                 
                 # Item-side fusion: combine item embedding with text features
-                # Input: [item_emb(hidden_size), text_features(text_in_dim)]
-                fusion_input_dim = self.hidden_size + text_in_dim
+                # Input: [item_emb(hidden_size), text_features(current_text_dim)]
+                fusion_input_dim = self.hidden_size + current_text_dim
                 self.item_fusion_cross = DCNV2Cross(fusion_input_dim, num_layers=self.text_cross_layer_num)
                 # Item fusion deep tower (no dropout; dropout only on cross outputs)
                 self.item_fusion_deep = MLPLayers([fusion_input_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
@@ -292,7 +298,7 @@ class SASRecAlign(SequentialRecommender):
                     # We assign it to self.item_text_proj so standard forward logic works (it's a Module)
                     self.item_text_proj = self.text_amplifier
                 else:
-                    self.item_text_proj = nn.Linear(text_in_dim, self.hidden_size)
+                    self.item_text_proj = nn.Linear(current_text_dim, self.hidden_size)
 
                 # Concatenation-based fusion (no-cross): [item_emb, text_proj] -> hidden_size
                 self.item_concat_predictor = nn.Linear(self.hidden_size * 2, self.hidden_size)
@@ -392,12 +398,16 @@ class SASRecAlign(SequentialRecommender):
 
         # text_head: projection from raw/base+llm text to hidden_size
         text_head_modules = []
+        if self.text_amplifier is not None:
+            text_head_modules.append(self.text_amplifier)
+
         if self.use_cross:
             # cross-side text projection tower
             text_head_modules.extend([self.text_cross, self.text_deep, self.text_predictor])
         else:
             # non-cross single linear projection
-            text_head_modules.append(self.item_text_proj)
+            if self.item_text_proj is not self.text_amplifier:
+                text_head_modules.append(self.item_text_proj)
         if self.text_proj_norm is not None:
             text_head_modules.append(self.text_proj_norm)
 
@@ -489,6 +499,10 @@ class SASRecAlign(SequentialRecommender):
         if raw.size(1) == 0:
             return torch.zeros((raw.size(0), self.hidden_size), device=raw.device)
         if self.use_cross and self.text_cross is not None and self.text_deep is not None and self.text_predictor is not None:
+            # Apply SENet if active (amplifier) before cross network
+            if self.text_amplifier is not None:
+                raw = self.text_amplifier(raw)
+            
             cross_out = self.text_cross(raw)
             if self.text_cross_dropout is not None:
                 cross_out = self.text_cross_dropout(cross_out)
@@ -557,6 +571,10 @@ class SASRecAlign(SequentialRecommender):
             text_raw = text_raw.detach()
         
         if self.use_cross and self.item_fusion_predictor is not None:
+            # Apply SENet if active (amplifier) before cross fusion
+            if self.text_amplifier is not None:
+                text_raw = self.text_amplifier(text_raw)
+
             # Apply gating/weighting to text features before cross fusion for stability
             alpha = torch.sigmoid(self.text_gate_param)
             if self.text_item_gate_all is not None:
