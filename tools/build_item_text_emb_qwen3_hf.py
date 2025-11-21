@@ -252,7 +252,7 @@ def main():
     if "internal_item_id" not in df.columns or "item_token" not in df.columns:
         raise ValueError("mapping CSV must contain 'internal_item_id' and 'item_token'")
     has_title = "title" in df.columns
-    
+
     # Sort by internal_item_id to align with row indices
     df = df.sort_values("internal_item_id")
     
@@ -340,15 +340,15 @@ def main():
                 batch_texts = []
                 for raw in batch_raw:
                     base_prompt = prompt_tmpl.replace("{text}", raw)
-                    if use_chat:
-                        messages = [{"role": "user", "content": base_prompt}]
-                        chat_text = tokenizer.apply_chat_template(
-                            messages, tokenize=False, add_generation_prompt=False
-                        )
+        if use_chat:
+            messages = [{"role": "user", "content": base_prompt}]
+            chat_text = tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False
+            )
                         batch_texts.append(chat_text)
-                    else:
+        else:
                         batch_texts.append(base_prompt)
-                
+
                 # Encode
                 emb = encode_batch(model, tokenizer, batch_texts, args.max_length, device, torch_dtype)
                 batch_prompt_embs.append(emb) # [B, D]
@@ -381,7 +381,7 @@ def main():
     if mat.shape[0] > 0:
         # We need to handle the shape genericly
         if mat.ndim == 2:
-            mat[0, :] = 0.0
+        mat[0, :] = 0.0
         elif mat.ndim == 3:
             mat[0, :, :] = 0.0
 
@@ -391,65 +391,65 @@ def main():
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
         else:
-            orig_dim = mat.shape[1]
-            target_dim = int(args.project_dim)
+        orig_dim = mat.shape[1]
+        target_dim = int(args.project_dim)
             print(f"Projecting from {orig_dim} to {target_dim}...")
 
-            if target_dim <= 0:
-                raise ValueError("--project_dim must be > 0")
+        if target_dim <= 0:
+            raise ValueError("--project_dim must be > 0")
 
-            if target_dim == orig_dim:
-                if mat.shape[0] > 1:
+        if target_dim == orig_dim:
+            if mat.shape[0] > 1:
                     mat[1:, :] = l2_normalize(mat[1:, :], norm="l2", axis=1)
-            elif target_dim < orig_dim:
+        elif target_dim < orig_dim:
                 # Identify train rows for fitting
-                train_ids = None
-                if args.dataset is not None and len(args.dataset) > 0:
-                    try:
-                        cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
-                        ds = create_dataset(cfg)
-                        train_data, valid_data, test_data = data_preparation(cfg, ds)
-                        iid_field = cfg["ITEM_ID_FIELD"]
-                        train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
-                        train_ids = np.unique(train_ids_raw).astype(np.int64)
-                        train_ids = train_ids[train_ids > 0]
+            train_ids = None
+            if args.dataset is not None and len(args.dataset) > 0:
+                try:
+                    cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
+                    ds = create_dataset(cfg)
+                    train_data, valid_data, test_data = data_preparation(cfg, ds)
+                    iid_field = cfg["ITEM_ID_FIELD"]
+                    train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
+                    train_ids = np.unique(train_ids_raw).astype(np.int64)
+                    train_ids = train_ids[train_ids > 0]
                     except Exception as e:
                         print(f"Warning: Failed to load dataset for SVD split ({e}). Using all items.")
-                        train_ids = None
-                
-                nonpad_all = mat[1:, :].astype(np.float32, copy=False)
+                    train_ids = None
+
+            nonpad_all = mat[1:, :].astype(np.float32, copy=False)
                 
                 # Select subset for fit
-                if train_ids is None or len(train_ids) == 0:
+            if train_ids is None or len(train_ids) == 0:
+                train_subset = nonpad_all
+            else:
+                max_row = mat.shape[0] - 1
+                train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
+                if len(train_ids) == 0:
                     train_subset = nonpad_all
                 else:
-                    max_row = mat.shape[0] - 1
-                    train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
-                    if len(train_ids) == 0:
-                        train_subset = nonpad_all
-                    else:
-                        train_subset = mat[train_ids, :].astype(np.float32, copy=False)
+                    train_subset = mat[train_ids, :].astype(np.float32, copy=False)
 
-                svd_k = max(1, min(target_dim, train_subset.shape[1] - 1 if train_subset.shape[1] > 1 else 1))
-                svd = TruncatedSVD(n_components=svd_k, random_state=args.svd_random_state)
-                svd.fit(train_subset)
-                reduced = svd.transform(nonpad_all)
+            svd_k = max(1, min(target_dim, train_subset.shape[1] - 1 if train_subset.shape[1] > 1 else 1))
+            svd = TruncatedSVD(n_components=svd_k, random_state=args.svd_random_state)
+            svd.fit(train_subset)
+            reduced = svd.transform(nonpad_all)
                 
-                if svd_k < target_dim:
-                    pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
-                    reduced = np.concatenate([reduced, pad], axis=1)
+            if svd_k < target_dim:
+                pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
+                reduced = np.concatenate([reduced, pad], axis=1)
                 
                 reduced = l2_normalize(reduced, norm="l2", axis=1)
-                mat_proj = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-                mat_proj[1:, :] = reduced
-                mat = mat_proj
+            mat_proj = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
+            mat_proj[1:, :] = reduced
+            mat = mat_proj
             else:
                  # Pad zeros
-                mat_pad = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-                mat_pad[:, :orig_dim] = mat
-                if mat.shape[0] > 1:
+            mat_pad = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
+            mat_pad[:, :orig_dim] = mat
+            if mat.shape[0] > 1:
                     mat_pad[1:, :] = l2_normalize(mat_pad[1:, :], norm="l2", axis=1)
-                mat = mat_pad
+            mat = mat_pad
 
     # --- 6. Save ---
     if args.dtype == "float16":
