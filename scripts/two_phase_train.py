@@ -85,6 +85,11 @@ def main():
     # Phase controls
     parser.add_argument("--phase_a_epochs", type=int, default=8, help="epochs for Phase-A")
     parser.add_argument("--phase_b_epochs", type=int, default=40, help="epochs for Phase-B")
+    parser.add_argument("--phase_a_alignment_weight", type=float, default=None, help="override Phase-A alignment_weight (disabled when using grid)")
+    parser.add_argument("--phase_b_alignment_weight", type=float, default=None, help="override Phase-B alignment_weight")
+    parser.add_argument("--phase_a_text_gate_reg_l2", type=float, default=None, help="override Phase-A text_gate_reg_l2")
+    parser.add_argument("--phase_b_text_gate_reg_l2", type=float, default=None, help="override Phase-B text_gate_reg_l2")
+    parser.add_argument("--phase_b_text_weight", type=float, default=None, help="override Phase-B text_weight")
 
     # LR grouping (used by models that implement get_optimizer_grouped_parameters)
     parser.add_argument("--lr_text_head", type=float, default=None, help="LR for text projection head")
@@ -179,6 +184,8 @@ def main():
                         "alignment_weight": float(aw),
                         "temperature": float(tau),
                     }
+                    if args.phase_a_text_gate_reg_l2 is not None:
+                        phase_a_dict["text_gate_reg_l2"] = float(args.phase_a_text_gate_reg_l2)
                     if args.lr_text_head is not None:
                         phase_a_dict["lr_text_head"] = float(args.lr_text_head)
                     if args.lr_dnn_cross is not None:
@@ -314,6 +321,10 @@ def main():
                 "eval_step": int(args.phase_a_eval_step),
                 "valid_metric": args.phase_a_valid_metric,
             }
+            if args.phase_a_alignment_weight is not None:
+                phase_a_dict["alignment_weight"] = float(args.phase_a_alignment_weight)
+            if args.phase_a_text_gate_reg_l2 is not None:
+                phase_a_dict["text_gate_reg_l2"] = float(args.phase_a_text_gate_reg_l2)
             # Optional user overrides
             if args.lr_text_head is not None:
                 phase_a_dict["lr_text_head"] = float(args.lr_text_head)
@@ -435,6 +446,12 @@ def main():
             "freeze_backbone": False,
             "epochs": int(args.phase_b_epochs),
         }
+        if args.phase_b_alignment_weight is not None:
+            phase_b_dict["alignment_weight"] = float(args.phase_b_alignment_weight)
+        if args.phase_b_text_gate_reg_l2 is not None:
+            phase_b_dict["text_gate_reg_l2"] = float(args.phase_b_text_gate_reg_l2)
+        if args.phase_b_text_weight is not None:
+            phase_b_dict["text_weight"] = float(args.phase_b_text_weight)
         # Carry over LR groups if provided; compute lr_backbone from lr_text_head when available
         if args.lr_text_head is not None:
             phase_b_dict["lr_text_head"] = float(args.lr_text_head)
