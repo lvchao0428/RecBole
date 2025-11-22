@@ -16,7 +16,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_qwen3.yaml" \
   --phase_a_grid \
-  --align_grid "0.05" \
+  --align_grid "0.05,0.1,0.2" \
   --tau_grid "0.05,0.07" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -30,7 +30,7 @@ python scripts/two_phase_train.py \
   --phase_a_text_gate_reg_l2 0.05 \
   --phase_b_alignment_weight 0.01 \
   --phase_b_text_gate_reg_l2 0.02 \
-  --phase_b_text_weight 0.6 \
+  --phase_b_text_weight 0.5 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
