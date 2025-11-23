@@ -513,7 +513,7 @@ def main():
         for group, keys in hyper_groups.items():
             summary_lines.append(set_color(f"  {group}:", "cyan"))
             for key in keys:
-            if key in config_b:
+                if key in config_b:
                     summary_lines.append(f"    {key:<25}: {config_b[key]}")
         logger_b.info("\n".join(summary_lines))
 
