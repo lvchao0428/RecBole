@@ -418,7 +418,7 @@ class SASRecAlign(SequentialRecommender):
         else:
             # non-cross single linear projection
             if self.item_text_proj is not self.text_amplifier:
-            text_head_modules.append(self.item_text_proj)
+                text_head_modules.append(self.item_text_proj)
         if self.text_proj_norm is not None:
             text_head_modules.append(self.text_proj_norm)
 
