@@ -50,7 +50,7 @@ use_llm: true           # B: LLM only; set base path too for A+B
 use_align: true
 use_cross: true
 text_cross_layer_num: 2
-alignment_weight: 0.05
+alignment_weight: 0.2
 temperature: 0.07
 detach_text_emb: true
 normalize_text: true
@@ -70,6 +70,8 @@ text_proj_norm: true
 fused_item_norm: true
 text_weight: 0.5
 text_tail_threshold: 0
+use_seq_text_cross: false
+seq_text_cross_dropout: 0.1
 
 # New switches (neutral defaults)
 disable_text_feature: false

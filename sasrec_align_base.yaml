@@ -49,7 +49,7 @@ use_llm: false          # A: Base only
 use_align: true         # enable alignment loss
 use_cross: true         # enable DCN-V2 style cross for text features
 text_cross_layer_num: 2
-alignment_weight: 0.05
+alignment_weight: 0.2
 temperature: 0.07
 detach_text_emb: true
 normalize_text: true
@@ -69,6 +69,8 @@ text_proj_norm: true        # LayerNorm after text projection/fusion
 fused_item_norm: true       # LayerNorm on fused item embeddings
 text_weight: 0.5
 text_tail_threshold: 0
+use_seq_text_cross: false
+seq_text_cross_dropout: 0.1
 
 # New switches (neutral defaults)
 disable_text_feature: false

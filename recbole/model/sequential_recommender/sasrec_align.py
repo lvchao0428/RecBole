@@ -108,6 +108,7 @@ class SASRecAlign(SequentialRecommender):
         self.detach_text_emb = config["detach_text_emb"] if "detach_text_emb" in config else True
         self.use_llm = config["use_llm"] if "use_llm" in config else False
         self.use_cross = config["use_cross"] if "use_cross" in config else False
+        self.use_seq_text_cross = bool(config.get("use_seq_text_cross", False))
         self.use_align = config["use_align"] if "use_align" in config else True
         self.text_cross_layer_num = config["text_cross_layer_num"] if "text_cross_layer_num" in config else 3
         # Cross-output dropout and learnable text gate configs
@@ -257,6 +258,10 @@ class SASRecAlign(SequentialRecommender):
         self.item_fusion_predictor = None
         self.item_emb_norm = None  # New: LN for item embedding before fusion
         
+        self.seq_text_cross = None
+        self.seq_text_cross_dropout = None
+        self.seq_text_residual_gate = None
+        
         if text_in_dim > 0:
             if self.fused_item_norm_flag:
                 # Use same eps as backbone
@@ -272,7 +277,7 @@ class SASRecAlign(SequentialRecommender):
             current_text_dim = text_in_dim
             if self.text_amplifier is not None:
                 current_text_dim = self.hidden_size
-            
+
             if self.use_cross:
                 self.text_cross = DCNV2Cross(current_text_dim, num_layers=self.text_cross_layer_num)
                 # Simple deep tower to the model hidden size (no dropout; dropout only on cross outputs)
@@ -309,6 +314,12 @@ class SASRecAlign(SequentialRecommender):
 
             if self.fused_item_norm_flag:
                 self.fused_item_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+
+        if self.use_seq_text_cross and text_in_dim > 0:
+            seq_cross_in_dim = self.hidden_size + text_in_dim
+            self.seq_text_cross = DCNV2Cross(seq_cross_in_dim, num_layers=max(1, self.text_cross_layer_num))
+            self.seq_text_cross_dropout = nn.Dropout(config.get("seq_text_cross_dropout", 0.1))
+            self.seq_text_residual_gate = nn.Parameter(torch.tensor(0.5, dtype=torch.float32))
 
         self._align_debug_logged = False
         # Gate-alpha logging flag (first training step)
@@ -407,7 +418,7 @@ class SASRecAlign(SequentialRecommender):
         else:
             # non-cross single linear projection
             if self.item_text_proj is not self.text_amplifier:
-                text_head_modules.append(self.item_text_proj)
+            text_head_modules.append(self.item_text_proj)
         if self.text_proj_norm is not None:
             text_head_modules.append(self.text_proj_norm)
 
@@ -660,6 +671,19 @@ class SASRecAlign(SequentialRecommender):
         )
         output = trm_output[-1]
         output = self.gather_indexes(output, item_seq_len - 1)
+
+        if self.use_seq_text_cross and self.seq_text_cross is not None:
+            # Gather corresponding text features for sequence tokens (use last item ids)
+            seq_item_ids = self.gather_indexes(item_seq, item_seq_len - 1)
+            text_raw = self._gather_text_raw(seq_item_ids)
+            if self.detach_text_emb:
+                text_raw = text_raw.detach()
+            text_proj = self._project_text(text_raw)
+            concat = torch.cat([output, text_proj], dim=1)
+            cross_out = self.seq_text_cross(concat)
+            cross_out = self.seq_text_cross_dropout(cross_out)
+            gate = torch.sigmoid(self.seq_text_residual_gate)
+            output = output + gate * (cross_out - output)
         return output
 
     def calculate_loss(self, interaction):
