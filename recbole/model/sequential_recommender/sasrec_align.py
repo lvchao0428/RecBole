@@ -108,7 +108,10 @@ class SASRecAlign(SequentialRecommender):
         self.detach_text_emb = config["detach_text_emb"] if "detach_text_emb" in config else True
         self.use_llm = config["use_llm"] if "use_llm" in config else False
         self.use_cross = config["use_cross"] if "use_cross" in config else False
-        self.use_seq_text_cross = bool(config.get("use_seq_text_cross", False))
+        self.use_seq_text_cross = bool(config["use_seq_text_cross"]) if "use_seq_text_cross" in config else False
+        self.seq_text_cross_dropout_rate = (
+            float(config["seq_text_cross_dropout"]) if "seq_text_cross_dropout" in config else 0.1
+        )
         self.use_align = config["use_align"] if "use_align" in config else True
         self.text_cross_layer_num = config["text_cross_layer_num"] if "text_cross_layer_num" in config else 3
         # Cross-output dropout and learnable text gate configs
@@ -418,7 +421,7 @@ class SASRecAlign(SequentialRecommender):
         else:
             # non-cross single linear projection
             if self.item_text_proj is not self.text_amplifier:
-                text_head_modules.append(self.item_text_proj)
+            text_head_modules.append(self.item_text_proj)
         if self.text_proj_norm is not None:
             text_head_modules.append(self.text_proj_norm)
 
