@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
+# Workflow:
+#   1. Run tools/get_multiview_qwen3_embed.sh to regenerate per-view embeddings.
+#   2. Launch two-phase training that consumes split views via SASRecAlignMultiView.
+
 cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
-# Two-phase strong baseline: SASRec_Align + TF-IDF (base) + Qwen3 (LLM) dual-path
-# Phase-A: freeze backbone, grid over (alignment_weight, temperature) with gating
-# Phase-B: unfreeze backbone, grouped LR with lr_backbone = lr_text_head * 0.1
-# Notes:
-# - LLM path comes from sasrec_align_qwen3.yaml
-# - Base TF-IDF absolute path provided via overrides/text_base_abs.yaml
-
+echo "[Training] Launching two-phase SASRecAlignMultiView run (per-view residual cross)..."
 python scripts/two_phase_train.py \
-  --model SASRec_Align \
+  --model SASRec_Align_MultiView \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_qwen3.yaml" \
+  --config_files "sasrec_align_multi_view.yaml" \
   --phase_a_grid \
-  --align_grid "0.05" \
+  --align_grid "0.05,0.1,0.2" \
   --tau_grid "0.05,0.07" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -29,11 +27,12 @@ python scripts/two_phase_train.py \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
   --phase_b_alignment_weight 0.05 \
+  --phase_b_text_gate_reg_l2 0.02 \
+  --phase_b_text_weight 0.6 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs \
   --seed 2025 \
   --save
-
 
