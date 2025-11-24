@@ -180,3 +180,6 @@ class SASRecAlignMultiView(SASRecAlign):
 # Alias so --model SASRec_Align_MultiView works
 SASRec_Align_MultiView = SASRecAlignMultiView
 
+
+__all__ = ["SASRecAlignMultiView", "SASRec_Align_MultiView"]
+
