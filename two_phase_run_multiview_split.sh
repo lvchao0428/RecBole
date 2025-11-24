@@ -10,7 +10,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
 echo "[Training] Launching two-phase SASRecAlignMultiView run (per-view residual cross)..."
 python scripts/two_phase_train.py \
-  --model SASRec_Align_MultiView \
+  --model SASRecAlignMultiView \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_multi_view.yaml" \
   --phase_a_grid \
