@@ -122,6 +122,11 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--placeholder_text", default="N/A", help="Fallback text.")
     p.add_argument("--pad_placeholder_text", default="[PAD]", help="Placeholder for PAD row.")
+    p.add_argument(
+        "--split_output_dir",
+        default=None,
+        help="If set, dumps per-view embeddings (view_{i}.npy) and views.json metadata for multi-view downstream.",
+    )
     
     # --- Output & Projection Arguments ---
     p.add_argument(
@@ -328,6 +333,10 @@ def main():
     max_len_str = str(args.max_length) if isinstance(args.max_length, int) and args.max_length > 0 else "unlimited"
     print(f"Encoding {n_items} items with batch_size={args.batch_size}, {len(prompts)} prompts, mode={args.output_mode}...")
     
+    split_chunks = None
+    if args.split_output_dir:
+        split_chunks = [[] for _ in range(len(prompts))]
+
     with tqdm(total=n_items, unit="items") as pbar:
         for i in range(0, n_items, args.batch_size):
             batch_raw = item_raw_texts[i : i + args.batch_size]
@@ -340,13 +349,13 @@ def main():
                 batch_texts = []
                 for raw in batch_raw:
                     base_prompt = prompt_tmpl.replace("{text}", raw)
-        if use_chat:
-            messages = [{"role": "user", "content": base_prompt}]
-            chat_text = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=False
-            )
+                    if use_chat:
+                        messages = [{"role": "user", "content": base_prompt}]
+                        chat_text = tokenizer.apply_chat_template(
+                            messages, tokenize=False, add_generation_prompt=False
+                        )
                         batch_texts.append(chat_text)
-        else:
+                    else:
                         batch_texts.append(base_prompt)
 
                 # Encode
@@ -356,6 +365,10 @@ def main():
             # Stack prompt embeddings: [B, K, D]
             # Note: batch_prompt_embs is List of [B, D]
             stacked = np.stack(batch_prompt_embs, axis=1) # [B, K, D]
+
+            if split_chunks is not None:
+                for view_idx in range(len(prompts)):
+                    split_chunks[view_idx].append(stacked[:, view_idx, :].astype(np.float32, copy=False))
             
             # Process according to output mode
             if args.output_mode == "mean":
@@ -379,11 +392,47 @@ def main():
 
     # Ensure PAD row (index 0) is zeros
     if mat.shape[0] > 0:
-        # We need to handle the shape genericly
+        # We need to handle the shape generically
         if mat.ndim == 2:
-        mat[0, :] = 0.0
+            mat[0, :] = 0.0
         elif mat.ndim == 3:
             mat[0, :, :] = 0.0
+
+    # Save per-view splits before dimensionality reduction so that each view keeps its raw dimension
+    if split_chunks is not None:
+        os.makedirs(args.split_output_dir, exist_ok=True)
+        split_meta = {
+            "num_items": int(mat.shape[0]),
+            "num_prompts": len(prompts),
+            "dtype": args.dtype,
+            "prompts": [],
+        }
+        for view_idx, view_parts in enumerate(split_chunks):
+            if len(view_parts) == 0:
+                continue
+            view_mat = np.concatenate(view_parts, axis=0)
+            if view_mat.shape[0] > 0:
+                view_mat[0, :] = 0.0
+            if args.dtype == "float16":
+                view_mat = view_mat.astype(np.float16)
+            elif args.dtype == "bfloat16":
+                view_mat = view_mat.astype(np.float32)
+            else:
+                view_mat = view_mat.astype(np.float32)
+            view_path = os.path.join(args.split_output_dir, f"view_{view_idx}.npy")
+            np.save(view_path, view_mat)
+            split_meta["prompts"].append(
+                {
+                    "index": view_idx,
+                    "prompt": prompts[view_idx],
+                    "file": os.path.basename(view_path),
+                    "vector_dim": int(view_mat.shape[1]),
+                }
+            )
+        meta_path = os.path.join(args.split_output_dir, "views.json")
+        with open(meta_path, "w") as mf:
+            json.dump(split_meta, mf, ensure_ascii=False, indent=2)
+        print(f"[Split] Saved per-view embeddings to {args.split_output_dir} (metadata: {meta_path})")
 
     # --- 5. Optional Dimensionality Reduction (SVD) ---
     # NOTE: SVD only implemented for 2D matrices currently.
@@ -391,65 +440,65 @@ def main():
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
         else:
-        orig_dim = mat.shape[1]
-        target_dim = int(args.project_dim)
+            orig_dim = mat.shape[1]
+            target_dim = int(args.project_dim)
             print(f"Projecting from {orig_dim} to {target_dim}...")
 
-        if target_dim <= 0:
-            raise ValueError("--project_dim must be > 0")
+            if target_dim <= 0:
+                raise ValueError("--project_dim must be > 0")
 
-        if target_dim == orig_dim:
-            if mat.shape[0] > 1:
+            if target_dim == orig_dim:
+                if mat.shape[0] > 1:
                     mat[1:, :] = l2_normalize(mat[1:, :], norm="l2", axis=1)
-        elif target_dim < orig_dim:
+            elif target_dim < orig_dim:
                 # Identify train rows for fitting
-            train_ids = None
-            if args.dataset is not None and len(args.dataset) > 0:
-                try:
-                    cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
-                    ds = create_dataset(cfg)
-                    train_data, valid_data, test_data = data_preparation(cfg, ds)
-                    iid_field = cfg["ITEM_ID_FIELD"]
-                    train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
-                    train_ids = np.unique(train_ids_raw).astype(np.int64)
-                    train_ids = train_ids[train_ids > 0]
+                train_ids = None
+                if args.dataset is not None and len(args.dataset) > 0:
+                    try:
+                        cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
+                        ds = create_dataset(cfg)
+                        train_data, valid_data, test_data = data_preparation(cfg, ds)
+                        iid_field = cfg["ITEM_ID_FIELD"]
+                        train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
+                        train_ids = np.unique(train_ids_raw).astype(np.int64)
+                        train_ids = train_ids[train_ids > 0]
                     except Exception as e:
                         print(f"Warning: Failed to load dataset for SVD split ({e}). Using all items.")
-                    train_ids = None
+                        train_ids = None
 
-            nonpad_all = mat[1:, :].astype(np.float32, copy=False)
-                
+                nonpad_all = mat[1:, :].astype(np.float32, copy=False)
+
                 # Select subset for fit
-            if train_ids is None or len(train_ids) == 0:
-                train_subset = nonpad_all
-            else:
-                max_row = mat.shape[0] - 1
-                train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
-                if len(train_ids) == 0:
+                if train_ids is None or len(train_ids) == 0:
                     train_subset = nonpad_all
                 else:
-                    train_subset = mat[train_ids, :].astype(np.float32, copy=False)
+                    max_row = mat.shape[0] - 1
+                    train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
+                    if len(train_ids) == 0:
+                        train_subset = nonpad_all
+                    else:
+                        train_subset = mat[train_ids, :].astype(np.float32, copy=False)
 
-            svd_k = max(1, min(target_dim, train_subset.shape[1] - 1 if train_subset.shape[1] > 1 else 1))
-            svd = TruncatedSVD(n_components=svd_k, random_state=args.svd_random_state)
-            svd.fit(train_subset)
-            reduced = svd.transform(nonpad_all)
-                
-            if svd_k < target_dim:
-                pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
-                reduced = np.concatenate([reduced, pad], axis=1)
-                
+                svd_k = max(1, min(target_dim, train_subset.shape[1] - 1 if train_subset.shape[1] > 1 else 1))
+                svd = TruncatedSVD(n_components=svd_k, random_state=args.svd_random_state)
+                svd.fit(train_subset)
+                reduced = svd.transform(nonpad_all)
+
+                if svd_k < target_dim:
+                    pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
+                    reduced = np.concatenate([reduced, pad], axis=1)
+
                 reduced = l2_normalize(reduced, norm="l2", axis=1)
-            mat_proj = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-            mat_proj[1:, :] = reduced
-            mat = mat_proj
+                mat_proj = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
+                mat_proj[1:, :] = reduced
+                mat = mat_proj
             else:
-                 # Pad zeros
-            mat_pad = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-            mat_pad[:, :orig_dim] = mat
-            if mat.shape[0] > 1:
+                # Pad zeros
+                mat_pad = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
+                mat_pad[:, :orig_dim] = mat
+                if mat.shape[0] > 1:
                     mat_pad[1:, :] = l2_normalize(mat_pad[1:, :], norm="l2", axis=1)
-            mat = mat_pad
+                mat = mat_pad
 
     # --- 6. Save ---
     if args.dtype == "float16":

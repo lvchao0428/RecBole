@@ -1,0 +1,9 @@
+---
+# Absolute paths for amplified multi-view LLM embeddings
+item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_amplified.npy
+item_text_multiview_dir_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_amplified_views
+use_llm: true
+use_text_view_cross: true
+text_view_residual_weight: 1.0
+
+

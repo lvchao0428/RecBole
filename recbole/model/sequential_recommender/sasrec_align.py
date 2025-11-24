@@ -2,6 +2,7 @@
 # Align-only variant of SASRec with optional text embedding alignment
 
 import os
+import json
 import numpy as np
 import torch
 from torch import nn
@@ -112,6 +113,10 @@ class SASRecAlign(SequentialRecommender):
         self.seq_text_cross_dropout_rate = (
             float(config["seq_text_cross_dropout"]) if "seq_text_cross_dropout" in config else 0.1
         )
+        self.use_text_view_cross = bool(config["use_text_view_cross"]) if "use_text_view_cross" in config else False
+        self.text_view_residual_weight = (
+            float(config["text_view_residual_weight"]) if "text_view_residual_weight" in config else 1.0
+        )
         self.use_align = config["use_align"] if "use_align" in config else True
         self.text_cross_layer_num = config["text_cross_layer_num"] if "text_cross_layer_num" in config else 3
         # Cross-output dropout and learnable text gate configs
@@ -168,6 +173,44 @@ class SASRecAlign(SequentialRecommender):
 
         self.register_buffer("item_text_emb_base", emb_base if emb_base is not None else None)
         self.register_buffer("item_text_emb_llm", emb_llm if emb_llm is not None else None)
+
+        # Optional multi-view text splits (e.g., per-prompt embeddings)
+        self.item_text_views = []
+        self.text_view_prompts = []
+        self.text_view_cross_layers = None
+        self.text_view_deep_layers = None
+        self.text_view_predictor_layers = None
+        self.text_view_cross_dropouts = None
+        self.text_view_gate_params = None
+
+        multiview_dirs = []
+        for key in ("item_text_multiview_dir", "item_text_multiview_dir_llm", "item_text_multiview_dir_base"):
+            if key in config and config[key]:
+                multiview_dirs.append(os.path.abspath(os.path.expanduser(config[key])))
+
+        seen_dirs = set()
+        for dir_path in multiview_dirs:
+            if dir_path in seen_dirs:
+                continue
+            seen_dirs.add(dir_path)
+            views, prompts = self._load_text_views_from_dir(dir_path, self.n_items)
+            if len(views) == 0:
+                continue
+            for tensor in views:
+                buffer_name = f"text_view_tensor_{len(self.item_text_views)}"
+                self.register_buffer(buffer_name, tensor)
+                self.item_text_views.append(getattr(self, buffer_name))
+            if prompts:
+                self.text_view_prompts.extend(prompts)
+        if len(self.item_text_views) > 0:
+            self.logger.info(
+                "SASRecAlign: loaded %d multi-view splits from %d directories (use_text_view_cross=%s).",
+                len(self.item_text_views),
+                len(seen_dirs),
+                str(self.use_text_view_cross),
+            )
+        if self.use_text_view_cross and len(self.item_text_views) > 0:
+            self._build_text_view_cross_modules()
 
         if self.disable_text_feature:
             # Safety: when text branch is explicitly disabled, never fuse text embeddings
@@ -433,7 +476,13 @@ class SASRecAlign(SequentialRecommender):
             dnn_cross_modules.append(self.item_concat_predictor)
         if self.fused_item_norm is not None:
             dnn_cross_modules.append(self.fused_item_norm)
+        if self.use_text_view_cross and self.text_view_predictor_layers is not None:
+            dnn_cross_modules.extend(
+                [self.text_view_cross_layers, self.text_view_deep_layers, self.text_view_predictor_layers]
+            )
         dnn_extra_params = [self.text_gate_param]
+        if self.text_view_gate_params is not None:
+            dnn_extra_params.append(self.text_view_gate_params)
 
         # backbone: SASRec core
         backbone_modules = [self.item_embedding, self.position_embedding, self.trm_encoder, self.LayerNorm]
@@ -491,6 +540,132 @@ class SASRecAlign(SequentialRecommender):
         if emb.size(0) != expected_rows:
             return None
         return emb
+
+    def _load_text_views_from_dir(self, dir_path: str, expected_rows: int):
+        views = []
+        prompts = []
+        if dir_path is None or not os.path.isdir(dir_path):
+            return views, prompts
+        metadata_entries = []
+        meta_path = os.path.join(dir_path, "views.json")
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, "r") as f:
+                    meta = json.load(f)
+                for entry in meta.get("prompts", []):
+                    file_name = entry.get("file")
+                    if not file_name:
+                        continue
+                    full_path = file_name if os.path.isabs(file_name) else os.path.join(dir_path, file_name)
+                    prompt = entry.get("prompt") or f"view_{entry.get('index', len(metadata_entries))}"
+                    metadata_entries.append((full_path, prompt))
+            except Exception as e:
+                self.logger.warning("SASRecAlign: failed to parse %s (%s); falling back to *.npy listing.", meta_path, e)
+        if len(metadata_entries) == 0:
+            try:
+                npy_files = sorted(f for f in os.listdir(dir_path) if f.endswith(".npy"))
+            except Exception:
+                npy_files = []
+            metadata_entries = [(os.path.join(dir_path, fname), f"view_{idx}") for idx, fname in enumerate(npy_files)]
+        for file_path, prompt in metadata_entries:
+            if not os.path.exists(file_path):
+                self.logger.warning("SASRecAlign: multi-view file missing: %s", file_path)
+                continue
+            try:
+                arr = np.load(file_path)
+            except Exception as e:
+                self.logger.warning("SASRecAlign: failed to load %s (%s)", file_path, e)
+                continue
+            if arr.ndim != 2 or arr.shape[0] != expected_rows:
+                self.logger.warning(
+                    "SASRecAlign: invalid multi-view shape %s (expected rows=%d).", file_path, expected_rows
+                )
+                continue
+            tensor = torch.from_numpy(arr).float()
+            views.append(tensor)
+            prompts.append(prompt)
+        return views, prompts
+
+    def _has_text_views(self) -> bool:
+        return hasattr(self, "item_text_views") and len(self.item_text_views) > 0
+
+    def _gather_text_views(self, ids_flat: torch.Tensor):
+        if not self._has_text_views():
+            return []
+        gathered = []
+        for tensor in self.item_text_views:
+            gathered.append(tensor[ids_flat])
+        return gathered
+
+    def _build_text_view_cross_modules(self):
+        num_views = len(self.item_text_views)
+        if num_views == 0:
+            return
+        self.text_view_cross_layers = nn.ModuleList()
+        self.text_view_deep_layers = nn.ModuleList()
+        self.text_view_predictor_layers = nn.ModuleList()
+        if self.cross_dropout_prob > 0.0:
+            self.text_view_cross_dropouts = nn.ModuleList()
+        else:
+            self.text_view_cross_dropouts = None
+        self.text_view_gate_params = nn.Parameter(
+            torch.full((num_views,), float(self.text_gate_init), dtype=torch.float32)
+        )
+        for tensor in self.item_text_views:
+            view_dim = tensor.size(1)
+            fusion_input_dim = self.hidden_size + view_dim
+            self.text_view_cross_layers.append(DCNV2Cross(fusion_input_dim, num_layers=self.text_cross_layer_num))
+            self.text_view_deep_layers.append(
+                MLPLayers([fusion_input_dim, self.hidden_size], dropout=0.0, bn=self.text_mlp_bn)
+            )
+            self.text_view_predictor_layers.append(nn.Linear(fusion_input_dim + self.hidden_size, self.hidden_size))
+            if self.text_view_cross_dropouts is not None:
+                self.text_view_cross_dropouts.append(nn.Dropout(self.cross_dropout_prob))
+
+    def _fuse_with_text_views(self, item_emb: torch.Tensor, all_ids: torch.Tensor) -> torch.Tensor:
+        if not self.use_text_view_cross or not self._has_text_views() or self.text_view_predictor_layers is None:
+            return item_emb
+        if self.detach_text_emb:
+            view_features = [view.detach() for view in self._gather_text_views(all_ids)]
+        else:
+            view_features = self._gather_text_views(all_ids)
+        if len(view_features) == 0:
+            return item_emb
+
+        device = item_emb.device
+        if self.text_item_gate_all is not None:
+            gate = self.text_item_gate_all[all_ids].to(device).unsqueeze(1)
+        else:
+            gate = None
+
+        item_emb_for_fusion = item_emb
+        if self.item_emb_norm is not None:
+            item_emb_for_fusion = self.item_emb_norm(item_emb)
+
+        contributions = []
+        for idx, view_feat in enumerate(view_features):
+            view_feat = view_feat.to(device)
+            fusion_input = torch.cat([item_emb_for_fusion, view_feat], dim=1)
+            cross_out = self.text_view_cross_layers[idx](fusion_input)
+            if self.text_view_cross_dropouts is not None and len(self.text_view_cross_dropouts) > idx:
+                cross_out = self.text_view_cross_dropouts[idx](cross_out)
+            deep_out = self.text_view_deep_layers[idx](fusion_input)
+            fused = torch.cat([cross_out, deep_out], dim=1)
+            view_out = self.text_view_predictor_layers[idx](fused)
+            if self.fused_item_norm is not None:
+                view_out = self.fused_item_norm(view_out)
+            delta = view_out - item_emb
+            alpha = torch.sigmoid(self.text_view_gate_params[idx]) if self.text_view_gate_params is not None else 1.0
+            scaled = self.text_weight * alpha * delta
+            if gate is not None:
+                scaled = scaled * gate
+            contributions.append(scaled)
+
+        if len(contributions) == 0:
+            return item_emb
+        stacked = torch.stack(contributions, dim=0).mean(dim=0)
+        fused_emb = item_emb + self.text_view_residual_weight * stacked
+        return fused_emb
 
     def _has_item_text(self) -> bool:
         return (
@@ -569,16 +744,20 @@ class SASRecAlign(SequentialRecommender):
             all_ids = item_ids
             item_emb = self.item_embedding(item_ids)
         
-        # If no text features or fusion modules, return original embeddings
+        if not self.fuse_text_feature:
+            return item_emb
+
+        if self.use_text_view_cross and self._has_text_views():
+            return self._fuse_with_text_views(item_emb, all_ids)
+
+        # If no (aggregated) text features or fusion modules, return original embeddings
         if (
             (not self._has_item_text())
             or (self.use_cross and self.item_fusion_predictor is None)
             or ((not self.use_cross) and (self.item_text_proj is None or self.item_concat_predictor is None))
         ):
             return item_emb
-        if not self.fuse_text_feature:
-            return item_emb
-            
+
         # Get text features for items
         text_raw = self._gather_text_raw(all_ids)
         if self.detach_text_emb:
@@ -750,6 +929,17 @@ class SASRecAlign(SequentialRecommender):
                 eps = 1e-8
                 entropy = -(alpha * torch.log(alpha + eps) + (1.0 - alpha) * torch.log(1.0 - alpha + eps))
                 loss = loss + self.text_gate_reg_entropy * entropy
+            if self.text_view_gate_params is not None:
+                view_alpha = torch.sigmoid(self.text_view_gate_params)
+                if self.text_gate_reg_l2 > 0.0:
+                    loss = loss + self.text_gate_reg_l2 * torch.sum(view_alpha ** 2)
+                if self.text_gate_reg_entropy > 0.0:
+                    eps = 1e-8
+                    view_entropy = -(
+                        view_alpha * torch.log(view_alpha + eps)
+                        + (1.0 - view_alpha) * torch.log(1.0 - view_alpha + eps)
+                    )
+                    loss = loss + self.text_gate_reg_entropy * torch.sum(view_entropy)
 
         # Log gate alpha on first training step (independent of alignment branch)
         if (not self._gate_debug_logged) and self.training:
