@@ -8,9 +8,12 @@ Phase-B: joint fine-tuning with backbone unfrozen and grouped learning rates
 """
 import argparse
 import copy
+import json
 import os
+from datetime import datetime
 from logging import getLogger
 
+import psutil
 import torch
 
 from recbole.config import Config
@@ -54,6 +57,74 @@ def _build_and_prepare(config: Config):
 
     trainer = get_trainer(config["MODEL_TYPE"], config["model"])(config, model)
     return logger, dataset, train_data, valid_data, test_data, model, trainer
+
+
+def _cfg_val(cfg: Config, key: str, default=None):
+    try:
+        return cfg[key]
+    except KeyError:
+        return default
+
+
+def _log_and_dump_summary(config: Config, model, res_dict: dict, label: str):
+    """Log grouped hyperparameters, resource usage, and dump to file."""
+    hyper_groups = {
+        "training": ["epochs", "train_batch_size", "learning_rate", "eval_step", "stopping_step", "weight_decay", "label_smoothing"],
+        "lr_groups": ["lr_text_head", "lr_dnn_cross", "lr_backbone"],
+        "model": ["n_layers", "n_heads", "hidden_size", "inner_size", "hidden_dropout_prob", "attn_dropout_prob", "cross_dropout_prob", "token_dropout_prob", "text_gate_reg_l2", "text_gate_reg_entropy"],
+        "text_align": ["alignment_weight", "temperature", "text_weight", "text_tail_threshold", "text_gate_init", "use_cross", "use_seq_text_cross", "use_llm", "use_align", "disable_text_feature", "fuse_text_feature"],
+    }
+    summary = {}
+    for group, keys in hyper_groups.items():
+        summary[group] = {}
+        for key in keys:
+            val = _cfg_val(config, key, None)
+            if val is not None:
+                summary[group][key] = val
+
+    # Resource usage
+    proc = psutil.Process(os.getpid())
+    cpu_mem_mb = proc.memory_info().rss / (1024 ** 2)
+    gpu_info = {}
+    if torch.cuda.is_available():
+        device = torch.device(config["device"]) if "device" in config else torch.device("cuda")
+        try:
+            torch.cuda.synchronize(device)
+        except Exception:
+            pass
+        gpu_info = {
+            "memory_allocated_mb": torch.cuda.memory_allocated(device) / (1024 ** 2),
+            "memory_reserved_mb": torch.cuda.memory_reserved(device) / (1024 ** 2),
+        }
+    else:
+        gpu_info = {"memory_allocated_mb": 0.0, "memory_reserved_mb": 0.0}
+
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+
+    payload = {
+        "label": label,
+        "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
+        "model": config["model"],
+        "dataset": config["dataset"],
+        "config_groups": summary,
+        "resource": {
+            "cpu_memory_mb": cpu_mem_mb,
+            "gpu": gpu_info,
+            "trainable_params": trainable_params,
+            "total_params": total_params,
+        },
+        "results": res_dict,
+    }
+
+    logger = getLogger()
+    logger.info(set_color("[Run Summary JSON]", "blue") + f" {json.dumps(payload, ensure_ascii=False)}")
+
+    output_dir = os.path.join(os.getcwd(), "run_metrics")
+    os.makedirs(output_dir, exist_ok=True)
+    filename = f"{payload['timestamp']}_{config['model']}_{label}.txt"
+    with open(os.path.join(output_dir, filename), "w", encoding="utf-8") as fout:
+        json.dump(payload, fout, ensure_ascii=False, indent=2)
 
 
 def _train_and_eval_phase(logger, trainer, train_data, valid_data, test_data, saved=True):
@@ -284,6 +355,15 @@ def main():
                         "test_result": test_result,
                         "saved_model_file": trainer_a.saved_model_file,
                     }
+                    _log_and_dump_summary(
+                        config_a,
+                        model_a,
+                        {
+                            "best_valid_result": res["best_valid_result"],
+                            "test_result": res["test_result"],
+                        },
+                        f"Phase-A_aw{aw}_tau{tau}",
+                    )
                     ckpt_path = res["saved_model_file"] if args.save else None
                     if ckpt_path:
                         logger_a.info(set_color("[Phase-A:grid] Saved checkpoint", "green") + f": {ckpt_path}")
@@ -416,6 +496,15 @@ def main():
                 "test_result": test_result,
                 "saved_model_file": trainer_a.saved_model_file,
             }
+            _log_and_dump_summary(
+                config_a,
+                model_a,
+                {
+                    "best_valid_result": res_a["best_valid_result"],
+                    "test_result": res_a["test_result"],
+                },
+                "Phase-A",
+            )
             phase_a_ckpt = res_a["saved_model_file"] if args.save else None
             if phase_a_ckpt:
                 logger_a.info(set_color("[Phase-A] Saved checkpoint", "green") + f": {phase_a_ckpt}")
@@ -502,20 +591,11 @@ def main():
                       f"Phase-B best_valid={res_b['best_valid_result']}\n"
                       f"Phase-B test={res_b['test_result']}")
 
-        # Log Hyperparameters (grouped)
-        hyper_groups = {
-            "Training": ["epochs", "train_batch_size", "learning_rate", "eval_step", "stopping_step", "weight_decay", "label_smoothing"],
-            "LR Groups": ["lr_text_head", "lr_dnn_cross", "lr_backbone"],
-            "Model": ["n_layers", "n_heads", "hidden_size", "inner_size", "hidden_dropout_prob", "attn_dropout_prob", "cross_dropout_prob", "token_dropout_prob", "text_gate_reg_l2", "text_gate_reg_entropy"],
-            "Text/Align": ["alignment_weight", "temperature", "text_weight", "text_tail_threshold", "text_gate_init", "use_cross", "use_seq_text_cross", "use_llm", "use_align", "freeze_backbone"],
+        payload = {
+            "best_valid_result": res_a["best_valid_result"] if res_a else None,
+            "phase_b_result": res_b,
         }
-        summary_lines = [set_color("[Hyperparameters Summary]", "blue")]
-        for group, keys in hyper_groups.items():
-            summary_lines.append(set_color(f"  {group}:", "cyan"))
-            for key in keys:
-                if key in config_b:
-                    summary_lines.append(f"    {key:<25}: {config_b[key]}")
-        logger_b.info("\n".join(summary_lines))
+        _log_and_dump_summary(config_b, model_b, payload, "Phase-B")
 
 
 if __name__ == "__main__":

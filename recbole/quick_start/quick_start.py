@@ -13,9 +13,15 @@ recbole.quick_start
 """
 import logging
 import sys
-import torch.distributed as dist
+import json
+import os
+from datetime import datetime
 from collections.abc import MutableMapping
 from logging import getLogger
+
+import psutil
+import torch
+import torch.distributed as dist
 
 from ray import tune
 
@@ -92,6 +98,55 @@ def run(
     return res
 
 
+def _dump_single_phase_summary(config: Config, model, valid_result, test_result):
+    """Dump config/resource/result summary for single-phase runs."""
+    logger = getLogger()
+    proc = psutil.Process(os.getpid())
+    cpu_mem_mb = proc.memory_info().rss / (1024 ** 2)
+
+    if torch.cuda.is_available():
+        device = torch.device(config["device"]) if "device" in config else torch.device("cuda")
+        try:
+            torch.cuda.synchronize(device)
+        except Exception:
+            pass
+        gpu_alloc = torch.cuda.memory_allocated(device) / (1024 ** 2)
+        gpu_reserved = torch.cuda.memory_reserved(device) / (1024 ** 2)
+    else:
+        gpu_alloc = 0.0
+        gpu_reserved = 0.0
+
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
+
+    summary = {
+        "label": "single_phase",
+        "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
+        "model": config["model"],
+        "dataset": config["dataset"],
+        "config": config.final_config_dict(scanner=False),
+        "resource": {
+            "cpu_memory_mb": cpu_mem_mb,
+            "gpu_memory_allocated_mb": gpu_alloc,
+            "gpu_memory_reserved_mb": gpu_reserved,
+            "trainable_params": trainable_params,
+            "total_params": total_params,
+        },
+        "results": {
+            "best_valid_result": valid_result,
+            "test_result": test_result,
+        },
+    }
+    logger.info(set_color("[Run Summary JSON]", "blue") + " " + json.dumps(summary, ensure_ascii=False))
+    os.makedirs("run_metrics", exist_ok=True)
+    with open(
+        os.path.join("run_metrics", f"{summary['timestamp']}_{config['model']}_single.txt"),
+        "w",
+        encoding="utf-8",
+    ) as fout:
+        json.dump(summary, fout, ensure_ascii=False, indent=2)
+
+
 def run_recbole(
     model=None,
     dataset=None,
@@ -161,63 +216,7 @@ def run_recbole(
     )
 
     logger.info(set_color("best valid ", "yellow") + f": {best_valid_result}")
-    # -------------------- 公共工具函数 --------------------
-    def _estimate_model_mem_mb() -> float:
-        """根据参数量和 dtype 估算显存(MB)。不考虑激活/梯度，仅供参考。"""
-        total_bytes = 0
-        for p in model.parameters():
-            elem_size = p.element_size()  # bytes per element
-            total_bytes += p.numel() * elem_size
-        return total_bytes / (1024 ** 2)  # MB
-
-    def _log_diagnostics(stage: str, result_dict):
-        # 1) 估算模型显存占用
-        mem_mb = _estimate_model_mem_mb()
-        logger.info(set_color(f"{stage} model_mem(MB)", "blue") + f": {mem_mb:.1f}")
-
-        # 2) 可训练参数
-        train_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        logger.info(set_color(f"{stage} trainable params", "blue") + f": {train_params / 1e6:.2f}M")
-
-        # 3) 关键配置
-        def _log_group(title: str, keys):
-            kv = {k: config[k] for k in keys if k in config}
-            logger.info(set_color(f"{stage} {title}", "cyan") + f": {kv}")
-
-        _log_group("optim_args", ["learning_rate", "train_batch_size", "epochs", "loss_type"])
-        _log_group(
-            "text_args",
-            [
-                "disable_text_feature",
-                "use_llm",
-                "use_cross",
-                "use_align",
-                "fuse_text_feature",
-                "alignment_weight",
-                "item_text_emb_path_base",
-                "item_text_emb_path_llm",
-            ],
-        )
-        _log_group(
-            "reg_args",
-            [
-                "weight_decay",
-                "label_smoothing",
-                "token_dropout_prob",
-                "text_gate_reg_l2",
-                "text_gate_reg_entropy",
-            ],
-        )
-
-        # 4) 结果本身
-        color = "green" if stage == "valid" else "yellow"
-        logger.info(set_color(f"{stage} result", color) + f": {result_dict}")
-
-    # ---------- 打印 Validation 诊断 ----------
-    _log_diagnostics("valid", best_valid_result)
-
-    # ---------- 打印 Test 诊断 ----------
-    _log_diagnostics("test", test_result)
+    _dump_single_phase_summary(config, model, best_valid_result, test_result)
 
     result = {
         "best_valid_score": best_valid_score,
