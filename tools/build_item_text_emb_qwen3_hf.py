@@ -409,11 +409,11 @@ def main():
                 batch_texts = []
                 for raw in batch_raw:
                     base_prompt = prompt_tmpl.replace("{text}", raw)
-        if use_chat:
-            messages = [{"role": "user", "content": base_prompt}]
-            chat_text = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=False
-            )
+                    if use_chat:
+                        messages = [{"role": "user", "content": base_prompt}]
+                        chat_text = tokenizer.apply_chat_template(
+                            messages, tokenize=False, add_generation_prompt=False
+                        )
                         batch_texts.append(chat_text)
                     else:
                         batch_texts.append(base_prompt)
