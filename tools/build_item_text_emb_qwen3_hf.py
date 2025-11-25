@@ -409,11 +409,11 @@ def main():
                 batch_texts = []
                 for raw in batch_raw:
                     base_prompt = prompt_tmpl.replace("{text}", raw)
-                    if use_chat:
-                        messages = [{"role": "user", "content": base_prompt}]
-                        chat_text = tokenizer.apply_chat_template(
-                            messages, tokenize=False, add_generation_prompt=False
-                        )
+        if use_chat:
+            messages = [{"role": "user", "content": base_prompt}]
+            chat_text = tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False
+            )
                         batch_texts.append(chat_text)
                     else:
                         batch_texts.append(base_prompt)
@@ -516,15 +516,15 @@ def main():
             mat = np.concatenate(view_mats_for_concat, axis=1)
         else:
             raise ValueError("--view_project_dim currently only supports output_mode=concat.")
-        if mat.shape[0] > 0:
-            mat[0, :] = 0.0
+    if mat.shape[0] > 0:
+        mat[0, :] = 0.0
 
     # --- 5. Optional Dimensionality Reduction (SVD) ---
     # NOTE: SVD only implemented for 2D matrices currently.
     if args.project_dim is not None:
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
-        else:
+            else:
             mat = _apply_truncated_svd(
                 mat,
                 target_dim=args.project_dim,
