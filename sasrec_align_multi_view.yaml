@@ -1,6 +1,7 @@
 ---
 model: SASRecAlignMultiView
 hidden_size: 256
+fusion_chunk_size: 2048
 
 # Dataset / data loader
 dataset: Amazon_Beauty
@@ -54,6 +55,7 @@ text_view_senet_ratio: 4
 text_view_cross_dropout: 0.1
 text_view_residual_init: 0.5
 text_view_cross_layers: 1
+text_view_half_precision: true
 
 # Alignment and gating
 alignment_weight: 0.05

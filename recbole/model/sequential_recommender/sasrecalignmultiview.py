@@ -36,6 +36,10 @@ class SASRecAlignMultiView(SASRecAlign):
         self.text_view_dropout = (
             nn.Dropout(self.text_view_cross_dropout) if self.text_view_cross_dropout > 0.0 else None
         )
+        self.text_view_half_precision = (
+            bool(config["text_view_half_precision"]) if "text_view_half_precision" in config else True
+        )
+        self.text_view_storage_dtype = torch.float16 if self.text_view_half_precision else torch.float32
 
         if self.use_text_view_split:
             if not self.text_view_split_dir:
@@ -60,7 +64,7 @@ class SASRecAlignMultiView(SASRecAlign):
                 if not os.path.exists(file_path):
                     raise ValueError(f"Split embedding file not found: {file_path}")
                 npy = np.load(file_path)
-                tensor = torch.from_numpy(npy).float()
+                tensor = torch.from_numpy(npy).to(self.text_view_storage_dtype)
                 buffer_name = f"text_view_emb_{idx}"
                 self.register_buffer(buffer_name, tensor)
                 self.text_view_buffer_names.append(buffer_name)
@@ -105,6 +109,8 @@ class SASRecAlignMultiView(SASRecAlign):
             if view_emb_table.device != ids_flat.device:
                 view_emb_table = view_emb_table.to(ids_flat.device)
             gathered = view_emb_table[ids_flat]  # [B, view_dim]
+            if gathered.dtype != proj.weight.dtype:
+                gathered = gathered.to(proj.weight.dtype)
             projected = proj(gathered)  # [B, hidden]
             squeeze = projected  # treat embedding as 1D field; no spatial dims to pool
             excitation = self.text_view_senet[idx](squeeze)
@@ -133,6 +139,15 @@ class SASRecAlignMultiView(SASRecAlign):
 
         if item_ids is None:
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
+            if (
+                isinstance(self.fusion_chunk_size, int)
+                and self.fusion_chunk_size > 0
+                and self.fusion_chunk_size < all_ids.numel()
+            ):
+                chunks = []
+                for chunk_ids in torch.split(all_ids, self.fusion_chunk_size):
+                    chunks.append(self._get_fused_item_embeddings(chunk_ids))
+                return torch.cat(chunks, dim=0)
             item_emb = self.item_embedding.weight
         else:
             all_ids = item_ids

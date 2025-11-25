@@ -7,6 +7,7 @@
 
 cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "[Training] Launching two-phase SASRecAlignMultiView run (per-view residual cross)..."
 python scripts/two_phase_train.py \
