@@ -1,7 +1,6 @@
 ---
 model: SASRecAlignMultiView
 hidden_size: 256
-fusion_chunk_size: 2048
 
 # Dataset / data loader
 dataset: Amazon_Beauty
