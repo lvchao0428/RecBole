@@ -18,7 +18,7 @@ python tools/export_internal_item_mapping.py \
   --config yelp_config/yelp_sasrec_base_plain.yaml \
   --output dataset/yelp/item_index_mapping.csv
 
-echo "[Yelp] Generating Qwen3 multi-view embeddings..."
+echo "[Yelp] Generating Qwen3 base-prompt embeddings..."
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/yelp/item_index_mapping.csv \
   --model_name_or_path /home/charlie/project/qwen/Model \
@@ -28,11 +28,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --project_dim 256 \
   --dataset yelp \
   --config yelp_config/yelp_sasrec_base_plain.yaml recbole/properties/overall.yaml \
-  --dtype float16 \
-  --prompt_preset multiview \
-  --output_mode concat \
-  --view_project_dim 64 \
-  --split_output_dir dataset/yelp/item_text_emb_amplified_views
+  --dtype float16
 
-echo "[Yelp] Done."
+echo "[Yelp] Done (run tools/get_multiview_qwen3_embed_yelp.sh for multi-view features if needed)."
 

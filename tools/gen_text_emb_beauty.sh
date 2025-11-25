@@ -18,7 +18,7 @@ python tools/export_internal_item_mapping.py \
   --config sasrec_base_plain.yaml \
   --output dataset/Amazon_Beauty/item_index_mapping.csv
 
-echo "[Beauty] Generating Qwen3 multi-view embeddings..."
+echo "[Beauty] Generating Qwen3 base-prompt embeddings..."
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/Amazon_Beauty/item_index_mapping.csv \
   --model_name_or_path /home/charlie/project/qwen/Model \
@@ -28,11 +28,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --project_dim 256 \
   --dataset Amazon_Beauty \
   --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
-  --dtype float16 \
-  --prompt_preset multiview \
-  --output_mode concat \
-  --view_project_dim 64 \
-  --split_output_dir dataset/Amazon_Beauty/item_text_emb_amplified_views
+  --dtype float16
 
-echo "[Beauty] Done."
+echo "[Beauty] Done (run tools/get_multiview_qwen3_embed.sh for multi-view features if needed)."
 
