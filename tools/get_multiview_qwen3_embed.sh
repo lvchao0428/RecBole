@@ -15,7 +15,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --config /home/charlie/project/RecBole/sasrec_base_plain.yaml \
   --prompt_preset multiview \
   --output_mode concat \
-  --project_dim 1024 \
+  --view_project_dim 64 \
   --split_output_dir /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_amplified_views
 
 
