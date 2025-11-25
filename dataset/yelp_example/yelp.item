@@ -1,0 +1,6 @@
+item_id:token	item_name:token_seq	address:token_seq	city:token_seq	state:token	postal_code:token	latitude:float	longitude:float	item_stars:float	item_review_count:float	is_open:float	categories:token_seq
+f9NumwFMBDn751xgFiRbNA	The Range At Lake Norman	10913 Bailey Rd	Cornelius	NC	28031	35.4627242	-80.8526119	3.5	36	1	Active Life, Gun\/Rifle Ranges, Guns & Ammo, Shopping
+Yzvjg0SayhoZgCljUJRF9Q	Carlos Santo, NMD	8880 E Via Linda, Ste 107	Scottsdale	AZ	85258	33.5694041	-111.8902637	5.0	4	1	Health & Medical, Fitness & Instruction, Yoga, Active Life, Pilates
+XNoUzKckATkOD1hP6vghZg	Felinus	3554 Rue Notre-Dame O	Montreal	QC	H4C 1P4	45.479984	-73.58007	5.0	5	1	Pets, Pet Services, Pet Groomers
+6OAZjbxqM5ol29BuHsil3w	Nevada House of Hose	1015 Sharp Cir	North Las Vegas	NV	89030	36.2197281	-115.1277255	2.5	3	0	Hardware Stores, Home Services, Building Supplies, Home & Garden, Shopping
+51M2Kk903DFYI6gnB5I6SQ	USE MY GUY SERVICES LLC	4827 E Downing Cir	Mesa	AZ	85205	33.4280652	-111.7266485	4.5	26	1	Home Services, Plumbing, Electricians, Handyman, Contractors
