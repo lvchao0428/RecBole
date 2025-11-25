@@ -62,8 +62,6 @@ PROMPT_PRESETS = {
         "Who is the target audience or user group for [TITLE] {text}?",
         # View 4: Category/Context
         "Categorize the item [TITLE] {text} and describe its context.",
-        # View 5: Visual/Style (Optional, good for fashion/movies)
-        "Describe the style, appearance, or genre of [TITLE] {text}.",
     ],
     "description": [
         "Describe [TITLE] {text} in detail.",
@@ -140,6 +138,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None, # Changed default to None to avoid accidental projection of concatenated vectors
         help="Reduce embedding dim via TruncatedSVD. Applied AFTER concatenation/mean. Default: None (keep original).",
+    )
+    p.add_argument(
+        "--view_project_dim",
+        type=int,
+        default=None,
+        help="Apply TruncatedSVD per prompt view before concat/stack (e.g., 64). Requires --split_output_dir.",
     )
     p.add_argument(
         "--svd_random_state",
@@ -234,6 +238,57 @@ def encode_batch(
         return emb.to(torch.float32).detach().cpu().numpy()
 
 
+def _load_train_item_ids(args, max_row: int):
+    if args.dataset is None or len(args.dataset) == 0:
+        return None
+    try:
+        cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
+        ds = create_dataset(cfg)
+        train_data, _, _ = data_preparation(cfg, ds)
+        iid_field = cfg["ITEM_ID_FIELD"]
+        train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
+        train_ids = np.unique(train_ids_raw).astype(np.int64)
+        train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
+        if len(train_ids) == 0:
+            return None
+        return train_ids
+    except Exception as e:
+        print(f"Warning: Failed to load dataset for SVD split ({e}). Using all items.")
+        return None
+
+
+def _apply_truncated_svd(mat: np.ndarray, target_dim: int, train_ids, random_state: int, label: str):
+    if mat.ndim != 2:
+        raise ValueError("SVD can only be applied to 2D matrices.")
+    orig_dim = mat.shape[1]
+    target_dim = int(target_dim)
+    if target_dim <= 0:
+        raise ValueError("--project_dim/--view_project_dim must be > 0")
+    if target_dim >= orig_dim:
+        if mat.shape[0] > 1:
+            mat[1:, :] = l2_normalize(mat[1:, :], norm="l2", axis=1)
+        return mat
+
+    if train_ids is None or len(train_ids) == 0:
+        subset = mat[1:, :].astype(np.float32, copy=False)
+    else:
+        subset = mat[train_ids, :].astype(np.float32, copy=False)
+    svd_k = max(1, min(target_dim, subset.shape[1] - 1 if subset.shape[1] > 1 else 1))
+    print(f"[SVD:{label}] fitting TruncatedSVD from {orig_dim} -> {target_dim} (k={svd_k})...")
+    svd = TruncatedSVD(n_components=svd_k, random_state=random_state)
+    svd.fit(subset)
+
+    nonpad = mat[1:, :].astype(np.float32, copy=False)
+    reduced = svd.transform(nonpad)
+    if svd_k < target_dim:
+        pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
+        reduced = np.concatenate([reduced, pad], axis=1)
+    reduced = l2_normalize(reduced, norm="l2", axis=1)
+    projected = np.zeros((mat.shape[0], target_dim), dtype=reduced.dtype)
+    projected[1:, :] = reduced
+    return projected
+
+
 def main():
     args = parse_args()
 
@@ -326,8 +381,12 @@ def main():
     # We will process items in batches. For each batch, we generate embeddings for ALL prompts.
     # Result structure: List of [Batch, K, D] or [Batch, K*D] depending on logic. 
     # To keep memory low, we'll accumulate processed arrays.
-    
-    final_embs = [] # List of numpy arrays
+
+    needs_view_concat = args.output_mode == "concat" and args.view_project_dim is not None
+    if needs_view_concat and not args.split_output_dir:
+        raise ValueError("--view_project_dim requires --split_output_dir to store per-view tensors.")
+
+    final_embs = [] if not needs_view_concat else None
     
     n_items = len(item_raw_texts)
     max_len_str = str(args.max_length) if isinstance(args.max_length, int) and args.max_length > 0 else "unlimited"
@@ -336,6 +395,7 @@ def main():
     split_chunks = None
     if args.split_output_dir:
         split_chunks = [[] for _ in range(len(prompts))]
+    view_mats_for_concat = [] if needs_view_concat else None
 
     with tqdm(total=n_items, unit="items") as pbar:
         for i in range(0, n_items, args.batch_size):
@@ -384,25 +444,31 @@ def main():
             else: # stack
                 final_batch = stacked
             
-            final_embs.append(final_batch)
+            if final_embs is not None:
+                final_embs.append(final_batch)
             pbar.update(len(batch_raw))
             
-    # Concatenate all batches
-    mat = np.concatenate(final_embs, axis=0) # [N, ...]
+    mat = None
+    if final_embs is not None:
+        if len(final_embs) == 0:
+            mat = np.zeros((n_items, 0), dtype=np.float32)
+        else:
+            mat = np.concatenate(final_embs, axis=0)
 
-    # Ensure PAD row (index 0) is zeros
-    if mat.shape[0] > 0:
-        # We need to handle the shape generically
+    if mat is not None and mat.shape[0] > 0:
         if mat.ndim == 2:
             mat[0, :] = 0.0
         elif mat.ndim == 3:
             mat[0, :, :] = 0.0
 
-    # Save per-view splits before dimensionality reduction so that each view keeps its raw dimension
+    train_ids_cache = None
+    if (args.view_project_dim is not None or args.project_dim is not None) and args.dataset:
+        train_ids_cache = _load_train_item_ids(args, n_items - 1)
+
     if split_chunks is not None:
         os.makedirs(args.split_output_dir, exist_ok=True)
         split_meta = {
-            "num_items": int(mat.shape[0]),
+            "num_items": int(n_items),
             "num_prompts": len(prompts),
             "dtype": args.dtype,
             "prompts": [],
@@ -410,17 +476,24 @@ def main():
         for view_idx, view_parts in enumerate(split_chunks):
             if len(view_parts) == 0:
                 continue
-            view_mat = np.concatenate(view_parts, axis=0)
+            view_mat = np.concatenate(view_parts, axis=0).astype(np.float32, copy=False)
             if view_mat.shape[0] > 0:
                 view_mat[0, :] = 0.0
+            if args.view_project_dim is not None:
+                view_mat = _apply_truncated_svd(
+                    view_mat,
+                    target_dim=args.view_project_dim,
+                    train_ids=train_ids_cache,
+                    random_state=args.svd_random_state,
+                    label=f"view{view_idx}",
+                )
+            save_mat = view_mat
             if args.dtype == "float16":
-                view_mat = view_mat.astype(np.float16)
+                save_mat = save_mat.astype(np.float16)
             elif args.dtype == "bfloat16":
-                view_mat = view_mat.astype(np.float32)
-            else:
-                view_mat = view_mat.astype(np.float32)
+                save_mat = save_mat.astype(np.float32)
             view_path = os.path.join(args.split_output_dir, f"view_{view_idx}.npy")
-            np.save(view_path, view_mat)
+            np.save(view_path, save_mat)
             split_meta["prompts"].append(
                 {
                     "index": view_idx,
@@ -429,10 +502,22 @@ def main():
                     "vector_dim": int(view_mat.shape[1]),
                 }
             )
+            if view_mats_for_concat is not None:
+                view_mats_for_concat.append(view_mat.astype(np.float32, copy=False))
         meta_path = os.path.join(args.split_output_dir, "views.json")
         with open(meta_path, "w") as mf:
             json.dump(split_meta, mf, ensure_ascii=False, indent=2)
         print(f"[Split] Saved per-view embeddings to {args.split_output_dir} (metadata: {meta_path})")
+
+    if mat is None:
+        if view_mats_for_concat is None or len(view_mats_for_concat) == 0:
+            raise ValueError("No embeddings collected for final output; ensure output_mode supports view-based concat.")
+        if args.output_mode == "concat":
+            mat = np.concatenate(view_mats_for_concat, axis=1)
+        else:
+            raise ValueError("--view_project_dim currently only supports output_mode=concat.")
+        if mat.shape[0] > 0:
+            mat[0, :] = 0.0
 
     # --- 5. Optional Dimensionality Reduction (SVD) ---
     # NOTE: SVD only implemented for 2D matrices currently.
@@ -440,65 +525,13 @@ def main():
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
         else:
-            orig_dim = mat.shape[1]
-            target_dim = int(args.project_dim)
-            print(f"Projecting from {orig_dim} to {target_dim}...")
-
-            if target_dim <= 0:
-                raise ValueError("--project_dim must be > 0")
-
-            if target_dim == orig_dim:
-                if mat.shape[0] > 1:
-                    mat[1:, :] = l2_normalize(mat[1:, :], norm="l2", axis=1)
-            elif target_dim < orig_dim:
-                # Identify train rows for fitting
-                train_ids = None
-                if args.dataset is not None and len(args.dataset) > 0:
-                    try:
-                        cfg = Config(model="BPR", dataset=args.dataset, config_file_list=args.config)
-                        ds = create_dataset(cfg)
-                        train_data, valid_data, test_data = data_preparation(cfg, ds)
-                        iid_field = cfg["ITEM_ID_FIELD"]
-                        train_ids_raw = train_data.dataset.inter_feat[iid_field].numpy()
-                        train_ids = np.unique(train_ids_raw).astype(np.int64)
-                        train_ids = train_ids[train_ids > 0]
-                    except Exception as e:
-                        print(f"Warning: Failed to load dataset for SVD split ({e}). Using all items.")
-                        train_ids = None
-
-                nonpad_all = mat[1:, :].astype(np.float32, copy=False)
-
-                # Select subset for fit
-                if train_ids is None or len(train_ids) == 0:
-                    train_subset = nonpad_all
-                else:
-                    max_row = mat.shape[0] - 1
-                    train_ids = train_ids[(train_ids >= 1) & (train_ids <= max_row)]
-                    if len(train_ids) == 0:
-                        train_subset = nonpad_all
-                    else:
-                        train_subset = mat[train_ids, :].astype(np.float32, copy=False)
-
-                svd_k = max(1, min(target_dim, train_subset.shape[1] - 1 if train_subset.shape[1] > 1 else 1))
-                svd = TruncatedSVD(n_components=svd_k, random_state=args.svd_random_state)
-                svd.fit(train_subset)
-                reduced = svd.transform(nonpad_all)
-
-                if svd_k < target_dim:
-                    pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
-                    reduced = np.concatenate([reduced, pad], axis=1)
-
-                reduced = l2_normalize(reduced, norm="l2", axis=1)
-                mat_proj = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-                mat_proj[1:, :] = reduced
-                mat = mat_proj
-            else:
-                # Pad zeros
-                mat_pad = np.zeros((mat.shape[0], target_dim), dtype=np.float32)
-                mat_pad[:, :orig_dim] = mat
-                if mat.shape[0] > 1:
-                    mat_pad[1:, :] = l2_normalize(mat_pad[1:, :], norm="l2", axis=1)
-                mat = mat_pad
+            mat = _apply_truncated_svd(
+                mat,
+                target_dim=args.project_dim,
+                train_ids=train_ids_cache,
+                random_state=args.svd_random_state,
+                label="final",
+            )
 
     # --- 6. Save ---
     if args.dtype == "float16":
