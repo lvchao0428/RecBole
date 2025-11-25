@@ -516,7 +516,7 @@ def main():
             mat = np.concatenate(view_mats_for_concat, axis=1)
         else:
             raise ValueError("--view_project_dim currently only supports output_mode=concat.")
-    if mat.shape[0] > 0:
+    if mat is not None and mat.shape[0] > 0:
         mat[0, :] = 0.0
 
     # --- 5. Optional Dimensionality Reduction (SVD) ---
@@ -524,7 +524,7 @@ def main():
     if args.project_dim is not None:
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
-            else:
+        else:
             mat = _apply_truncated_svd(
                 mat,
                 target_dim=args.project_dim,
