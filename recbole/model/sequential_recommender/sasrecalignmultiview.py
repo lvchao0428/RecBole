@@ -30,8 +30,8 @@ class SASRecAlignMultiView(SASRecAlign):
         self.text_view_buffer_names = []
         self.text_view_proj = nn.ModuleList()
         self.text_view_senet = nn.ModuleList()
-        self.text_view_bilinear = nn.ModuleList()
-        self.text_view_residual_gates = nn.ParameterList()
+        self.text_view_bilinear = None
+        self.text_view_residual_gates = None
         self.text_view_gate_params = None
         self.text_view_dropout = (
             nn.Dropout(self.text_view_cross_dropout) if self.text_view_cross_dropout > 0.0 else None
@@ -82,11 +82,7 @@ class SASRecAlignMultiView(SASRecAlign):
                     )
                 )
 
-                # FiBiNET-style bilinear interaction between ID emb and each view
-                self.text_view_bilinear.append(nn.Bilinear(self.hidden_size, self.hidden_size, self.hidden_size))
-                self.text_view_residual_gates.append(
-                    nn.Parameter(torch.tensor(self.text_view_residual_init, dtype=torch.float32))
-                )
+            self.text_view_residual_gates = nn.Parameter(torch.full((self.num_text_views,), self.text_view_residual_init, dtype=torch.float32))
 
             # Ensure normalization layers exist for residual fusion even if base class skipped them
             if self.item_emb_norm is None and self.fused_item_norm_flag:
@@ -179,12 +175,15 @@ class SASRecAlignMultiView(SASRecAlign):
 
         residual = torch.zeros_like(item_emb_for_fusion)
         for idx in range(len(self.text_view_buffer_names)):
+            residual_gate = (
+                torch.sigmoid(self.text_view_residual_gates[idx])
+                if self.text_view_residual_gates is not None
+                else 1.0
+            )
             view_feat = view_stack[:, idx, :]
-            interaction = self.text_view_bilinear[idx](item_emb_for_fusion, view_feat)
             if self.text_view_dropout is not None:
-                interaction = self.text_view_dropout(interaction)
-            residual_gate = torch.sigmoid(self.text_view_residual_gates[idx])
-            residual = residual + weight_norm[idx] * residual_gate * interaction
+                view_feat = self.text_view_dropout(view_feat)
+            residual = residual + weight_norm[idx] * residual_gate * view_feat
 
         fused_emb = item_emb_for_fusion + alpha * residual
         if self.fused_item_norm is not None:
