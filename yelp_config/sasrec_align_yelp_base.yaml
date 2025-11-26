@@ -6,7 +6,6 @@ hidden_size: 256
 
 # Dataset (point to production yelp folder)
 dataset: yelp
-data_path: dataset/yelp
 field_separator: "\t"
 seq_separator: " "
 USER_ID_FIELD: user_id
