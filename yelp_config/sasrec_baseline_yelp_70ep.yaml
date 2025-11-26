@@ -1,8 +1,7 @@
 ---
 model: SASRecAlign
 
-# Dataset (point to production yelp folder)
-data_path: /home/charlie/project/RecBole/dataset/yelp
+# Dataset (same structure as Beauty baseline, but for Yelp)
 dataset: yelp
 field_separator: "\t"
 seq_separator: " "
@@ -18,7 +17,7 @@ load_col:
   inter: [user_id, item_id, rating, timestamp]
   item: [item_id]
 
-# Training / Evaluation (70 epochs to match Beauty baseline)
+# Training / Evaluation (70 epochs to match baseline)
 epochs: 70
 train_batch_size: 512
 eval_batch_size: 512
@@ -38,7 +37,7 @@ valid_metric: MRR@10
 loss_type: CE
 train_neg_sample_args: null
 
-# Model hyper-parameters (aligned with SASRec baseline)
+# Model hyper-parameters (aligned with SASRec default / align config)
 n_layers: 2
 n_heads: 2
 hidden_size: 256
@@ -68,7 +67,7 @@ fused_item_norm: false
 disable_text_feature: true
 fuse_text_feature: false
 
-# Regularization
+# Regularization (no text-specific penalties)
 weight_decay: 1e-5
 label_smoothing: 0.0
 cross_dropout_prob: 0.0

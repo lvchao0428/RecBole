@@ -7,7 +7,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset yelp \
-  --config_files "sasrec_align_yelp_qwen3.yaml" \
+  --config_files "yelp_config/sasrec_align_yelp_qwen3.yaml" \
   --phase_a_grid \
   --align_grid "0.05" \
   --tau_grid "0.05,0.07" \
