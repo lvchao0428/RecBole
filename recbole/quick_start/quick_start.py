@@ -119,12 +119,20 @@ def _dump_single_phase_summary(config: Config, model, valid_result, test_result)
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
 
+    final_config = getattr(config, "final_config_dict", None)
+    if callable(final_config):
+        final_config = final_config(scanner=False)
+    elif isinstance(final_config, dict):
+        pass
+    else:
+        final_config = dict(config)
+
     summary = {
         "label": "single_phase",
         "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
         "model": config["model"],
         "dataset": config["dataset"],
-        "config": config.final_config_dict(scanner=False),
+        "config": final_config,
         "resource": {
             "cpu_memory_mb": cpu_mem_mb,
             "gpu_memory_allocated_mb": gpu_alloc,
