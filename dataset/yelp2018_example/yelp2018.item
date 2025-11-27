@@ -1,0 +1,6 @@
+item_id:token	item_name:token_seq	address:token_seq	city:token_seq	state:token	postal_code:token	latitude:float	longitude:float	item_stars:float	item_review_count:float	is_open:float	categories:token_seq
+FYWN1wneV18bWNgQjJ2GNg	Dental by Design	4855 E Warner Rd, Ste B9	Ahwatukee	AZ	85044	33.3306902	-111.9785992	4.0	22	1	Dentists, General Dentistry, Health & Medical, Oral Surgeons, Cosmetic Dentists, Orthodontists
+He-G7vWjzVUysIKrfNbPUQ	Stephen Szabo Salon	3101 Washington Rd	McMurray	PA	15317	40.2916853	-80.1048999	3.0	11	1	Hair Stylists, Hair Salons, Men's Hair Salons, Blow Dry\/Out Services, Hair Extensions, Beauty & Spas
+KQPW8lFf1y5BT2MxiSZ3QA	Western Motor Vehicle	6025 N 27th Ave, Ste 1	Phoenix	AZ	85017	33.5249025	-112.1153098	1.5	18	1	Departments of Motor Vehicles, Public Services & Government
+8DShNS-LuFqpEWIp0HxijA	Sports Authority	5000 Arizona Mills Cr, Ste 435	Tempe	AZ	85282	33.3831468	-111.9647254	3.0	9	0	Sporting Goods, Shopping
+PfOCPjBrlQAnz__NXj9h_w	Brick House Tavern + Tap	581 Howe Ave	Cuyahoga Falls	OH	44221	41.1195346	-81.4756898	3.5	116	1	American (New), Nightlife, Bars, Sandwiches, American (Traditional), Burgers, Restaurants

@@ -41,11 +41,11 @@ valid_metric: MRR@10
 loss_type: CE
 train_neg_sample_args: null
 
-# Text feature sources
+# Text feature sources (TF-IDF + multi-view split; LLM concat disabled for fairness)
 item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
-item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_amplified.npy
+item_text_emb_path_llm: ""
 item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_amplified_views
-use_llm: true
+use_llm: false
 use_align: true
 use_cross: false
 use_seq_text_cross: false

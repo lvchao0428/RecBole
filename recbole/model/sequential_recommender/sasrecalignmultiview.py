@@ -120,7 +120,12 @@ class SASRecAlignMultiView(SASRecAlign):
             return super()._gather_text_raw(ids_flat)
 
         view_stack = self._gather_text_views(ids_flat)
-        fused = view_stack.mean(dim=1)
+        if self.text_view_gate_params is not None:
+            weights = torch.sigmoid(self.text_view_gate_params).to(view_stack.device)
+            weights = weights / weights.sum().clamp_min(1e-6)
+            fused = torch.sum(view_stack * weights.view(1, -1, 1), dim=1)
+        else:
+            fused = torch.sum(view_stack, dim=1)
         return fused
 
     def _project_text(self, raw: torch.Tensor) -> torch.Tensor:
