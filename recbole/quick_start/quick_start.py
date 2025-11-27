@@ -107,9 +107,9 @@ def _json_safe_default(obj):
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
         return obj.name
-    if isinstance(obj, (np.integer, np.int_, np.intc, np.intp)):
+    if isinstance(obj, np.integer):
         return int(obj)
-    if isinstance(obj, (np.floating, np.float_, np.float64, np.float32)):
+    if isinstance(obj, np.floating):
         return float(obj)
     if isinstance(obj, (np.bool_,)):
         return bool(obj)
