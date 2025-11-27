@@ -17,8 +17,10 @@ import json
 import os
 from datetime import datetime
 from collections.abc import MutableMapping
+from enum import Enum
 from logging import getLogger
 
+import numpy as np
 import psutil
 import torch
 import torch.distributed as dist
@@ -98,6 +100,30 @@ def run(
     return res
 
 
+def _json_safe_default(obj):
+    """Convert enums / numpy scalars / torch types to JSON-safe primitives."""
+    if isinstance(obj, Enum):
+        value = obj.value
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        return obj.name
+    if isinstance(obj, (np.integer, np.int_, np.intc, np.intp)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float_, np.float64, np.float32)):
+        return float(obj)
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, torch.Tensor):
+        return obj.detach().cpu().tolist()
+    if isinstance(obj, torch.device):
+        return str(obj)
+    if isinstance(obj, set):
+        return list(obj)
+    return str(obj)
+
+
 def _dump_single_phase_summary(config: Config, model, valid_result, test_result):
     """Dump config/resource/result summary for single-phase runs."""
     logger = getLogger()
@@ -145,14 +171,15 @@ def _dump_single_phase_summary(config: Config, model, valid_result, test_result)
             "test_result": test_result,
         },
     }
-    logger.info(set_color("[Run Summary JSON]", "blue") + " " + json.dumps(summary, ensure_ascii=False))
+    summary_json = json.dumps(summary, ensure_ascii=False, default=_json_safe_default)
+    logger.info(set_color("[Run Summary JSON]", "blue") + " " + summary_json)
     os.makedirs("run_metrics", exist_ok=True)
     with open(
         os.path.join("run_metrics", f"{summary['timestamp']}_{config['model']}_single.txt"),
         "w",
         encoding="utf-8",
     ) as fout:
-        json.dump(summary, fout, ensure_ascii=False, indent=2)
+        json.dump(summary, fout, ensure_ascii=False, indent=2, default=_json_safe_default)
 
 
 def run_recbole(

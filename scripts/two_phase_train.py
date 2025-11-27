@@ -8,8 +8,10 @@ Phase-B: joint fine-tuning with backbone unfrozen and grouped learning rates
 """
 import argparse
 import copy
+import gc
 import json
 import os
+import subprocess
 from datetime import datetime
 from logging import getLogger
 
@@ -57,6 +59,70 @@ def _build_and_prepare(config: Config):
 
     trainer = get_trainer(config["MODEL_TYPE"], config["model"])(config, model)
     return logger, dataset, train_data, valid_data, test_data, model, trainer
+
+
+def _log_gpu_snapshot(tag: str, device=None):
+    """Print current GPU utilization; helps diagnose OOM/kills."""
+    logger = getLogger()
+    if not torch.cuda.is_available():
+        logger.info(set_color(f"[GPU:{tag}]", "blue") + " CUDA not available.")
+        return
+    device = device or torch.device(torch.cuda.current_device())
+    try:
+        torch.cuda.synchronize(device)
+    except Exception:
+        pass
+    alloc = torch.cuda.memory_allocated(device) / (1024 ** 2)
+    reserved = torch.cuda.memory_reserved(device) / (1024 ** 2)
+    max_alloc = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
+    logger.info(
+        set_color(f"[GPU:{tag}]", "blue")
+        + f" alloc={alloc:.1f}MB reserved={reserved:.1f}MB max_alloc={max_alloc:.1f}MB"
+    )
+    # Try to capture nvidia-smi snapshot for external monitoring.
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,memory.total,memory.used,memory.free",
+                "--format=csv,nounits,noheader",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        logger.info(set_color(f"[GPU:{tag}] nvidia-smi", "blue") + f" {result.stdout.strip()}")
+    except FileNotFoundError:
+        logger.warning(set_color(f"[GPU:{tag}] nvidia-smi not found", "red"))
+    except subprocess.CalledProcessError as exc:
+        logger.warning(set_color(f"[GPU:{tag}] nvidia-smi failed", "red") + f": {exc}")
+
+
+def _release_phase_resources(tag: str, *objects):
+    """Release references, run GC, and clear CUDA cache to avoid OOM."""
+    for obj in objects:
+        try:
+            del obj
+        except Exception:
+            pass
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        _log_gpu_snapshot(f"{tag}-post-free")
+
+
+def _resolve_device(config: Config | dict | None):
+    """Best-effort fetch of device from Config/dict; fallback to cuda/cpu."""
+    if config is None:
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        if isinstance(config, dict):
+            return config.get("device", torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        if "device" in config:
+            return config["device"]
+    except Exception:
+        pass
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def _cfg_val(cfg: Config, key: str, default=None):
@@ -129,22 +195,48 @@ def _log_and_dump_summary(config: Config, model, res_dict: dict, label: str):
 
 def _train_and_eval_phase(logger, trainer, train_data, valid_data, test_data, saved=True):
     """Run one training phase and return results and saved model path."""
-    best_valid_score, best_valid_result = trainer.fit(
-        train_data, valid_data, saved=saved, show_progress=trainer.config["show_progress"]
-    )
-    test_result = trainer.evaluate(
-        test_data, load_best_model=saved, show_progress=trainer.config["show_progress"]
-    )
+    device = _resolve_device(trainer.config)
+    _log_gpu_snapshot("before-fit", device)
+    try:
+        best_valid_score, best_valid_result = trainer.fit(
+            train_data, valid_data, saved=saved, show_progress=trainer.config["show_progress"]
+        )
+    except RuntimeError as err:
+        if "CUDA" in str(err) or "cuda" in str(err):
+            logger.error(set_color("[GPU] RuntimeError during fit()", "red") + f": {err}")
+            _log_gpu_snapshot("fit-exception", device)
+            try:
+                logger.error(torch.cuda.memory_summary(device=device, abbreviated=True))
+            except Exception:
+                pass
+        raise
+
+    _log_gpu_snapshot("before-eval", device)
+    try:
+        test_result = trainer.evaluate(
+            test_data, load_best_model=saved, show_progress=trainer.config["show_progress"]
+        )
+    except RuntimeError as err:
+        if "CUDA" in str(err) or "cuda" in str(err):
+            logger.error(set_color("[GPU] RuntimeError during evaluate()", "red") + f": {err}")
+            _log_gpu_snapshot("eval-exception", device)
+            try:
+                logger.error(torch.cuda.memory_summary(device=device, abbreviated=True))
+            except Exception:
+                pass
+        raise
     env_tb = get_environment(trainer.config)
     logger.info("The running environment of this training is as follows:\n" + env_tb.draw())
     logger.info(set_color("best valid ", "yellow") + f": {best_valid_result}")
     logger.info(set_color("test result", "yellow") + f": {test_result}")
-    return {
+    result = {
         "best_valid_score": best_valid_score,
         "best_valid_result": best_valid_result,
         "test_result": test_result,
         "saved_model_file": trainer.saved_model_file,
     }
+    _log_gpu_snapshot("phase-end", device)
+    return result
 
 
 def main():
@@ -229,6 +321,7 @@ def main():
         burnin_ckpt = res_burn.get("saved_model_file")
         if burnin_ckpt:
             logger_burn.info(set_color("[Burn-in] Saved checkpoint", "green") + f": {burnin_ckpt}")
+        _release_phase_resources("Burn-in", model_burn, trainer_burn, dataset_burn, train_burn, valid_burn, test_burn)
     if not args.only_phase_b:
         if args.phase_a_grid:
             # Parse grids
@@ -334,56 +427,61 @@ def main():
                             logger_a.info(f"Active examples: {active_params[:5]} ...")
                             logger_a.info(set_color("========================================", "red"))
 
-                        best_valid_score, best_valid_result = trainer_a.fit(
-                            train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                        _log_gpu_snapshot("Phase-A:grid-before-fit", config_a["device"])
+                        try:
+                            best_valid_score, best_valid_result = trainer_a.fit(
+                                train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                            )
+                        except StopIteration:
+                            # retrieve best fields from trainer after early stop
+                            best_valid_score = trainer_a.best_valid_score
+                            best_valid_result = trainer_a.best_valid_result
+                            
+                            # CRITICAL FIX: Save checkpoint immediately upon early stop if callback didn't
+                            # (Though callback usually saves it, trainer state might lag)
+                            if args.save and not os.path.exists(trainer_a.saved_model_file):
+                                 trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
+
+                        # Evaluate on test (load best)
+                        test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
+                        res = {
+                            "best_valid_score": best_valid_score,
+                            "best_valid_result": best_valid_result,
+                            "test_result": test_result,
+                            "saved_model_file": trainer_a.saved_model_file,
+                        }
+                        _log_and_dump_summary(
+                            config_a,
+                            model_a,
+                            {
+                                "best_valid_result": res["best_valid_result"],
+                                "test_result": res["test_result"],
+                            },
+                            f"Phase-A_aw{aw}_tau{tau}",
                         )
-                    except StopIteration:
-                        # retrieve best fields from trainer after early stop
-                        best_valid_score = trainer_a.best_valid_score
-                        best_valid_result = trainer_a.best_valid_result
-                        
-                        # CRITICAL FIX: Save checkpoint immediately upon early stop if callback didn't
-                        # (Though callback usually saves it, trainer state might lag)
-                        if args.save and not os.path.exists(trainer_a.saved_model_file):
-                             trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
-                    
-                    # Evaluate on test (load best)
-                    test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
-                    res = {
-                        "best_valid_score": best_valid_score,
-                        "best_valid_result": best_valid_result,
-                        "test_result": test_result,
-                        "saved_model_file": trainer_a.saved_model_file,
-                    }
-                    _log_and_dump_summary(
-                        config_a,
-                        model_a,
-                        {
-                            "best_valid_result": res["best_valid_result"],
-                            "test_result": res["test_result"],
-                        },
-                        f"Phase-A_aw{aw}_tau{tau}",
-                    )
-                    ckpt_path = res["saved_model_file"] if args.save else None
-                    if ckpt_path:
-                        logger_a.info(set_color("[Phase-A:grid] Saved checkpoint", "green") + f": {ckpt_path}")
-                    # Extract NDCG@10
-                    valid_dict = res.get("best_valid_result") or {}
-                    ndcg10 = None
-                    for key in ["NDCG@10", "ndcg@10", "NDCG@10(Avg)"]:
-                        if key in valid_dict:
-                            ndcg10 = float(valid_dict[key])
-                            break
-                    logger_a.info(set_color("[Phase-A:grid] NDCG@10", "yellow") + f": {ndcg10}")
-                    if ndcg10 is not None:
-                        if best_tuple is None or ndcg10 > best_tuple[0]:
-                            best_tuple = (ndcg10, aw, tau, res, ckpt_path)
-                        if ndcg_target is not None and ndcg10 >= ndcg_target:
-                            phase_a_passed = True
-                            phase_a_ckpt = ckpt_path
-                            res_a = res
-                            logger_a.info(set_color("[Phase-A:grid] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
-                            break
+                        ckpt_path = res["saved_model_file"] if args.save else None
+                        if ckpt_path:
+                            logger_a.info(set_color("[Phase-A:grid] Saved checkpoint", "green") + f": {ckpt_path}")
+                        # Extract NDCG@10
+                        valid_dict = res.get("best_valid_result") or {}
+                        ndcg10 = None
+                        for key in ["NDCG@10", "ndcg@10", "NDCG@10(Avg)"]:
+                            if key in valid_dict:
+                                ndcg10 = float(valid_dict[key])
+                                break
+                        logger_a.info(set_color("[Phase-A:grid] NDCG@10", "yellow") + f": {ndcg10}")
+                        _log_gpu_snapshot("Phase-A:grid-phase-end", config_a["device"])
+                        if ndcg10 is not None:
+                            if best_tuple is None or ndcg10 > best_tuple[0]:
+                                best_tuple = (ndcg10, aw, tau, res, ckpt_path)
+                            if ndcg_target is not None and ndcg10 >= ndcg_target:
+                                phase_a_passed = True
+                                phase_a_ckpt = ckpt_path
+                                res_a = res
+                                logger_a.info(set_color("[Phase-A:grid] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
+                                break
+                    finally:
+                        _release_phase_resources("Phase-A:grid-loop", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
                 if phase_a_passed:
                     break
             if not phase_a_passed and best_tuple is not None:
@@ -519,6 +617,7 @@ def main():
                 if ndcg10 is not None and ndcg10 >= ndcg_target:
                     phase_a_passed = True
                     logger_a.info(set_color("[Phase-A] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
+            _release_phase_resources("Phase-A", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
 
     # Phase-B config (unfreeze + grouped LR; lr_backbone = lr_text_head * scale)
     if not args.only_phase_a:
@@ -596,6 +695,7 @@ def main():
             "phase_b_result": res_b,
         }
         _log_and_dump_summary(config_b, model_b, payload, "Phase-B")
+        _release_phase_resources("Phase-B", model_b, trainer_b, dataset_b, train_b, valid_b, test_b)
 
 
 if __name__ == "__main__":
