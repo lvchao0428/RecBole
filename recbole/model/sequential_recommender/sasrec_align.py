@@ -269,6 +269,9 @@ class SASRecAlign(SequentialRecommender):
             else:
                 text_in_dim = 0
 
+        # Track the total raw text dimension for diagnostics
+        self._text_input_dim = text_in_dim
+
         # --- New: Text Amplifier / SENet configuration ---
         self.num_text_views = int(config["num_text_views"]) if "num_text_views" in config else 1
         self.text_use_senet = bool(config["text_use_senet"]) if "text_use_senet" in config else False
@@ -375,6 +378,7 @@ class SASRecAlign(SequentialRecommender):
         
         # Cache for fused item embeddings to improve efficiency
         self._fused_item_emb_cache = None
+        self._fusion_chunk_warned = False
 
         # Logging for alignment availability
         if self.alignment_weight > 0.0:
@@ -739,22 +743,36 @@ class SASRecAlign(SequentialRecommender):
             Fused item embeddings of shape [n_items, hidden_size] or [batch_size, hidden_size]
         """
         if item_ids is None:
-            # Get all item embeddings
+            # Get all item embeddings (chunked fusion disabled due to instability)
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
-            if (
-                isinstance(self.fusion_chunk_size, int)
-                and self.fusion_chunk_size > 0
-                and self.fusion_chunk_size < all_ids.numel()
-            ):
-                chunks = []
-                for chunk_ids in torch.split(all_ids, self.fusion_chunk_size):
-                    chunks.append(self._get_fused_item_embeddings(chunk_ids))
-                return torch.cat(chunks, dim=0)
             item_emb = self.item_embedding.weight  # [n_items, hidden_size]
         else:
             all_ids = item_ids
             item_emb = self.item_embedding(item_ids)
         
+        if (
+            item_ids is None
+            and self.fuse_text_feature
+            and self.fusion_chunk_size <= 0
+            and not self._fusion_chunk_warned
+        ):
+            try:
+                approx_dim = max(self.hidden_size, int(self._text_input_dim or 0))
+                approx_mb = (self.n_items * approx_dim * 4.0) / (1024 ** 2)
+            except Exception:
+                approx_mb = -1
+            msg = (
+                "SASRecAlign: fusion_chunk_size is 0 while fusing text for all items "
+                "(loss=CE). This builds dense tensors for %d items each step%s. "
+                "Consider setting fusion_chunk_size>0 or disabling fuse_text_feature "
+                "during diagnostics."
+            )
+            suffix = (
+                f" (~{approx_mb:.1f} MB per tensor)" if approx_mb > 0 else ""
+            )
+            self.logger.warning(msg, self.n_items, suffix)
+            self._fusion_chunk_warned = True
+
         if not self.fuse_text_feature:
             return item_emb
 

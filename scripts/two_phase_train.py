@@ -7,11 +7,13 @@ Phase-A: warmup for text alignment/fusion with backbone frozen
 Phase-B: joint fine-tuning with backbone unfrozen and grouped learning rates
 """
 import argparse
+import atexit
 import copy
 import gc
 import json
 import os
 import subprocess
+import threading
 from datetime import datetime
 from logging import getLogger
 
@@ -61,41 +63,152 @@ def _build_and_prepare(config: Config):
     return logger, dataset, train_data, valid_data, test_data, model, trainer
 
 
-def _log_gpu_snapshot(tag: str, device=None):
-    """Print current GPU utilization; helps diagnose OOM/kills."""
+def _collect_resource_usage(device=None):
+    """Sample current CPU/GPU memory usage for diagnostics."""
+    usage = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "gpu_device": "cpu-only",
+    }
+    proc = psutil.Process(os.getpid())
+    with proc.oneshot():
+        mem = proc.memory_info()
+        usage["cpu_rss_mb"] = mem.rss / (1024 ** 2)
+        usage["cpu_vms_mb"] = mem.vms / (1024 ** 2)
+        usage["num_threads"] = proc.num_threads()
+    usage["cpu_percent"] = proc.cpu_percent(interval=None)
+
+    if torch.cuda.is_available():
+        device = device or torch.device(torch.cuda.current_device())
+        try:
+            torch.cuda.synchronize(device)
+        except Exception:
+            pass
+        usage["gpu_alloc_mb"] = torch.cuda.memory_allocated(device) / (1024 ** 2)
+        usage["gpu_reserved_mb"] = torch.cuda.memory_reserved(device) / (1024 ** 2)
+        usage["gpu_max_alloc_mb"] = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
+        usage["gpu_max_reserved_mb"] = torch.cuda.max_memory_reserved(device) / (1024 ** 2)
+        usage["gpu_device"] = torch.cuda.get_device_name(device)
+    else:
+        usage["gpu_alloc_mb"] = 0.0
+        usage["gpu_reserved_mb"] = 0.0
+        usage["gpu_max_alloc_mb"] = 0.0
+        usage["gpu_max_reserved_mb"] = 0.0
+    return usage
+
+
+def _log_gpu_snapshot(tag: str, device=None, include_nvidia=True):
+    """Print CPU+GPU utilization; helps diagnose OOM/kills."""
     logger = getLogger()
-    if not torch.cuda.is_available():
-        logger.info(set_color(f"[GPU:{tag}]", "blue") + " CUDA not available.")
-        return
-    device = device or torch.device(torch.cuda.current_device())
-    try:
-        torch.cuda.synchronize(device)
-    except Exception:
-        pass
-    alloc = torch.cuda.memory_allocated(device) / (1024 ** 2)
-    reserved = torch.cuda.memory_reserved(device) / (1024 ** 2)
-    max_alloc = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
-    logger.info(
-        set_color(f"[GPU:{tag}]", "blue")
-        + f" alloc={alloc:.1f}MB reserved={reserved:.1f}MB max_alloc={max_alloc:.1f}MB"
+    usage = _collect_resource_usage(device)
+    cpu_msg = (
+        f"CPU rss={usage['cpu_rss_mb']:.1f}MB vms={usage['cpu_vms_mb']:.1f}MB "
+        f"threads={usage['num_threads']}"
     )
-    # Try to capture nvidia-smi snapshot for external monitoring.
-    try:
-        result = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=index,name,memory.total,memory.used,memory.free",
-                "--format=csv,nounits,noheader",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+    gpu_msg = (
+        f"{usage['gpu_device']} alloc={usage['gpu_alloc_mb']:.1f}MB "
+        f"reserved={usage['gpu_reserved_mb']:.1f}MB "
+        f"max_alloc={usage['gpu_max_alloc_mb']:.1f}MB"
+    )
+    logger.info(set_color(f"[RES:{tag}]", "blue") + f" {cpu_msg}; GPU {gpu_msg}")
+
+    if include_nvidia and torch.cuda.is_available():
+        try:
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=index,name,memory.total,memory.used,memory.free",
+                    "--format=csv,nounits,noheader",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            logger.info(set_color(f"[RES:{tag}] nvidia-smi", "blue") + f" {result.stdout.strip()}")
+        except FileNotFoundError:
+            logger.warning(set_color(f"[RES:{tag}] nvidia-smi not found", "red"))
+        except subprocess.CalledProcessError as exc:
+            logger.warning(set_color(f"[RES:{tag}] nvidia-smi failed", "red") + f": {exc}")
+    return usage
+
+
+class ResourceWatchdog:
+    """Background monitor that logs resource snapshots periodically."""
+
+    def __init__(
+        self,
+        interval: int = 30,
+        device=None,
+        include_nvidia: bool = False,
+        log_path: str | None = None,
+        cpu_threshold_gb: float = 0.0,
+        gpu_threshold_gb: float = 0.0,
+    ):
+        self.interval = max(1, int(interval))
+        self.device = device
+        self.include_nvidia = include_nvidia
+        self.log_path = log_path
+        self.cpu_threshold_mb = max(0.0, cpu_threshold_gb) * 1024.0
+        self.gpu_threshold_mb = max(0.0, gpu_threshold_gb) * 1024.0
+        self._thread = None
+        self._stop_event = threading.Event()
+        self.logger = getLogger()
+
+    def start(self):
+        if self._thread is not None:
+            return
+        if self.log_path:
+            log_dir = os.path.dirname(os.path.abspath(self.log_path))
+            if log_dir:
+                os.makedirs(log_dir, exist_ok=True)
+        self.logger.info(
+            set_color("[Watchdog] start", "blue")
+            + f": interval={self.interval}s, log_path={self.log_path or 'stderr'}"
         )
-        logger.info(set_color(f"[GPU:{tag}] nvidia-smi", "blue") + f" {result.stdout.strip()}")
-    except FileNotFoundError:
-        logger.warning(set_color(f"[GPU:{tag}] nvidia-smi not found", "red"))
-    except subprocess.CalledProcessError as exc:
-        logger.warning(set_color(f"[GPU:{tag}] nvidia-smi failed", "red") + f": {exc}")
+        self._thread = threading.Thread(
+            target=self._run, name="ResourceWatchdog", daemon=True
+        )
+        self._thread.start()
+
+    def stop(self):
+        if self._thread is None:
+            return
+        self._stop_event.set()
+        self._thread.join(timeout=self.interval + 2)
+        self.logger.info(set_color("[Watchdog] stop", "blue"))
+        self._thread = None
+        self._stop_event.clear()
+
+    def _emit(self, usage: dict):
+        if not self.log_path:
+            return
+        try:
+            with open(self.log_path, "a", encoding="utf-8") as fout:
+                fout.write(json.dumps(usage, ensure_ascii=False) + "\n")
+        except Exception as exc:
+            self.logger.warning(
+                set_color("[Watchdog] write failed", "red")
+                + f": {exc} path={self.log_path}"
+            )
+
+    def _check_threshold(self, usage: dict):
+        if self.cpu_threshold_mb and usage["cpu_rss_mb"] >= self.cpu_threshold_mb:
+            self.logger.warning(
+                set_color("[Watchdog] CPU RSS high", "red")
+                + f": {usage['cpu_rss_mb'] / 1024:.2f} GB >= {self.cpu_threshold_mb / 1024:.2f} GB"
+            )
+        if self.gpu_threshold_mb and usage["gpu_alloc_mb"] >= self.gpu_threshold_mb:
+            self.logger.warning(
+                set_color("[Watchdog] GPU alloc high", "red")
+                + f": {usage['gpu_alloc_mb'] / 1024:.2f} GB >= {self.gpu_threshold_mb / 1024:.2f} GB"
+            )
+
+    def _run(self):
+        while not self._stop_event.is_set():
+            usage = _log_gpu_snapshot("watchdog", self.device, include_nvidia=self.include_nvidia)
+            self._emit(usage)
+            self._check_threshold(usage)
+            if self._stop_event.wait(self.interval):
+                break
 
 
 def _release_phase_resources(tag: str, *objects):
@@ -280,7 +393,27 @@ def main():
     # Optional ID-only burn-in before Phase-A
     parser.add_argument("--backbone_burnin_epochs", type=int, default=0, help="ID-only burn-in epochs before Phase-A")
     parser.add_argument("--burnin_eval_step", type=int, default=2, help="validation interval (epochs) in burn-in stage")
+    # Resource watchdog
+    parser.add_argument("--watchdog_interval", type=int, default=0, help="enable periodic resource logging every N seconds (0 disables)")
+    parser.add_argument("--watchdog_log", type=str, default=None, help="path to append watchdog JSON lines (default run_metrics/resource_watchdog.log)")
+    parser.add_argument("--watchdog_cpu_gb", type=float, default=0.0, help="optional CPU RSS threshold in GB for warning")
+    parser.add_argument("--watchdog_gpu_gb", type=float, default=0.0, help="optional GPU alloc threshold in GB for warning")
     args, _ = parser.parse_known_args()
+
+    watchdog = None
+    if args.watchdog_interval and args.watchdog_interval > 0:
+        wd_log = args.watchdog_log or os.path.join("run_metrics", "resource_watchdog.log")
+        wd_device = torch.device(torch.cuda.current_device()) if torch.cuda.is_available() else None
+        watchdog = ResourceWatchdog(
+            interval=args.watchdog_interval,
+            device=wd_device,
+            include_nvidia=False,
+            log_path=wd_log,
+            cpu_threshold_gb=args.watchdog_cpu_gb,
+            gpu_threshold_gb=args.watchdog_gpu_gb,
+        )
+        watchdog.start()
+        atexit.register(lambda wd=watchdog: wd and wd.stop())
 
     if args.only_phase_a and args.only_phase_b:
         raise ValueError("only_phase_a and only_phase_b cannot be used together.")
