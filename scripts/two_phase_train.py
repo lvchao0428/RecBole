@@ -306,6 +306,115 @@ def _log_and_dump_summary(config: Config, model, res_dict: dict, label: str):
         json.dump(payload, fout, ensure_ascii=False, indent=2)
 
 
+DEFAULT_METRIC_ORDER = [
+    "recall@5",
+    "recall@10",
+    "recall@20",
+    "mrr@5",
+    "mrr@10",
+    "mrr@20",
+    "ndcg@5",
+    "ndcg@10",
+    "ndcg@20",
+    "hit@5",
+    "hit@10",
+    "hit@20",
+    "precision@5",
+    "precision@10",
+    "precision@20",
+]
+
+
+def _coerce_metric_value(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return value
+
+
+def _sanitize_metrics(metrics: dict | None):
+    if not metrics:
+        return None
+    clean = {}
+    for key, val in metrics.items():
+        clean[key] = _coerce_metric_value(val)
+    return clean
+
+
+def _format_metric_csv_line(metrics: dict | None, metric_order=None):
+    metric_order = metric_order or DEFAULT_METRIC_ORDER
+    header = ",".join(metric_order)
+    if not metrics:
+        return header, ",".join("" for _ in metric_order)
+    values = []
+    for key in metric_order:
+        if key not in metrics:
+            values.append("")
+            continue
+        val = _coerce_metric_value(metrics[key])
+        values.append(f"{val:.4f}" if isinstance(val, float) else str(val))
+    return header, ",".join(values)
+
+
+def _split_variant_tokens(raw: str | None):
+    if not raw:
+        return []
+    normalized = raw.replace("+", ",")
+    tokens = [tok.strip() for tok in normalized.split(",")]
+    return [tok for tok in tokens if tok]
+
+
+def _build_variant_label_from_args(args):
+    raw_label = getattr(args, "variant_label", None)
+    if raw_label:
+        tokens = _split_variant_tokens(raw_label)
+        return " + ".join(tokens) if tokens else raw_label.strip()
+    raw_features = getattr(args, "variant_features", None)
+    if raw_features:
+        tokens = _split_variant_tokens(raw_features)
+        if tokens:
+            return " + ".join(tokens)
+    return None
+
+
+def _log_grouped_two_phase_summary(res_a: dict | None, res_b: dict | None, variant_label: str | None = None):
+    logger = getLogger()
+    sep = "=" * 80
+    logger.info(sep)
+    logger.info(set_color("[Two-Phase] Grouped Summary", "yellow"))
+    logger.info("-" * 80)
+
+    phase_a_best = _sanitize_metrics((res_a or {}).get("best_valid_result") if res_a else None)
+    phase_b_best = _sanitize_metrics((res_b or {}).get("best_valid_result") if res_b else None)
+    phase_b_test = _sanitize_metrics((res_b or {}).get("test_result") if res_b else None)
+
+    if phase_a_best:
+        logger.info("[Phase-A] best_valid metrics:")
+        logger.info(json.dumps(phase_a_best, ensure_ascii=False, indent=2))
+    else:
+        logger.info("[Phase-A] best_valid metrics: (not available)")
+
+    if phase_b_best:
+        logger.info("[Phase-B] best_valid metrics:")
+        logger.info(json.dumps(phase_b_best, ensure_ascii=False, indent=2))
+    else:
+        logger.info("[Phase-B] best_valid metrics: (not available)")
+
+    if phase_b_test:
+        logger.info("[Phase-B] test metrics:")
+        logger.info(json.dumps(phase_b_test, ensure_ascii=False, indent=2))
+    else:
+        logger.info("[Phase-B] test metrics: (not available)")
+
+    header, values = _format_metric_csv_line(phase_b_test or phase_b_best)
+    if variant_label:
+        logger.info(variant_label)
+    logger.info("")
+    logger.info(header)
+    logger.info(values)
+    logger.info(sep)
+
+
 def _train_and_eval_phase(logger, trainer, train_data, valid_data, test_data, saved=True):
     """Run one training phase and return results and saved model path."""
     device = _resolve_device(trainer.config)
@@ -376,6 +485,8 @@ def main():
     parser.add_argument("--checkpoint_dir", type=str, default=None, help="override checkpoint_dir")
     parser.add_argument("--seed", type=int, default=None, help="override seed")
     parser.add_argument("--save", action="store_true", help="save checkpoints")
+    parser.add_argument("--variant_label", type=str, default=None, help="custom label printed in final metric table")
+    parser.add_argument("--variant_features", type=str, default=None, help="comma/plus separated feature tokens to auto-build label (e.g., 'sasrec,tfidf,llm')")
     # Manual switching
     parser.add_argument("--only_phase_a", action="store_true", help="run Phase-A only")
     parser.add_argument("--only_phase_b", action="store_true", help="run Phase-B only")
@@ -399,6 +510,7 @@ def main():
     parser.add_argument("--watchdog_cpu_gb", type=float, default=0.0, help="optional CPU RSS threshold in GB for warning")
     parser.add_argument("--watchdog_gpu_gb", type=float, default=0.0, help="optional GPU alloc threshold in GB for warning")
     args, _ = parser.parse_known_args()
+    args.variant_label = _build_variant_label_from_args(args)
 
     watchdog = None
     if args.watchdog_interval and args.watchdog_interval > 0:
@@ -817,17 +929,12 @@ def main():
         res_b = _train_and_eval_phase(logger_b, trainer_b, train_b, valid_b, test_b, saved=args.save)
 
         # Final summary
-        pa_best = res_a["best_valid_result"] if res_a else None
-        logger_b.info(set_color("[Two-Phase] Summary", "yellow") + f":\n"
-                      f"Phase-A best_valid={pa_best}\n"
-                      f"Phase-B best_valid={res_b['best_valid_result']}\n"
-                      f"Phase-B test={res_b['test_result']}")
-
         payload = {
             "best_valid_result": res_a["best_valid_result"] if res_a else None,
             "phase_b_result": res_b,
         }
         _log_and_dump_summary(config_b, model_b, payload, "Phase-B")
+        _log_grouped_two_phase_summary(res_a, res_b, variant_label=args.variant_label)
         _release_phase_resources("Phase-B", model_b, trainer_b, dataset_b, train_b, valid_b, test_b)
 
 
