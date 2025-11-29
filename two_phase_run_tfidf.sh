@@ -31,6 +31,10 @@ python scripts/two_phase_train.py \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs \
   --seed 2025 \
+  --watchdog_interval 20 \
+  --watchdog_log "run_metrics/watchdog_tfidf_yelp.log" \
+  --watchdog_cpu_gb 40 \
+  --watchdog_gpu_gb 28 \
   --save
 
 

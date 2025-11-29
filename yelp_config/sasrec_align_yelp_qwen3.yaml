@@ -16,7 +16,7 @@ RATING_FIELD: rating
 TIME_FIELD: timestamp
 ITEM_LIST_LENGTH_FIELD: item_length
 LIST_SUFFIX: _list
-MAX_ITEM_LIST_LENGTH: 50
+MAX_ITEM_LIST_LENGTH: 30
 POSITION_FIELD: position_id
 load_col:
   inter: [user_id, item_id, rating, timestamp]

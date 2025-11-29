@@ -11,16 +11,16 @@ LABEL_FIELD: label
 TIME_FIELD: timestamp
 ITEM_LIST_LENGTH_FIELD: item_length
 LIST_SUFFIX: _list
-MAX_ITEM_LIST_LENGTH: 50
+MAX_ITEM_LIST_LENGTH: 30
 POSITION_FIELD: position_id
 load_col:
   inter: [user_id, item_id, rating, timestamp]
   item: [item_id]
 
 # Training / Evaluation (70 epochs to match baseline)
-epochs: 70
-train_batch_size: 512
-eval_batch_size: 512
+epochs: 35
+train_batch_size: 1024 
+eval_batch_size: 1024 
 learning_rate: 0.0001
 eval_step: 5
 stopping_step: 20
