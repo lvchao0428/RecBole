@@ -11,6 +11,9 @@ Usage examples:
   echo "07 Nov 20:27 INFO test result: OrderedDict({'recall@5': np.float64(0.0347)})" | \\
     python3 scripts/extract_metrics_to_csv.py
 
+  # Parse modern Run Summary JSON and focus on test metrics
+  python3 scripts/extract_metrics_to_csv.py --dict-path results.test_result --from-string "$(pbpaste)"
+
   # Read from file and write to CSV
   python3 scripts/extract_metrics_to_csv.py -f path/to/log.txt -o metrics.csv
 
@@ -23,9 +26,27 @@ import argparse
 import ast
 import csv
 import io
+import json
 import re
 import sys
 from typing import Dict, Iterable, List, Tuple, Union
+
+METRIC_KEY_PREFIXES = (
+    "recall@",
+    "mrr@",
+    "ndcg@",
+    "hit@",
+    "precision@",
+    "map@",
+    "auc@",
+)
+
+DEFAULT_DICT_PATHS = [
+    "results.phase_b_result.test_result",
+    "results.phase_b_result.best_valid_result",
+    "results.test_result",
+    "results.best_valid_result",
+]
 
 
 def read_all_input(args: argparse.Namespace) -> str:
@@ -70,11 +91,74 @@ def sanitize_wrappers(text: str) -> str:
     return sanitized
 
 
+def looks_like_metric_mapping(candidate) -> bool:
+    if not isinstance(candidate, dict):
+        return False
+    matches = 0
+    for key in candidate.keys():
+        key_lower = str(key).lower()
+        if any(key_lower.startswith(prefix) for prefix in METRIC_KEY_PREFIXES):
+            matches += 1
+        if matches >= 2:
+            return True
+    return False
+
+
+def get_by_path(mapping: dict, path: str):
+    if not isinstance(mapping, dict):
+        return None
+    current = mapping
+    for raw_part in path.split("."):
+        part = raw_part.strip()
+        if not part:
+            continue
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return None
+    return current
+
+
+def discover_metric_mapping(obj):
+    stack = [obj]
+    while stack:
+        current = stack.pop()
+        if looks_like_metric_mapping(current):
+            return current
+        if isinstance(current, dict):
+            stack.extend(current.values())
+        elif isinstance(current, (list, tuple)):
+            stack.extend(item for item in current if not isinstance(item, (str, bytes)))
+    return None
+
+
+def select_metric_mapping(mapping: dict, user_paths: List[str] | None = None):
+    search_paths: List[str] = []
+    if user_paths:
+        search_paths.extend(user_paths)
+    search_paths.extend([p for p in DEFAULT_DICT_PATHS if p not in (user_paths or [])])
+
+    for path in search_paths:
+        candidate = get_by_path(mapping, path)
+        if isinstance(candidate, dict):
+            if user_paths and path in user_paths:
+                return candidate
+            if looks_like_metric_mapping(candidate):
+                return candidate
+    auto = discover_metric_mapping(mapping)
+    if isinstance(auto, dict):
+        return auto
+    return mapping
+
+
 def try_literal_eval_dict(text: str) -> Union[Dict[str, Union[int, float, str]], None]:
     try:
         value = ast.literal_eval(text)
     except Exception:
-        return None
+        try:
+            value = json.loads(text)
+        except Exception:
+            return None
     if isinstance(value, dict):
         return value
     return None
@@ -159,6 +243,13 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("-o", "--output", dest="output", help="Write CSV to this file. Prints to stdout if omitted.")
     parser.add_argument("-d", "--delimiter", default=",", help="CSV delimiter (default: ',').")
     parser.add_argument("--encoding", default="utf-8", help="Output file encoding (default: utf-8).")
+    parser.add_argument(
+        "--dict-path",
+        dest="dict_paths",
+        action="append",
+        help="Dot notation path to nested metrics dict (e.g., 'results.test_result'). "
+        "You can specify multiple times; first match wins before auto-detection.",
+    )
     args = parser.parse_args(argv)
 
     raw_text = read_all_input(args)
@@ -176,7 +267,8 @@ def main(argv: Iterable[str] | None = None) -> int:
             keys, raw_vals = regex_parse_kv(sanitized)
         values = [format_value_for_csv(coerce_to_number(v)) for v in raw_vals]
     else:
-        keys, values = to_csv_rows(mapping)
+        metric_mapping = select_metric_mapping(mapping, args.dict_paths)
+        keys, values = to_csv_rows(metric_mapping)
 
     if args.output:
         with open(args.output, "w", newline="", encoding=args.encoding) as f:
