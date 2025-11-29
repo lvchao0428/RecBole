@@ -17,8 +17,8 @@ load_col:
   inter: [user_id, item_id, rating, timestamp]
   item: [item_id]
 
-# Training / Evaluation (70 epochs to match baseline)
-epochs: 35
+# Training / Evaluation (55 epochs to align with two-phase total steps)
+epochs: 55
 train_batch_size: 1024 
 eval_batch_size: 1024 
 learning_rate: 0.0001

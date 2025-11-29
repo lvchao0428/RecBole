@@ -16,8 +16,8 @@ python scripts/two_phase_train.py \
   --phase_a_epochs 10 \
   --phase_a_eval_step 2 \
   --phase_a_valid_metric NDCG@10 \
-  --ndcg_baseline 0.0272 \
-  --ndcg_gain_threshold 0.01 \
+  --ndcg_baseline 0.0157 \
+  --ndcg_gain_threshold 0.005 \
   --lr_text_head 5e-4 \
   --lr_dnn_cross 3e-4 \
   --phase_a_text_gate_reg_l2 0.02 \
