@@ -504,7 +504,7 @@ def _train_and_eval_phase(
     """Run one training phase and return results and saved model path."""
     device = _resolve_device(trainer.config)
     _log_gpu_snapshot("before-fit", device)
-    metric_name = progress_metric or trainer.config.get("valid_metric")
+    metric_name = progress_metric or (trainer.config["valid_metric"] if "valid_metric" in trainer.config else None)
     progress_cb = _make_phase_progress_callback(
         progress_logger,
         phase_label,
