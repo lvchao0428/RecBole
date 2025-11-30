@@ -23,7 +23,7 @@ python scripts/two_phase_train.py \
   --phase_a_text_gate_reg_l2 0.05 \
   --phase_b_alignment_weight 0.05 \
   --phase_a_auto_to_b \
-  --phase_b_epochs 15 \
+  --phase_b_epochs 25 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs \
   --seed 2025 \
