@@ -17,6 +17,8 @@ import threading
 from datetime import datetime
 from logging import getLogger
 
+import csv
+
 import psutil
 import torch
 
@@ -306,6 +308,77 @@ def _log_and_dump_summary(config: Config, model, res_dict: dict, label: str):
         json.dump(payload, fout, ensure_ascii=False, indent=2)
 
 
+PROGRESS_HEADERS = ["timestamp", "phase", "alignment_weight", "temperature", "epoch", "metric", "score", "event"]
+
+
+class PhaseProgressLogger:
+    def __init__(self, label: str, headers=None):
+        headers = headers or PROGRESS_HEADERS
+        self.headers = headers
+        os.makedirs("run_metrics", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.path = os.path.join("run_metrics", f"{timestamp}_{label}.csv")
+        self._file = open(self.path, "w", newline="", encoding="utf-8")
+        self._writer = csv.writer(self._file)
+        self._writer.writerow(self.headers)
+
+    def log(self, event: str, **fields):
+        row = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "event": event,
+        }
+        row.update(fields)
+        self._writer.writerow([row.get(col, "") for col in self.headers])
+        self._file.flush()
+
+    def close(self):
+        if hasattr(self, "_file") and not self._file.closed:
+            self._file.close()
+
+
+def _combine_callbacks(*callbacks):
+    callbacks = [cb for cb in callbacks if cb is not None]
+    if not callbacks:
+        return None
+
+    def _combined(epoch_idx, valid_score):
+        for cb in callbacks:
+            cb(epoch_idx, valid_score)
+
+    return _combined
+
+
+def _make_phase_progress_callback(logger: PhaseProgressLogger | None, phase: str, metric: str | None, **fields):
+    if logger is None:
+        return None
+    metric = metric or ""
+
+    def _cb(epoch_idx, valid_score):
+        logger.log(
+            "eval",
+            phase=phase,
+            metric=metric,
+            epoch=epoch_idx,
+            score=float(valid_score) if valid_score is not None else "",
+            **fields,
+        )
+
+    return _cb
+
+
+def _lookup_metric_score(metric_name: str | None, metric_dict: dict | None):
+    if not metric_name or not metric_dict:
+        return None
+    metric_name = metric_name.lower()
+    for key, value in metric_dict.items():
+        if key.lower() == metric_name:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return value
+    return None
+
+
 DEFAULT_METRIC_ORDER = [
     "recall@5",
     "recall@10",
@@ -415,13 +488,37 @@ def _log_grouped_two_phase_summary(res_a: dict | None, res_b: dict | None, varia
     logger.info(sep)
 
 
-def _train_and_eval_phase(logger, trainer, train_data, valid_data, test_data, saved=True):
+def _train_and_eval_phase(
+    logger,
+    trainer,
+    train_data,
+    valid_data,
+    test_data,
+    saved=True,
+    phase_label="Phase",
+    progress_logger: PhaseProgressLogger | None = None,
+    progress_metric: str | None = None,
+    progress_fields: dict | None = None,
+    callback_fn=None,
+):
     """Run one training phase and return results and saved model path."""
     device = _resolve_device(trainer.config)
     _log_gpu_snapshot("before-fit", device)
+    metric_name = progress_metric or trainer.config.get("valid_metric")
+    progress_cb = _make_phase_progress_callback(
+        progress_logger,
+        phase_label,
+        metric_name,
+        **(progress_fields or {}),
+    )
+    combined_callback = _combine_callbacks(callback_fn, progress_cb)
     try:
         best_valid_score, best_valid_result = trainer.fit(
-            train_data, valid_data, saved=saved, show_progress=trainer.config["show_progress"]
+            train_data,
+            valid_data,
+            saved=saved,
+            show_progress=trainer.config["show_progress"],
+            callback_fn=combined_callback,
         )
     except RuntimeError as err:
         if "CUDA" in str(err) or "cuda" in str(err):
@@ -451,6 +548,24 @@ def _train_and_eval_phase(logger, trainer, train_data, valid_data, test_data, sa
     logger.info("The running environment of this training is as follows:\n" + env_tb.draw())
     logger.info(set_color("best valid ", "yellow") + f": {best_valid_result}")
     logger.info(set_color("test result", "yellow") + f": {test_result}")
+    if progress_logger:
+        best_metric_val = _lookup_metric_score(metric_name, best_valid_result)
+        test_metric_val = _lookup_metric_score(metric_name, test_result)
+        base_fields = progress_fields or {}
+        progress_logger.log(
+            "best_valid",
+            phase=phase_label,
+            metric=metric_name,
+            score=best_metric_val if best_metric_val is not None else "",
+            **base_fields,
+        )
+        progress_logger.log(
+            "test_result",
+            phase=phase_label,
+            metric=metric_name,
+            score=test_metric_val if test_metric_val is not None else "",
+            **base_fields,
+        )
     result = {
         "best_valid_score": best_valid_score,
         "best_valid_result": best_valid_result,
@@ -535,6 +650,12 @@ def main():
     phase_a_ckpt = None
     phase_a_passed = False
     burnin_ckpt = None
+    phase_a_pass_record = None
+    phase_a_pass_events = []
+    phase_a_progress_logger = None
+    phase_a_progress_path = None
+    phase_b_progress_logger = None
+    phase_b_progress_path = None
 
     # Optional: short ID-only burn-in to stabilize backbone before freezing in Phase-A
     if not args.only_phase_b and args.backbone_burnin_epochs and args.backbone_burnin_epochs > 0:
@@ -568,6 +689,8 @@ def main():
             logger_burn.info(set_color("[Burn-in] Saved checkpoint", "green") + f": {burnin_ckpt}")
         _release_phase_resources("Burn-in", model_burn, trainer_burn, dataset_burn, train_burn, valid_burn, test_burn)
     if not args.only_phase_b:
+        phase_a_progress_logger = PhaseProgressLogger("phase_a_progress")
+        phase_a_progress_path = phase_a_progress_logger.path
         if args.phase_a_grid:
             # Parse grids
             try:
@@ -612,6 +735,13 @@ def main():
                     )
                     logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
                     logger_a.info(set_color("[Phase-A:grid] setting", "cyan") + f": alignment_weight={aw}, temperature={tau}")
+                    progress_cb = _make_phase_progress_callback(
+                        phase_a_progress_logger,
+                        "Phase-A",
+                        args.phase_a_valid_metric,
+                        alignment_weight=aw,
+                        temperature=tau,
+                    )
                     # Load burn-in checkpoint if available
                     if burnin_ckpt and os.path.exists(burnin_ckpt):
                         try:
@@ -624,11 +754,37 @@ def main():
                     # Optional: early finish inside Phase-A when reaching ndcg_target
                     callback_fn = None
                     if ndcg_target is not None:
-                        def _gate_cb(epoch_idx, valid_score, _trainer=trainer_a, _logger=logger_a, _target=ndcg_target):
+                        def _gate_cb(
+                            epoch_idx,
+                            valid_score,
+                            _trainer=trainer_a,
+                            _logger=logger_a,
+                            _target=ndcg_target,
+                            _aw=aw,
+                            _tau=tau,
+                        ):
                             try:
                                 if valid_score >= _target:
                                     # Save current checkpoint and stop this phase immediately
                                     _trainer._save_checkpoint(epoch_idx, verbose=True)
+                                    if phase_a_progress_logger:
+                                        phase_a_progress_logger.log(
+                                            "pass_gate",
+                                            phase="Phase-A",
+                                            alignment_weight=_aw,
+                                            temperature=_tau,
+                                            epoch=epoch_idx,
+                                            metric=args.phase_a_valid_metric,
+                                            score=float(valid_score),
+                                        )
+                                    pass_detail = {
+                                        "alignment_weight": _aw,
+                                        "temperature": _tau,
+                                        "epoch": epoch_idx,
+                                        "metric": args.phase_a_valid_metric,
+                                        "score": float(valid_score),
+                                    }
+                                    phase_a_pass_events.append(pass_detail)
                                     _logger.info(set_color("[Phase-A:grid] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
                                     raise StopIteration  # break fit()
                             except StopIteration:
@@ -645,6 +801,7 @@ def main():
                         callback_fn = _gate_cb
                     else:
                         callback_fn = None
+                    combined_cb = _combine_callbacks(progress_cb, callback_fn)
                     # Run training phase with optional early gate
                     try:
                         # Verify freeze status before training starts
@@ -675,7 +832,11 @@ def main():
                         _log_gpu_snapshot("Phase-A:grid-before-fit", config_a["device"])
                         try:
                             best_valid_score, best_valid_result = trainer_a.fit(
-                                train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                                train_a,
+                                valid_a,
+                                saved=args.save,
+                                show_progress=trainer_a.config["show_progress"],
+                                callback_fn=combined_cb,
                             )
                         except StopIteration:
                             # retrieve best fields from trainer after early stop
@@ -714,6 +875,24 @@ def main():
                             if key in valid_dict:
                                 ndcg10 = float(valid_dict[key])
                                 break
+                        if phase_a_progress_logger:
+                            phase_a_progress_logger.log(
+                                "combo_best_valid",
+                                phase="Phase-A",
+                                alignment_weight=aw,
+                                temperature=tau,
+                                metric="ndcg@10",
+                                score=ndcg10 if ndcg10 is not None else "",
+                            )
+                            combo_test_ndcg = _lookup_metric_score("ndcg@10", res.get("test_result"))
+                            phase_a_progress_logger.log(
+                                "combo_test_result",
+                                phase="Phase-A",
+                                alignment_weight=aw,
+                                temperature=tau,
+                                metric="ndcg@10",
+                                score=combo_test_ndcg if combo_test_ndcg is not None else "",
+                            )
                         logger_a.info(set_color("[Phase-A:grid] NDCG@10", "yellow") + f": {ndcg10}")
                         _log_gpu_snapshot("Phase-A:grid-phase-end", config_a["device"])
                         if ndcg10 is not None:
@@ -723,6 +902,11 @@ def main():
                                 phase_a_passed = True
                                 phase_a_ckpt = ckpt_path
                                 res_a = res
+                                phase_a_pass_record = {
+                                    "alignment_weight": aw,
+                                    "temperature": tau,
+                                    "ndcg10": ndcg10,
+                                }
                                 logger_a.info(set_color("[Phase-A:grid] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
                                 break
                     finally:
@@ -737,6 +921,11 @@ def main():
                 logger.info(set_color("[Phase-A:grid] Best combo", "blue") + f": ndcg@10={best_tuple[0]:.6f}, alignment_weight={best_tuple[1]}, temperature={best_tuple[2]}")
                 if ndcg_target is not None:
                     logger.info(set_color("[Phase-A:grid] Gate not reached", "red") + f": best_ndcg@10={best_tuple[0]:.6f} < target={ndcg_target:.6f}")
+                phase_a_pass_record = {
+                    "alignment_weight": best_tuple[1],
+                    "temperature": best_tuple[2],
+                    "ndcg10": best_tuple[0],
+                }
         else:
             phase_a_dict = {
                 "freeze_backbone": True,
@@ -771,6 +960,13 @@ def main():
                     set_color("[Phase-A] lr groups", "cyan")
                     + f": lr_text_head={config_a['lr_text_head']}, lr_dnn_cross={config_a['lr_dnn_cross']}"
                 )
+            progress_cb = _make_phase_progress_callback(
+                phase_a_progress_logger,
+                "Phase-A",
+                args.phase_a_valid_metric,
+                alignment_weight=phase_a_dict.get("alignment_weight"),
+                temperature=phase_a_dict.get("temperature"),
+                )
             # Load burn-in checkpoint if available
             if burnin_ckpt and os.path.exists(burnin_ckpt):
                 try:
@@ -785,9 +981,33 @@ def main():
             callback_fn = None
             if ndcg_target is not None:
                 def _gate_cb(epoch_idx, valid_score, _trainer=trainer_a, _logger=logger_a, _target=ndcg_target):
+                    nonlocal phase_a_pass_record
                     try:
                         if valid_score >= _target:
                             _trainer._save_checkpoint(epoch_idx, verbose=True)
+                            if phase_a_progress_logger:
+                                phase_a_progress_logger.log(
+                                    "pass_gate",
+                                    phase="Phase-A",
+                                    alignment_weight=phase_a_dict.get("alignment_weight"),
+                                    temperature=phase_a_dict.get("temperature"),
+                                    epoch=epoch_idx,
+                                    metric=args.phase_a_valid_metric,
+                                    score=float(valid_score),
+                                )
+                            pass_detail = {
+                                "alignment_weight": phase_a_dict.get("alignment_weight"),
+                                "temperature": phase_a_dict.get("temperature"),
+                                "epoch": epoch_idx,
+                                "metric": args.phase_a_valid_metric,
+                                "score": float(valid_score),
+                            }
+                            phase_a_pass_events.append(pass_detail)
+                            phase_a_pass_record = {
+                                "alignment_weight": phase_a_dict.get("alignment_weight"),
+                                "temperature": phase_a_dict.get("temperature"),
+                                "ndcg10": float(valid_score),
+                            }
                             _logger.info(set_color("[Phase-A] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
                             raise StopIteration
                     except StopIteration:
@@ -821,8 +1041,13 @@ def main():
                     logger_a.info(f"Active examples: {active_params[:5]} ...")
                     logger_a.info(set_color("========================================", "red"))
 
+                combined_cb = _combine_callbacks(progress_cb, callback_fn)
                 best_valid_score, best_valid_result = trainer_a.fit(
-                    train_a, valid_a, saved=args.save, show_progress=trainer_a.config["show_progress"], callback_fn=callback_fn
+                    train_a,
+                    valid_a,
+                    saved=args.save,
+                    show_progress=trainer_a.config["show_progress"],
+                    callback_fn=combined_cb,
                 )
             except StopIteration:
                 best_valid_score = trainer_a.best_valid_score
@@ -863,6 +1088,8 @@ def main():
                     phase_a_passed = True
                     logger_a.info(set_color("[Phase-A] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
             _release_phase_resources("Phase-A", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
+    if phase_a_progress_logger:
+        phase_a_progress_logger.close()
 
     # Phase-B config (unfreeze + grouped LR; lr_backbone = lr_text_head * scale)
     if not args.only_phase_a:

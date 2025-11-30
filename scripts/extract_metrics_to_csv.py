@@ -157,8 +157,8 @@ def try_literal_eval_dict(text: str) -> Union[Dict[str, Union[int, float, str]],
     except Exception:
         try:
             value = json.loads(text)
-        except Exception:
-            return None
+    except Exception:
+        return None
     if isinstance(value, dict):
         return value
     return None

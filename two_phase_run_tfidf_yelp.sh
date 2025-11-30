@@ -9,10 +9,10 @@ python scripts/two_phase_train.py \
   --dataset yelp \
   --config_files "yelp_config/sasrec_align_yelp_base.yaml" \
   --phase_a_grid \
-  --align_grid "0.05" \
-  --tau_grid "0.05,0.07" \
+  --align_grid "0.01,0.02,0.05,0.08" \
+  --tau_grid "0.03,0.05,0.07" \
   --backbone_burnin_epochs 10 \
-  --burnin_eval_step 2 \
+  --burnin_eval_step 1 \
   --phase_a_epochs 10 \
   --phase_a_eval_step 2 \
   --phase_a_valid_metric NDCG@10 \
