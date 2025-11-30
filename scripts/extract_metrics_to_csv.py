@@ -152,13 +152,18 @@ def select_metric_mapping(mapping: dict, user_paths: List[str] | None = None):
 
 
 def try_literal_eval_dict(text: str) -> Union[Dict[str, Union[int, float, str]], None]:
+    """
+    Attempt to parse the text as a dict using literal_eval first, then JSON.
+    Returns None if neither parser succeeds or if the parsed object is not a dict.
+    """
+    value = None
     try:
         value = ast.literal_eval(text)
     except Exception:
         try:
             value = json.loads(text)
-    except Exception:
-        return None
+        except Exception:
+            return None
     if isinstance(value, dict):
         return value
     return None
