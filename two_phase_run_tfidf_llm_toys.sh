@@ -11,7 +11,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Toys_and_Games \
-  --config_files "sasrec_align_qwen3.yaml" \
+  --config_files "sasrec_align_toys_qwen3.yaml" \
   --phase_a_grid \
   --align_grid "0.01,0.02,0.05,0.08" \
   --tau_grid "0.03,0.05,0.07" \
