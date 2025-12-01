@@ -1,0 +1,6 @@
+item_id:token	title:token	price:float	sales_type:token	sales_rank:float	brand:token	categories:token_seq
+0000191639	Dr. Suess 19163 Dr. Seuss Puzzle 3 Pack Bundle	37.12	Toys & Games	612379.0	Dr. Seuss	'Toys & Games', 'Puzzles', 'Jigsaw Puzzles'
+0005069491	Nursery Rhymes Felt Book		Toys & Games	576683.0		'Toys & Games'
+0076561046	Fraction Decimal Percent Card Deck		Toys & Games	564211.0		'Toys & Games', 'Flash Cards', 'Learning & Education'
+0131358936		36.22	Software	8080.0		'Toys & Games', 'Mathematics & Counting', 'Learning & Education'
+0133642984	Algebra 2 California Teacher Center	731.93	Toys & Games	1150291.0	Prentice Hall	'Toys & Games', 'Mathematics & Counting', 'Learning & Education'
