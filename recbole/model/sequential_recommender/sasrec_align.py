@@ -648,6 +648,10 @@ class SASRecAlign(SequentialRecommender):
         if self.item_emb_norm is not None:
             item_emb_for_fusion = self.item_emb_norm(item_emb)
 
+        # Compute align_scale and temp_scale for multi-view fusion (consistent with main fusion path)
+        align_scale = (1.0 + self.alignment_weight) if self.alignment_weight > 0 else 1.0
+        temp_scale = (0.07 / self.temperature) if self.temperature > 0 else 1.0
+        
         contributions = []
         for idx, view_feat in enumerate(view_features):
             view_feat = view_feat.to(device)
@@ -662,7 +666,8 @@ class SASRecAlign(SequentialRecommender):
                 view_out = self.fused_item_norm(view_out)
             delta = view_out - item_emb
             alpha = torch.sigmoid(self.text_view_gate_params[idx]) if self.text_view_gate_params is not None else 1.0
-            scaled = self.text_weight * alpha * delta
+            # Include align_scale and temp_scale so alignment_weight and temperature affect inference
+            scaled = self.text_weight * alpha * align_scale * temp_scale * delta
             if gate is not None:
                 scaled = scaled * gate
             contributions.append(scaled)
@@ -792,22 +797,32 @@ class SASRecAlign(SequentialRecommender):
         if self.detach_text_emb:
             text_raw = text_raw.detach()
         
+        # Compute effective text fusion weight incorporating alignment_weight and temperature for grid search
+        # This allows alignment_weight and temperature to affect inference, not just training loss
+        alpha = torch.sigmoid(self.text_gate_param)
+        # Scale by alignment_weight so different grid values produce different inference results
+        align_scale = (1.0 + self.alignment_weight) if self.alignment_weight > 0 else 1.0
+        # Scale by temperature: higher temperature -> softer/weaker text influence
+        # Use inverse relationship: lower temp means sharper/stronger text signal
+        # Normalize around default temp=0.07: temp_scale = 0.07 / temperature
+        temp_scale = (0.07 / self.temperature) if self.temperature > 0 else 1.0
+        effective_text_weight = alpha * self.text_weight * align_scale * temp_scale
+        
         if self.use_cross and self.item_fusion_predictor is not None:
             # Apply SENet if active (amplifier) before cross fusion
             if self.text_amplifier is not None:
                 text_raw = self.text_amplifier(text_raw)
 
             # Apply gating/weighting to text features before cross fusion for stability
-            alpha = torch.sigmoid(self.text_gate_param)
             if self.text_item_gate_all is not None:
                 if item_ids is None:
                     gate = self.text_item_gate_all
                 else:
                     gate = self.text_item_gate_all[all_ids]
                 gate = gate.to(item_emb.device).unsqueeze(1)
-                scaled_text = (alpha * self.text_weight * gate) * text_raw
+                scaled_text = (effective_text_weight * gate) * text_raw
             else:
-                scaled_text = (alpha * self.text_weight) * text_raw
+                scaled_text = effective_text_weight * text_raw
 
             # Fuse item embeddings with scaled text features using cross network
             # Stabilize: normalize item_emb before concatenation if configured
@@ -825,16 +840,15 @@ class SASRecAlign(SequentialRecommender):
         else:
             # Concatenation fusion (no-cross): [item_emb, scaled text_proj] -> predictor -> hidden_size
             text_proj = self._project_text(text_raw)
-            alpha = torch.sigmoid(self.text_gate_param)
             if self.text_item_gate_all is not None:
                 if item_ids is None:
                     gate = self.text_item_gate_all
                 else:
                     gate = self.text_item_gate_all[all_ids]
                 gate = gate.to(item_emb.device).unsqueeze(1)
-                scaled_text = (alpha * self.text_weight * gate) * text_proj
+                scaled_text = (effective_text_weight * gate) * text_proj
             else:
-                scaled_text = (alpha * self.text_weight) * text_proj
+                scaled_text = effective_text_weight * text_proj
             
             # Stabilize here too
             item_emb_for_fusion = item_emb
