@@ -23,7 +23,7 @@ load_col:
   item: [item_id]
 
 # Training / Evaluation (aligned with text experiments)
-epochs: 200
+epochs: 35
 train_batch_size: 1024 
 eval_batch_size: 1024 
 learning_rate: 0.0001
