@@ -1,0 +1,6 @@
+item_id:token	price:float	sales_type:token	sales_rank:float	categories:token_seq	title:token	brand:token
+0078764343	37.98	Video Games	28655.0	'Games', 'Video Games', 'Xbox 360'		
+043933702X	23.5	Video Games	44080.0	'Games', 'Video Games', 'PC'		
+0439339987	8.95	Video Games	49836.0	'Games', 'Video Games', 'PC'		
+0439342260		Video Games	49156.0	'Games', 'Video Games', 'PC'		
+0439339960		Video Games	52262.0	'Games', 'Video Games', 'PC'		
