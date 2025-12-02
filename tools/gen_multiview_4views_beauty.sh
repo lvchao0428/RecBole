@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#set -euo pipefail
+
+# Generate 4-view Qwen3 embeddings with per-view splits for Amazon_Beauty
+# This script creates per-view embeddings for the new multi-view alignment architecture.
+#
+# Prerequisites:
+#   1. item_index_mapping.csv must exist (run gen_text_emb_beauty.sh first if needed)
+#   2. Qwen model must be available
+
+cd /home/charlie/project/RecBole
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+
+echo "[Multi-View 4-Views] Generating per-view Qwen3 embeddings for Amazon_Beauty..."
+echo "  - Output mode: split (per-view files)"
+echo "  - View projection: 128 dims per view"
+echo "  - Total views: 4"
+echo ""
+
+python tools/build_item_text_emb_qwen3_hf.py \
+  --mapping /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_index_mapping.csv \
+  --model_name_or_path /home/charlie/project/qwen/Model \
+  --output /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_qwen3_4views.npy \
+  --batch_size 16 \
+  --max_length 128 \
+  --dtype float16 \
+  --dataset Amazon_Beauty \
+  --config /home/charlie/project/RecBole/sasrec_base_plain.yaml \
+  --prompt_preset multiview \
+  --output_mode concat \
+  --view_project_dim 128 \
+  --split_output_dir /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb_qwen3_4views_split
+
+echo ""
+echo "[Multi-View 4-Views] Done!"
+echo "  - Concat embedding: dataset/Amazon_Beauty/item_text_emb_qwen3_4views.npy"
+echo "  - Split views dir: dataset/Amazon_Beauty/item_text_emb_qwen3_4views_split/"
+echo "  - Metadata: dataset/Amazon_Beauty/item_text_emb_qwen3_4views_split/views.json"
+echo ""
+echo "Next: Update sasrec_align_multi_view.yaml to use:"
+echo "  item_text_emb_split_dir: dataset/Amazon_Beauty/item_text_emb_qwen3_4views_split"
+echo ""
+

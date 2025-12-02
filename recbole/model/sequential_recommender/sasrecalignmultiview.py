@@ -3,15 +3,21 @@ import os
 import numpy as np
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from recbole.model.sequential_recommender.sasrec_align import SASRecAlign
 
 
 class SASRecAlignMultiView(SASRecAlign):
     """
-    SASRecAlign variant tailored for per-prompt multi-view embeddings.
-    Stage 1+2 (already completed): load per-view vectors + SENet-style refinement.
-    Stage 3 (implemented here): FiBiNET-inspired residual cross between each view and ID embedding.
+    SASRecAlign variant with per-view multi-view embeddings and alignment.
+    
+    Architecture:
+    1. Load per-view embeddings from split directory
+    2. Per-view SENet enhancement for feature refinement
+    3. Per-view alignment loss with ID embeddings (learnable weights)
+    4. Gated view fusion via concat → projection
+    5. Cross Network fusion with ID embeddings (inherited from parent)
     """
 
     def __init__(self, config, dataset):
@@ -23,23 +29,17 @@ class SASRecAlignMultiView(SASRecAlign):
         else:
             self.text_view_split_dir = None
         self.text_view_senet_ratio = int(config["text_view_senet_ratio"]) if "text_view_senet_ratio" in config else 4
-        self.text_view_cross_dropout = float(config["text_view_cross_dropout"]) if "text_view_cross_dropout" in config else 0.1
-        self.text_view_residual_init = float(config["text_view_residual_init"]) if "text_view_residual_init" in config else 0.5
-        self.text_view_cross_layers = int(config["text_view_cross_layers"]) if "text_view_cross_layers" in config else 1
-
-        self.text_view_buffer_names = []
-        self.text_view_proj = nn.ModuleList()
-        self.text_view_senet = nn.ModuleList()
-        self.text_view_bilinear = None
-        self.text_view_residual_gates = None
-        self.text_view_gate_params = None
-        self.text_view_dropout = (
-            nn.Dropout(self.text_view_cross_dropout) if self.text_view_cross_dropout > 0.0 else None
-        )
         self.text_view_half_precision = (
             bool(config["text_view_half_precision"]) if "text_view_half_precision" in config else True
         )
         self.text_view_storage_dtype = torch.float16 if self.text_view_half_precision else torch.float32
+
+        self.text_view_buffer_names = []
+        self.text_view_proj = nn.ModuleList()
+        self.text_view_senet = nn.ModuleList()
+        self.text_view_gate_params = None
+        self.text_view_align_weights = None  # Learnable per-view alignment weights
+        self.multiview_concat_proj = None  # Projection after concat
 
         if self.use_text_view_split:
             if not self.text_view_split_dir:
@@ -55,8 +55,14 @@ class SASRecAlignMultiView(SASRecAlign):
                 raise ValueError("views.json contains no prompt metadata.")
 
             self.num_text_views = len(prompts)
+            
+            # Learnable per-view gate parameters (for weighted fusion)
             self.text_view_gate_params = nn.Parameter(torch.zeros(self.num_text_views, dtype=torch.float32))
+            
+            # Learnable per-view alignment weights (for multi-view alignment loss)
+            self.text_view_align_weights = nn.Parameter(torch.ones(self.num_text_views, dtype=torch.float32))
 
+            # Load per-view embeddings and create SENet modules
             for view in prompts:
                 idx = view["index"]
                 file_name = view["file"]
@@ -70,8 +76,10 @@ class SASRecAlignMultiView(SASRecAlign):
                 self.text_view_buffer_names.append(buffer_name)
 
                 view_dim = int(view["vector_dim"])
+                # Projection: view_dim → hidden_size
                 self.text_view_proj.append(nn.Linear(view_dim, self.hidden_size))
 
+                # SENet: hidden_size → reduction → hidden_size (attention weights)
                 reduction = max(1, self.hidden_size // self.text_view_senet_ratio)
                 self.text_view_senet.append(
                     nn.Sequential(
@@ -82,62 +90,77 @@ class SASRecAlignMultiView(SASRecAlign):
                     )
                 )
 
-            self.text_view_residual_gates = nn.Parameter(torch.full((self.num_text_views,), self.text_view_residual_init, dtype=torch.float32))
-
-            # Ensure normalization layers exist for residual fusion even if base class skipped them
+            # Multi-view concat projection: (num_views * hidden_size) → hidden_size
+            self.multiview_concat_proj = nn.Linear(self.num_text_views * self.hidden_size, self.hidden_size)
+            
+            # Ensure normalization layers exist
             if self.item_emb_norm is None and self.fused_item_norm_flag:
                 self.item_emb_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
             if self.fused_item_norm is None and self.fused_item_norm_flag:
                 self.fused_item_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
+            
+            self.logger.info(
+                "SASRecAlignMultiView initialized: %d views, SENet ratio=%d, per-view alignment enabled",
+                self.num_text_views, self.text_view_senet_ratio
+            )
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
+        """Get the embedding buffer for a specific view."""
         name = self.text_view_buffer_names[idx]
         return getattr(self, name)
 
     def _gather_text_views(self, ids_flat: torch.Tensor) -> torch.Tensor:
-        """Gather SENet-refined per-view features for given item ids."""
+        """
+        Gather and refine per-view features using SENet.
+        
+        Args:
+            ids_flat: Item IDs [B]
+            
+        Returns:
+            Stacked view features [B, num_views, hidden_size]
+        """
         if not self.use_text_view_split:
             raise RuntimeError("text view split not enabled.")
 
         view_features = []
         for idx, proj in enumerate(self.text_view_proj):
+            # 1. Load raw view embeddings
             view_emb_table = self._get_view_buffer(idx)
             if view_emb_table.device != ids_flat.device:
                 view_emb_table = view_emb_table.to(ids_flat.device)
             gathered = view_emb_table[ids_flat]  # [B, view_dim]
+            
+            # 2. Project to hidden_size
             if gathered.dtype != proj.weight.dtype:
                 gathered = gathered.to(proj.weight.dtype)
-            projected = proj(gathered)  # [B, hidden]
-            squeeze = projected  # treat embedding as 1D field; no spatial dims to pool
-            excitation = self.text_view_senet[idx](squeeze)
-            refined = projected * excitation
+            projected = proj(gathered)  # [B, hidden_size]
+            
+            # 3. SENet enhancement
+            excitation = self.text_view_senet[idx](projected)  # [B, hidden_size]
+            refined = projected * excitation  # [B, hidden_size]
+            
             view_features.append(refined)
-        stacked = torch.stack(view_features, dim=1)  # [B, num_views, hidden]
+        
+        # Stack all views
+        stacked = torch.stack(view_features, dim=1)  # [B, num_views, hidden_size]
         return stacked
 
-    def _gather_text_raw(self, ids_flat: torch.Tensor) -> torch.Tensor:
-        if not self.use_text_view_split:
-            return super()._gather_text_raw(ids_flat)
-
-        view_stack = self._gather_text_views(ids_flat)
-        if self.text_view_gate_params is not None:
-            weights = torch.sigmoid(self.text_view_gate_params).to(view_stack.device)
-            weights = weights / weights.sum().clamp_min(1e-6)
-            fused = torch.sum(view_stack * weights.view(1, -1, 1), dim=1)
-        else:
-            fused = torch.sum(view_stack, dim=1)
-        return fused
-
-    def _project_text(self, raw: torch.Tensor) -> torch.Tensor:
-        if self.use_text_view_split:
-            return raw
-        return super()._project_text(raw)
-
     def _get_fused_item_embeddings(self, item_ids: torch.Tensor = None) -> torch.Tensor:
-        """Override item fusion to leverage per-view residual cross."""
+        """
+        Get fused item embeddings with multi-view text features.
+        
+        Flow: SENet → Gate → Concat → Projection → Cross Network Fusion
+        
+        Args:
+            item_ids: Specific item IDs or None for all items
+            
+        Returns:
+            Fused item embeddings [B, hidden_size] or [n_items, hidden_size]
+        """
         if not self.use_text_view_split:
             return super()._get_fused_item_embeddings(item_ids)
 
+        # Handle chunking for large item sets
         if item_ids is None:
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
             if (
@@ -154,46 +177,182 @@ class SASRecAlignMultiView(SASRecAlign):
             all_ids = item_ids
             item_emb = self.item_embedding(item_ids)
 
+        # Early return if text fusion is disabled
         if not self.fuse_text_feature or len(self.text_view_buffer_names) == 0:
             return item_emb
 
+        # Step 1: Gather SENet-enhanced multi-view features [B, num_views, hidden_size]
         view_stack = self._gather_text_views(all_ids)
+        
         if self.detach_text_emb:
             view_stack = view_stack.detach()
 
-        item_emb_for_fusion = item_emb
-        if self.item_emb_norm is not None:
-            item_emb_for_fusion = self.item_emb_norm(item_emb_for_fusion)
-
-        alpha = torch.sigmoid(self.text_gate_param) * self.text_weight
+        # Step 2: Apply per-view gates (learnable importance weights)
+        view_weights = torch.sigmoid(self.text_view_gate_params).to(view_stack.device)
+        view_weights = view_weights / view_weights.sum().clamp_min(1e-6)  # Normalize
+        
+        # Step 3: Weight each view and concat
+        weighted_views = []
+        for idx in range(self.num_text_views):
+            view_feat = view_stack[:, idx, :]  # [B, hidden_size]
+            weighted = view_weights[idx] * view_feat
+            weighted_views.append(weighted)
+        
+        # Concatenate all weighted views [B, num_views * hidden_size]
+        text_concat = torch.cat(weighted_views, dim=-1)
+        
+        # Step 4: Project to hidden_size [B, hidden_size]
+        text_proj = self.multiview_concat_proj(text_concat)
+        
+        # Step 5: Use parent class's cross network fusion logic
+        # This includes: gate, cross network, alignment, etc.
+        return self._fuse_with_cross_network(item_emb, text_proj, all_ids)
+    
+    def _fuse_with_cross_network(
+        self, 
+        item_emb: torch.Tensor, 
+        text_raw: torch.Tensor, 
+        item_ids: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Fuse item embeddings with text features using cross network.
+        This mimics the parent class's fusion logic but allows us to inject
+        the multi-view concatenated text features.
+        
+        Args:
+            item_emb: Item embeddings [B, hidden_size]
+            text_raw: Projected multi-view text features [B, hidden_size]
+            item_ids: Item IDs [B]
+            
+        Returns:
+            Fused embeddings [B, hidden_size]
+        """
+        # Normalize text if configured
+        if self.normalize_text:
+            text_raw = F.normalize(text_raw, dim=1)
+        
+        # Apply text projection if needed (already done in multiview_concat_proj)
+        # Skip parent's _project_text to avoid double projection
+        
+        # Calculate effective text weight (includes gate, temperature, alignment scales)
+        alpha = torch.sigmoid(self.text_gate_param) if hasattr(self, 'text_gate_param') else torch.tensor(1.0)
+        
+        # Per-item gating
         if self.text_item_gate_all is not None:
-            gate = self.text_item_gate_all if item_ids is None else self.text_item_gate_all[all_ids]
+            gate = self.text_item_gate_all[item_ids]
             gate = gate.to(item_emb.device).unsqueeze(1)
             alpha = alpha * gate
-        if alpha.dim() == 0:
-            alpha = alpha.view(1, 1).expand(item_emb.size(0), -1)
-        elif alpha.dim() == 1:
-            alpha = alpha.unsqueeze(1)
-
-        view_weights = torch.sigmoid(self.text_view_gate_params)
-        weight_norm = view_weights / view_weights.sum().clamp_min(1e-4)
-
-        residual = torch.zeros_like(item_emb_for_fusion)
-        for idx in range(len(self.text_view_buffer_names)):
-            residual_gate = (
-                torch.sigmoid(self.text_view_residual_gates[idx])
-                if self.text_view_residual_gates is not None
-                else 1.0
-            )
-            view_feat = view_stack[:, idx, :]
-            if self.text_view_dropout is not None:
-                view_feat = self.text_view_dropout(view_feat)
-            residual = residual + weight_norm[idx] * residual_gate * view_feat
-
-        fused_emb = item_emb_for_fusion + alpha * residual
+        
+        # Temperature and alignment scaling (if applicable)
+        if hasattr(self, 'alignment_temp_scale_flag') and self.alignment_temp_scale_flag:
+            temp_scale = 1.0 / self.temperature if self.temperature > 0 else 1.0
+        else:
+            temp_scale = 1.0
+            
+        effective_text_weight = alpha * self.text_weight * temp_scale
+        
+        # Use cross network fusion if enabled
+        if self.use_cross and self.item_fusion_predictor is not None:
+            # Scale text features
+            if effective_text_weight.dim() == 0:
+                scaled_text = effective_text_weight * text_raw
+            else:
+                scaled_text = effective_text_weight * text_raw
+            
+            # Normalize item embeddings if configured
+            item_emb_for_fusion = item_emb
+            if self.item_emb_norm is not None:
+                item_emb_for_fusion = self.item_emb_norm(item_emb_for_fusion)
+            
+            # Concatenate and pass through cross network
+            fusion_input = torch.cat([item_emb_for_fusion, scaled_text], dim=1)
+            cross_out = self.item_fusion_cross(fusion_input)
+            if self.item_fusion_cross_dropout is not None:
+                cross_out = self.item_fusion_cross_dropout(cross_out)
+            deep_out = self.item_fusion_deep(fusion_input)
+            fused = torch.cat([cross_out, deep_out], dim=1)
+            fused_emb = self.item_fusion_predictor(fused)
+        else:
+            # Simple weighted addition if cross network is disabled
+            item_emb_for_fusion = item_emb
+            if self.item_emb_norm is not None:
+                item_emb_for_fusion = self.item_emb_norm(item_emb_for_fusion)
+            
+            scaled_text = effective_text_weight * text_raw
+            fused_emb = item_emb_for_fusion + scaled_text
+        
+        # Final normalization
         if self.fused_item_norm is not None:
             fused_emb = self.fused_item_norm(fused_emb)
+        
         return fused_emb
+
+
+    def calculate_loss(self, interaction):
+        """
+        Calculate loss with per-view alignment losses.
+        
+        In addition to the base CE/BPR loss, this method adds alignment losses
+        for each view separately, weighted by learnable parameters.
+        """
+        # Call parent's loss calculation (CE/BPR loss)
+        loss = super().calculate_loss(interaction)
+        
+        # Add per-view alignment losses if enabled
+        if (
+            self.use_text_view_split 
+            and self.use_align 
+            and self.alignment_weight > 0.0
+            and len(self.text_view_buffer_names) > 0
+        ):
+            # Get positive items from interaction
+            pos_items = interaction[self.POS_ITEM_ID]
+            
+            # Get ID embeddings for positive items
+            id_item_emb = self.item_embedding(pos_items)  # [B, hidden_size]
+            
+            # Gather all view features for positive items
+            view_stack = self._gather_text_views(pos_items)  # [B, num_views, hidden_size]
+            
+            if self.detach_text_emb:
+                view_stack = view_stack.detach()
+            
+            # Calculate alignment loss for each view separately
+            per_view_align_losses = []
+            for idx in range(self.num_text_views):
+                view_feat = view_stack[:, idx, :]  # [B, hidden_size]
+                
+                # Use parent's InfoNCE alignment loss
+                align_loss_i = self._info_nce_align(id_item_emb, view_feat)
+                per_view_align_losses.append(align_loss_i)
+            
+            # Apply learnable per-view alignment weights
+            align_weights = F.softmax(self.text_view_align_weights, dim=0)  # Normalize weights
+            
+            # Weighted sum of per-view alignment losses
+            total_align_loss = sum(
+                align_weights[idx] * per_view_align_losses[idx] 
+                for idx in range(self.num_text_views)
+            )
+            
+            # Add to total loss
+            loss = loss + self.alignment_weight * total_align_loss
+            
+            # Debug logging (first step only)
+            if not getattr(self, '_multiview_align_debug_logged', False):
+                try:
+                    align_weights_str = ", ".join([f"w{i}={align_weights[i].item():.4f}" for i in range(self.num_text_views)])
+                    losses_str = ", ".join([f"L{i}={per_view_align_losses[i].item():.6f}" for i in range(self.num_text_views)])
+                    self.logger.info(
+                        "SASRecAlignMultiView: per-view alignment enabled | "
+                        "total_align_loss=%.6f | weights=[%s] | losses=[%s]",
+                        total_align_loss.item(), align_weights_str, losses_str
+                    )
+                except Exception:
+                    pass
+                self._multiview_align_debug_logged = True
+        
+        return loss
 
 
 # Alias so --model SASRec_Align_MultiView works
