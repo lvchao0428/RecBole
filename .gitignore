@@ -1,7 +1,23 @@
 # Saved models
 /saved*
 *.pth
-
+dataset/Amazon_All_Beauty/
+dataset/Amazon_All_Beauty.zip
+dataset/Amazon_All_Beauty/
+dataset/Amazon_Beauty.zip
+dataset/Amazon_Beauty/
+dataset/Amazon_Beauty_10p/
+dataset/Amazon_Beauty_tsfix/
+dataset/Amazon_Sports_and_Outdoors/
+dataset/Amazon_Toys_and_Games/
+dataset/Amazon_Video_Games/
+dataset/__MACOSX/
+dataset/item_index_mapping.csv
+dataset/ml-1m/
+dataset/yelp.zip
+dataset/yelp/
+dataset/yelp2018.zip
+dataset/yelp2018/
 .vscode/
 .idea/
 *.pyc
