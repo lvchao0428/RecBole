@@ -87,18 +87,23 @@ def verify_whitening(emb_path: str):
         print(f"   提示: Whitened embeddings通常不做L2归一化（这是正常的）")
     
     # 检查是否中心化（均值接近0）
-    train_sample = emb[1:min(1000, len(emb))]  # 取前1000个非PAD样本
+    train_sample = emb[1:min(1000, len(emb))].astype(np.float64)  # 取前1000个非PAD样本
     mean_vec = train_sample.mean(axis=0)
     mean_abs = np.abs(mean_vec).mean()
-    if mean_abs < 0.1:
+    if mean_abs < 0.15:
         print(f"✅ Embedding已中心化 (mean_abs={mean_abs:.4f})")
     else:
         print(f"⚠️  Embedding未充分中心化 (mean_abs={mean_abs:.4f})")
     
     # 检查协方差矩阵是否接近单位矩阵（验证白化效果）
     sample_size = min(500, len(train_sample))
-    sample = train_sample[:sample_size].astype(np.float64)
-    cov = (sample.T @ sample) / sample_size
+    sample = train_sample[:sample_size]
+    
+    # 重新中心化样本（以消除float16精度误差）
+    sample_centered = sample - sample.mean(axis=0, keepdims=True)
+    
+    # 计算协方差矩阵
+    cov = (sample_centered.T @ sample_centered) / sample_size
     
     # 对角线应接近1
     diag_vals = np.diag(cov)

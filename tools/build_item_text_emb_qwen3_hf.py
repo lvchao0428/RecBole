@@ -307,19 +307,24 @@ def _center_whiten_and_normalize(
     whiten_matrix = None
     if enable_whiten:
         # Step 2: Compute whitening matrix (on training set only)
-        train_centered = train_emb - mean
+        # Use float64 for numerical stability
+        train_centered = (train_emb - mean).astype(np.float64)
         cov = (train_centered.T @ train_centered) / len(train_centered)
         
         # SVD decomposition: cov = U @ diag(S) @ U.T
         U, S, _ = np.linalg.svd(cov)
         
+        # Debug: log eigenvalue statistics
+        print(f"[Whiten] Eigenvalue stats: min={S.min():.6f}, max={S.max():.6f}, mean={S.mean():.6f}")
+        print(f"[Whiten] Condition number: {S.max() / (S.min() + 1e-10):.2f}")
+        
         # Whitening matrix: U @ diag(1/sqrt(S))
         whiten_matrix = U @ np.diag(1.0 / np.sqrt(S + 1e-5))
         
-        # Step 3: Apply whitening to all embeddings
+        # Step 3: Apply whitening to all embeddings (use float64 for computation)
         emb_whitened = emb_centered @ whiten_matrix
         emb_whitened[0, :] = 0.0
-        emb_processed = emb_whitened
+        emb_processed = emb_whitened.astype(np.float32)  # Cast back to float32
         
         # NOTE: Do NOT L2 normalize after whitening!
         # Whitening already decorrelates features and sets Cov(X) = I
@@ -606,6 +611,20 @@ def main():
                     label=f"view{view_idx}",
                     normalize=False,  # Preserve variance for whitening
                 )
+            
+            # Apply center + whiten to each view independently
+            if enable_whiten:
+                view_stats_path = os.path.join(
+                    args.split_output_dir, 
+                    f"view_{view_idx}_whiten_stats.npz"
+                )
+                view_mat = _center_whiten_and_normalize(
+                    view_mat,
+                    train_ids_cache,
+                    output_stats_path=view_stats_path,
+                    enable_whiten=True,
+                )
+            
             save_mat = view_mat
             if args.dtype == "float16":
                 save_mat = save_mat.astype(np.float16)
