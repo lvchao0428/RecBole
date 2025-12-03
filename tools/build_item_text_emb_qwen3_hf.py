@@ -29,7 +29,7 @@ import argparse
 import os
 import sys
 import json
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -161,6 +161,11 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="YAML config files for dataset loading.",
     )
+    p.add_argument(
+        "--no_whiten",
+        action="store_true",
+        help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
+    )
     return p.parse_args()
 
 
@@ -255,6 +260,91 @@ def _load_train_item_ids(args, max_row: int):
     except Exception as e:
         print(f"Warning: Failed to load dataset for SVD split ({e}). Using all items.")
         return None
+
+
+def _center_whiten_and_normalize(
+    emb: np.ndarray,
+    train_ids: np.ndarray,
+    output_stats_path: Optional[str] = None,
+    enable_whiten: bool = True,
+) -> np.ndarray:
+    """Center + Whiten + L2 normalize, using training set statistics only.
+    
+    Args:
+        emb: Embedding matrix [n_items, d], row 0 is PAD (zeros)
+        train_ids: Array of training item internal IDs (excluding PAD=0)
+        output_stats_path: Optional path to save mean and whiten_matrix
+        enable_whiten: Whether to apply whitening (if False, only center+L2)
+    
+    Returns:
+        Processed embedding matrix with same shape as input
+    """
+    if emb is None or emb.size == 0:
+        return emb
+    
+    # Handle 3D tensors (multi-view stacked)
+    if emb.ndim == 3:
+        print("[WARN] Skipping center/whiten for 3D tensor (mode=stack). Apply per-view instead.")
+        return emb
+    
+    # Extract training embeddings (exclude PAD=0)
+    if train_ids is None or len(train_ids) == 0:
+        train_mask = np.arange(1, len(emb))
+    else:
+        train_mask = train_ids[train_ids > 0]
+    
+    train_emb = emb[train_mask]
+    
+    if len(train_emb) == 0:
+        print("[WARN] No training embeddings found; skipping center/whiten.")
+        return emb
+    
+    # Step 1: Center (compute mean on training set only)
+    mean = train_emb.mean(axis=0, keepdims=True).astype(np.float64)
+    emb_centered = (emb - mean).astype(np.float64)
+    emb_centered[0, :] = 0.0  # Keep PAD as zeros
+    
+    whiten_matrix = None
+    if enable_whiten:
+        # Step 2: Compute whitening matrix (on training set only)
+        train_centered = train_emb - mean
+        cov = (train_centered.T @ train_centered) / len(train_centered)
+        
+        # SVD decomposition: cov = U @ diag(S) @ U.T
+        U, S, _ = np.linalg.svd(cov)
+        
+        # Whitening matrix: U @ diag(1/sqrt(S))
+        whiten_matrix = U @ np.diag(1.0 / np.sqrt(S + 1e-5))
+        
+        # Step 3: Apply whitening to all embeddings
+        emb_whitened = emb_centered @ whiten_matrix
+        emb_whitened[0, :] = 0.0
+        emb_processed = emb_whitened
+    else:
+        emb_processed = emb_centered
+    
+    # Step 4: L2 normalize (exclude PAD)
+    norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
+    emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
+    
+    # Step 5: Save statistics for inference reuse
+    if output_stats_path:
+        os.makedirs(os.path.dirname(os.path.abspath(output_stats_path)), exist_ok=True)
+        if enable_whiten and whiten_matrix is not None:
+            np.savez(
+                output_stats_path,
+                mean=mean.astype(np.float32),
+                whiten_matrix=whiten_matrix.astype(np.float32),
+            )
+            print(f"[Whiten] Saved center+whiten stats to: {output_stats_path}")
+        else:
+            np.savez(
+                output_stats_path,
+                mean=mean.astype(np.float32),
+            )
+            print(f"[Center] Saved center stats to: {output_stats_path}")
+    
+    return emb_processed.astype(np.float32)
 
 
 def _apply_truncated_svd(mat: np.ndarray, target_dim: int, train_ids, random_state: int, label: str):
@@ -517,9 +607,23 @@ def main():
         else:
             raise ValueError("--view_project_dim currently only supports output_mode=concat.")
     if mat is not None and mat.shape[0] > 0:
-        mat[0, :] = 0.0
+        if mat.ndim == 2:
+            mat[0, :] = 0.0
+        elif mat.ndim == 3:
+            mat[0, :, :] = 0.0
 
-    # --- 5. Optional Dimensionality Reduction (SVD) ---
+    # --- 5. Apply Center + Whiten normalization (before SVD projection) ---
+    enable_whiten = not args.no_whiten
+    if enable_whiten and mat is not None and mat.ndim == 2:
+        stats_path = args.output.replace('.npy', '_whiten_stats.npz')
+        mat = _center_whiten_and_normalize(
+            mat,
+            train_ids_cache,
+            output_stats_path=stats_path,
+            enable_whiten=True,
+        )
+
+    # --- 6. Optional Dimensionality Reduction (SVD) ---
     # NOTE: SVD only implemented for 2D matrices currently.
     if args.project_dim is not None:
         if mat.ndim != 2:
@@ -533,7 +637,7 @@ def main():
                 label="final",
             )
 
-    # --- 6. Save ---
+    # --- 7. Save ---
     if args.dtype == "float16":
         mat = mat.astype(np.float16)
     elif args.dtype == "bfloat16":

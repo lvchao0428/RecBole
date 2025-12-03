@@ -180,6 +180,83 @@ def _fit_tfidf_svd(
     return reduced.astype(np.float32)
 
 
+def _center_whiten_and_normalize(
+    emb: np.ndarray,
+    train_ids: np.ndarray,
+    output_stats_path: Optional[str] = None,
+    enable_whiten: bool = True,
+) -> np.ndarray:
+    """Center + Whiten + L2 normalize, using training set statistics only.
+    
+    Args:
+        emb: Embedding matrix [n_items, d], row 0 is PAD (zeros)
+        train_ids: Array of training item internal IDs (excluding PAD=0)
+        output_stats_path: Optional path to save mean and whiten_matrix
+        enable_whiten: Whether to apply whitening (if False, only center+L2)
+    
+    Returns:
+        Processed embedding matrix with same shape as input
+    """
+    if emb is None or emb.size == 0:
+        return emb
+    
+    # Extract training embeddings (exclude PAD=0)
+    train_mask = np.isin(np.arange(len(emb)), train_ids)
+    train_emb = emb[train_mask]
+    
+    if len(train_emb) == 0:
+        print("[WARN] No training embeddings found; skipping center/whiten.")
+        return emb
+    
+    # Step 1: Center (compute mean on training set only)
+    mean = train_emb.mean(axis=0, keepdims=True).astype(np.float64)
+    emb_centered = (emb - mean).astype(np.float64)
+    emb_centered[0, :] = 0.0  # Keep PAD as zeros
+    
+    whiten_matrix = None
+    if enable_whiten:
+        # Step 2: Compute whitening matrix (on training set only)
+        train_centered = train_emb - mean
+        cov = (train_centered.T @ train_centered) / len(train_centered)
+        
+        # SVD decomposition: cov = U @ diag(S) @ U.T
+        U, S, _ = np.linalg.svd(cov)
+        
+        # Whitening matrix: U @ diag(1/sqrt(S))
+        # Add small epsilon for numerical stability
+        whiten_matrix = U @ np.diag(1.0 / np.sqrt(S + 1e-5))
+        
+        # Step 3: Apply whitening to all embeddings
+        emb_whitened = emb_centered @ whiten_matrix
+        emb_whitened[0, :] = 0.0
+        emb_processed = emb_whitened
+    else:
+        emb_processed = emb_centered
+    
+    # Step 4: L2 normalize (exclude PAD)
+    norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
+    emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
+    
+    # Step 5: Save statistics for inference reuse
+    if output_stats_path:
+        os.makedirs(os.path.dirname(os.path.abspath(output_stats_path)), exist_ok=True)
+        if enable_whiten and whiten_matrix is not None:
+            np.savez(
+                output_stats_path,
+                mean=mean.astype(np.float32),
+                whiten_matrix=whiten_matrix.astype(np.float32),
+            )
+            print(f"[Whiten] Saved center+whiten stats to: {output_stats_path}")
+        else:
+            np.savez(
+                output_stats_path,
+                mean=mean.astype(np.float32),
+            )
+            print(f"[Center] Saved center stats to: {output_stats_path}")
+    
+    return emb_processed.astype(np.float32)
+
+
 def _fit_on_train_transform_all(
     train_texts: List[str],
     all_texts: List[str],
@@ -242,6 +319,7 @@ def build_item_text_emb(
     dtype: str = "float16",
     svd_random_state: int = 42,
     pre_svd_l2: bool = True,
+    enable_whiten: bool = True,
 ) -> str:
     """Main pipeline to build base item text embeddings and save to output_path.
 
@@ -301,6 +379,16 @@ def build_item_text_emb(
             max_features=max_features,
             random_state=svd_random_state,
             pre_svd_l2=pre_svd_l2,
+        )
+
+    # Apply center + whiten normalization (using training set statistics)
+    if enable_whiten:
+        stats_path = output_path.replace('.npy', '_whiten_stats.npz')
+        emb = _center_whiten_and_normalize(
+            emb,
+            train_iids,
+            output_stats_path=stats_path,
+            enable_whiten=True,
         )
 
     # Cast dtype if requested
@@ -374,6 +462,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable row-wise L2 normalization before SVD (enabled by default).",
     )
+    p.add_argument(
+        "--no_whiten",
+        action="store_true",
+        help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
+    )
     return p.parse_args()
 
 
@@ -393,6 +486,7 @@ def main():
         dtype=args.dtype,
         svd_random_state=args.svd_random_state,
         pre_svd_l2=(not args.no_pre_svd_l2),
+        enable_whiten=(not args.no_whiten),
     )
 
 

@@ -898,21 +898,23 @@ def main():
                         if ndcg10 is not None:
                             if best_tuple is None or ndcg10 > best_tuple[0]:
                                 best_tuple = (ndcg10, aw, tau, res, ckpt_path)
+                            # Check gate but DON'T break - continue searching all combinations
                             if ndcg_target is not None and ndcg10 >= ndcg_target:
+                                if not phase_a_passed:  # Log only on first pass
+                                    logger_a.info(set_color("[Phase-A:grid] Gate threshold reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
+                                    logger_a.info(set_color("[Phase-A:grid] Continuing search for best combo...", "yellow"))
                                 phase_a_passed = True
-                                phase_a_ckpt = ckpt_path
-                                res_a = res
-                                phase_a_pass_record = {
-                                    "alignment_weight": aw,
-                                    "temperature": tau,
-                                    "ndcg10": ndcg10,
-                                }
-                                logger_a.info(set_color("[Phase-A:grid] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
-                                break
+                                # Update pass record if this is better
+                                if phase_a_pass_record is None or ndcg10 > phase_a_pass_record.get("ndcg10", 0):
+                                    phase_a_pass_record = {
+                                        "alignment_weight": aw,
+                                        "temperature": tau,
+                                        "ndcg10": ndcg10,
+                                    }
+                                # DON'T break - continue searching
                     finally:
                         _release_phase_resources("Phase-A:grid-loop", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
-                if phase_a_passed:
-                    break
+                # DON'T break outer loop - always search all combinations
             if not phase_a_passed and best_tuple is not None:
                 # choose the best combination anyway
                 phase_a_ckpt = best_tuple[4]

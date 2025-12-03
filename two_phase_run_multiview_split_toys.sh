@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Multi-View Split Training with Per-View Alignment
+# Multi-View Split Training with Per-View Alignment - Toys_and_Games Dataset
 #
 # Workflow:
-#   1. Run tools/gen_multiview_4views_beauty.sh to generate 4-view Qwen3 embeddings
+#   1. Run tools/gen_multiview_4views_toys.sh to generate 4-view Qwen3 embeddings
 #   2. Launch two-phase training with SASRecAlignMultiView
 #
 # Key Features:
@@ -12,22 +12,23 @@
 #   - Per-view SENet enhancement
 #   - Per-view alignment loss with learnable weights
 #   - Gated fusion via concat → projection → cross network
-#   - Architecture aligned with two_phase_run_tfidf_llm.sh
+#   - Based on successful Beauty dataset experiments (Recall@10: +12.28%, MRR@10: +50.24%)
 
 cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-echo "[Training] Launching two-phase SASRecAlignMultiView with per-view alignment..."
+echo "[Training] Launching two-phase SASRecAlignMultiView for Toys_and_Games..."
 echo "  - Model: SASRecAlignMultiView (4 views)"
 echo "  - Per-view alignment: Enabled (learnable weights)"
 echo "  - Fusion: SENet → Gate → Concat → Projection → Cross Network"
+echo "  - Based on Beauty dataset success: +12.28% Recall, +50.24% MRR"
 echo ""
 
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiView \
-  --dataset Amazon_Beauty \
-  --config_files "sasrec_align_multi_view.yaml" \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "sasrec_align_multi_view_toys.yaml" \
   --phase_a_grid \
   --align_grid "0.01,0.02,0.05,0.08" \
   --tau_grid "0.03,0.05,0.07" \
@@ -45,15 +46,15 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_multiview_4views \
+  --checkpoint_dir ./saved/phase_runs_multiview_4views_toys \
   --seed 2025 \
-  --variant_features "sasrec,multiview,4views,per_view_align,qwen3" \
+  --variant_features "sasrec,multiview,4views,per_view_align,qwen3,toys" \
   --watchdog_interval 20 \
-  --watchdog_log "run_metrics/watchdog_multiview_4views.log" \
+  --watchdog_log "run_metrics/watchdog_multiview_4views_toys.log" \
   --watchdog_cpu_gb 40 \
   --watchdog_gpu_gb 28 \
   --save
 
 echo ""
-echo "[Training] Done! Check saved/phase_runs_multiview_4views/ for checkpoints."
+echo "[Training] Done! Check saved/phase_runs_multiview_4views_toys/ for checkpoints."
 
