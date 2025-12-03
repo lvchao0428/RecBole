@@ -284,9 +284,12 @@ class SASRecAlignMultiView(SASRecAlign):
         Returns:
             Fused embeddings [B, hidden_size=256]
         """
-        # Normalize text if configured
-        if self.normalize_text:
-            text_raw = F.normalize(text_raw, dim=1)
+        # NOTE: Do NOT normalize text_raw here!
+        # text_raw has already been L2-normalized at __init__ time (if normalize_text=True)
+        # The original view embeddings were normalized, and linear projection preserves 
+        # the normalized property (though may change the norm).
+        # To keep consistent with parent class (SASRecAlign) which only normalizes once at __init__,
+        # we skip normalization here.
         
         # Apply text projection if needed (already done in multiview_concat_proj)
         # Skip parent's _project_text to avoid double projection
