@@ -145,14 +145,19 @@ def _fit_tfidf_svd(
     min_df: int = 2,
     max_features: Optional[int] = None,
     random_state: int = 42,
-    pre_svd_l2: bool = True,
+    pre_svd_l2: bool = False,  # Changed: disable by default for better whitening
 ) -> np.ndarray:
     """Compute TF-IDF then reduce with TruncatedSVD.
 
     Returns dense array of shape [len(texts), n_components].
     
+    IMPORTANT: 
+    - pre_svd_l2 is now False by default to preserve natural covariance structure
+    - This allows subsequent whitening to work correctly (Cov → I)
+    - L2 normalization (if needed) should be done AFTER whitening, not before SVD
+    
     NOTE: This function does NOT apply L2 normalization after SVD.
-    The caller should apply center+whiten+L2 normalization afterwards.
+    The caller should apply center+whiten normalization afterwards.
     """
     vectorizer = TfidfVectorizer(
         analyzer=analyzer,
@@ -283,14 +288,19 @@ def _fit_on_train_transform_all(
     min_df: int = 2,
     max_features: Optional[int] = None,
     random_state: int = 42,
-    pre_svd_l2: bool = True,
+    pre_svd_l2: bool = False,  # Changed: disable by default for better whitening
 ) -> np.ndarray:
     """Fit TF-IDF and SVD on train_texts only, then transform all_texts.
 
     Returns dense array of shape [len(all_texts), n_components].
     
+    IMPORTANT: 
+    - pre_svd_l2 is now False by default to preserve natural covariance structure
+    - This allows subsequent whitening to work correctly (Cov → I)
+    - Fitting on train set only prevents data leakage
+    
     NOTE: This function does NOT apply L2 normalization after SVD.
-    The caller should apply center+whiten+L2 normalization afterwards.
+    The caller should apply center+whiten normalization afterwards.
     """
     vectorizer = TfidfVectorizer(
         analyzer=analyzer,
@@ -347,7 +357,7 @@ def build_item_text_emb(
     max_features: Optional[int] = None,
     dtype: str = "float16",
     svd_random_state: int = 42,
-    pre_svd_l2: bool = True,
+    pre_svd_l2: bool = False,  # Changed: disable by default for better whitening
     enable_whiten: bool = True,
 ) -> str:
     """Main pipeline to build base item text embeddings and save to output_path.
