@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+#set -euo pipefail
 
 # 生成Amazon_Beauty的所有文本特征（所有功能全开版本）
 # - TF-IDF基线 (center + whiten)

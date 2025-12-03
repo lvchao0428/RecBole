@@ -1,6 +1,7 @@
 # Saved models
 /saved*
 *.pth
+run_metrics/
 dataset/Amazon_All_Beauty/
 dataset/Amazon_All_Beauty.zip
 dataset/Amazon_All_Beauty/
