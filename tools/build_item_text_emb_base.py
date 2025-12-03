@@ -147,20 +147,23 @@ def _fit_tfidf_svd(
     random_state: int = 42,
     pre_svd_l2: bool = True,
 ) -> np.ndarray:
-    """Compute TF-IDF then reduce with TruncatedSVD, then L2 normalize rows.
+    """Compute TF-IDF then reduce with TruncatedSVD.
 
     Returns dense array of shape [len(texts), n_components].
+    
+    NOTE: This function does NOT apply L2 normalization after SVD.
+    The caller should apply center+whiten+L2 normalization afterwards.
     """
     vectorizer = TfidfVectorizer(
         analyzer=analyzer,
         ngram_range=ngram_range,
         min_df=min_df,
         max_features=max_features,
-        norm=None,  # we'll normalize after SVD
+        norm=None,  # normalization will be done after whitening
         dtype=np.float32,
     )
     tfidf = vectorizer.fit_transform(texts)
-    # Optional: row-wise L2 normalization before SVD (to align with Qwen3 flow)
+    # Optional: row-wise L2 normalization before SVD (for numerical stability)
     if pre_svd_l2:
         tfidf = l2_normalize(tfidf, norm="l2", axis=1, copy=False)
 
@@ -174,9 +177,9 @@ def _fit_tfidf_svd(
         pad = np.zeros((reduced.shape[0], n_components - svd_k), dtype=reduced.dtype)
         reduced = np.concatenate([reduced, pad], axis=1)
 
-    # L2 normalize; keep PAD row (index 0) as zeros afterwards
-    reduced = l2_normalize(reduced, norm="l2", axis=1, copy=False)
-    reduced[0, :] = 0.0
+    # Do NOT L2 normalize here - let the whitening step handle normalization
+    # This preserves the natural variance structure needed for whitening
+    reduced[0, :] = 0.0  # Ensure PAD row is zeros
     return reduced.astype(np.float32)
 
 
@@ -271,6 +274,9 @@ def _fit_on_train_transform_all(
     """Fit TF-IDF and SVD on train_texts only, then transform all_texts.
 
     Returns dense array of shape [len(all_texts), n_components].
+    
+    NOTE: This function does NOT apply L2 normalization after SVD.
+    The caller should apply center+whiten+L2 normalization afterwards.
     """
     vectorizer = TfidfVectorizer(
         analyzer=analyzer,
@@ -283,7 +289,7 @@ def _fit_on_train_transform_all(
     # Fit only on training texts
     tfidf_train = vectorizer.fit_transform(train_texts)
     tfidf_all = vectorizer.transform(all_texts)
-    # Optional: row-wise L2 before SVD fit/transform (align with Qwen3)
+    # Optional: row-wise L2 before SVD fit/transform (for numerical stability)
     if pre_svd_l2:
         tfidf_train = l2_normalize(tfidf_train, norm="l2", axis=1, copy=False)
         tfidf_all = l2_normalize(tfidf_all, norm="l2", axis=1, copy=False)
@@ -299,9 +305,9 @@ def _fit_on_train_transform_all(
         pad = np.zeros((reduced.shape[0], n_components - svd_k), dtype=reduced.dtype)
         reduced = np.concatenate([reduced, pad], axis=1)
 
-    # L2 normalize; keep PAD row (index 0) as zeros afterwards
-    reduced = l2_normalize(reduced, norm="l2", axis=1, copy=False)
-    reduced[0, :] = 0.0
+    # Do NOT L2 normalize here - let the whitening step handle normalization
+    # This preserves the natural variance structure needed for whitening
+    reduced[0, :] = 0.0  # Ensure PAD row is zeros
     return reduced.astype(np.float32)
 
 

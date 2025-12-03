@@ -347,7 +347,25 @@ def _center_whiten_and_normalize(
     return emb_processed.astype(np.float32)
 
 
-def _apply_truncated_svd(mat: np.ndarray, target_dim: int, train_ids, random_state: int, label: str):
+def _apply_truncated_svd(
+    mat: np.ndarray, 
+    target_dim: int, 
+    train_ids, 
+    random_state: int, 
+    label: str,
+    normalize: bool = True
+):
+    """Apply TruncatedSVD dimensionality reduction.
+    
+    Args:
+        mat: Input matrix [n_items, d]
+        target_dim: Target dimensionality
+        train_ids: Training item IDs for fitting
+        random_state: Random seed
+        label: Label for logging
+        normalize: Whether to L2 normalize after SVD (default: True)
+                  Set to False if whitening will be applied afterwards.
+    """
     if mat.ndim != 2:
         raise ValueError("SVD can only be applied to 2D matrices.")
     orig_dim = mat.shape[1]
@@ -355,7 +373,7 @@ def _apply_truncated_svd(mat: np.ndarray, target_dim: int, train_ids, random_sta
     if target_dim <= 0:
         raise ValueError("--project_dim/--view_project_dim must be > 0")
     if target_dim >= orig_dim:
-        if mat.shape[0] > 1:
+        if normalize and mat.shape[0] > 1:
             mat[1:, :] = l2_normalize(mat[1:, :], norm="l2", axis=1)
         return mat
 
@@ -373,7 +391,11 @@ def _apply_truncated_svd(mat: np.ndarray, target_dim: int, train_ids, random_sta
     if svd_k < target_dim:
         pad = np.zeros((reduced.shape[0], target_dim - svd_k), dtype=reduced.dtype)
         reduced = np.concatenate([reduced, pad], axis=1)
-    reduced = l2_normalize(reduced, norm="l2", axis=1)
+    
+    # Optionally normalize after SVD
+    if normalize:
+        reduced = l2_normalize(reduced, norm="l2", axis=1)
+    
     projected = np.zeros((mat.shape[0], target_dim), dtype=reduced.dtype)
     projected[1:, :] = reduced
     return projected
@@ -570,12 +592,14 @@ def main():
             if view_mat.shape[0] > 0:
                 view_mat[0, :] = 0.0
             if args.view_project_dim is not None:
+                # Don't normalize here - let the whitening step handle it
                 view_mat = _apply_truncated_svd(
                     view_mat,
                     target_dim=args.view_project_dim,
                     train_ids=train_ids_cache,
                     random_state=args.svd_random_state,
                     label=f"view{view_idx}",
+                    normalize=False,  # Preserve variance for whitening
                 )
             save_mat = view_mat
             if args.dtype == "float16":
@@ -629,12 +653,14 @@ def main():
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
         else:
+            # Final SVD after whitening - normalize is OK here
             mat = _apply_truncated_svd(
                 mat,
                 target_dim=args.project_dim,
                 train_ids=train_ids_cache,
                 random_state=args.svd_random_state,
                 label="final",
+                normalize=True,  # Re-normalize after whitening+projection
             )
 
     # --- 7. Save ---

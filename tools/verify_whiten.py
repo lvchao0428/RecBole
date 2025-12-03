@@ -4,24 +4,56 @@
 验证 center + whiten 预处理的效果
 
 用法：
+  # 验证单个文件
   python tools/verify_whiten.py dataset/Amazon_Beauty/item_text_emb.base.npy
+  
+  # 验证多个文件
+  python tools/verify_whiten.py \
+    dataset/Amazon_Beauty/item_text_emb.base.npy \
+    dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy \
+    dataset/Amazon_Beauty/item_text_emb.qwen3.multiview.npy
+  
+  # 验证分视图文件
+  python tools/verify_whiten.py dataset/Amazon_Beauty/qwen3_4views/view_0.npy
 """
 
 import argparse
 import numpy as np
 import os
+import sys
+
+# 添加项目根目录到路径
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 
 def verify_whitening(emb_path: str):
     """验证embedding是否正确白化"""
     
+    # 支持相对路径和绝对路径
+    if not os.path.isabs(emb_path):
+        # 如果是相对路径，尝试从项目根目录解析
+        abs_path = os.path.join(ROOT_DIR, emb_path)
+        if os.path.exists(abs_path):
+            emb_path = abs_path
+    
     if not os.path.exists(emb_path):
         print(f"❌ 文件不存在: {emb_path}")
+        print(f"   提示: 请检查路径是否正确（支持相对路径和绝对路径）")
         return False
     
     # 加载embedding
-    emb = np.load(emb_path)
-    print(f"✅ 加载embedding: {emb.shape}, dtype={emb.dtype}")
+    try:
+        emb = np.load(emb_path)
+    except Exception as e:
+        print(f"❌ 加载失败: {e}")
+        return False
+    
+    print(f"✅ 加载embedding: {os.path.basename(emb_path)}")
+    print(f"   - 形状: {emb.shape}")
+    print(f"   - 数据类型: {emb.dtype}")
+    print(f"   - 文件大小: {os.path.getsize(emb_path) / 1024 / 1024:.2f} MB")
     
     # 检查统计量文件
     stats_path = emb_path.replace('.npy', '_whiten_stats.npz')
@@ -95,27 +127,71 @@ def verify_whitening(emb_path: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="验证 center + whiten 预处理效果")
+    parser = argparse.ArgumentParser(
+        description="验证 center + whiten 预处理效果",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  # 验证TF-IDF特征
+  python tools/verify_whiten.py dataset/Amazon_Beauty/item_text_emb.base.npy
+  
+  # 验证Qwen3单视图
+  python tools/verify_whiten.py dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
+  
+  # 验证Qwen3多视图
+  python tools/verify_whiten.py dataset/Amazon_Beauty/item_text_emb.qwen3.multiview.npy
+  
+  # 验证单个视图
+  python tools/verify_whiten.py dataset/Amazon_Beauty/qwen3_4views/view_0.npy
+  
+  # 批量验证多个文件
+  python tools/verify_whiten.py \\
+    dataset/Amazon_Beauty/item_text_emb.base.npy \\
+    dataset/Amazon_Beauty/item_text_emb.qwen3.multiview.npy
+"""
+    )
     parser.add_argument(
-        "emb_path",
-        help="Embedding文件路径 (*.npy)"
+        "emb_paths",
+        nargs='+',
+        metavar='emb_path',
+        help="Embedding文件路径 (*.npy)，支持多个文件"
     )
     args = parser.parse_args()
     
-    print("=" * 60)
-    print("验证 Center + Whiten 预处理")
-    print("=" * 60)
-    print()
+    overall_success = True
     
-    success = verify_whitening(args.emb_path)
+    for i, emb_path in enumerate(args.emb_paths):
+        if len(args.emb_paths) > 1:
+            print()
+            print("=" * 70)
+            print(f"[{i+1}/{len(args.emb_paths)}] 验证: {emb_path}")
+            print("=" * 70)
+        else:
+            print("=" * 70)
+            print("验证 Center + Whiten 预处理")
+            print("=" * 70)
+        print()
+        
+        success = verify_whitening(emb_path)
+        overall_success = overall_success and success
+        
+        print()
+        if success:
+            print("✅ 当前文件验证通过")
+        else:
+            print("❌ 当前文件验证失败")
     
-    print()
-    print("=" * 60)
-    if success:
-        print("✅ 验证通过")
-    else:
-        print("❌ 验证失败")
-    print("=" * 60)
+    # 总结
+    if len(args.emb_paths) > 1:
+        print()
+        print("=" * 70)
+        print(f"📊 验证总结: {len(args.emb_paths)} 个文件")
+        print("=" * 70)
+        if overall_success:
+            print("✅ 全部验证通过")
+        else:
+            print("⚠️  部分文件验证失败，请检查上方详情")
+        print("=" * 70)
 
 
 if __name__ == "__main__":
