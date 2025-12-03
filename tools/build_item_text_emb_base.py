@@ -169,8 +169,16 @@ def _fit_tfidf_svd(
 
     # Handle edge cases where vocabulary is tiny
     svd_k = max(1, min(n_components, tfidf.shape[1] - 1 if tfidf.shape[1] > 1 else 1))
-    svd = TruncatedSVD(n_components=svd_k, random_state=random_state)
+    # Use randomized algorithm with parallel processing for speed
+    svd = TruncatedSVD(
+        n_components=svd_k, 
+        random_state=random_state,
+        algorithm='randomized',  # Faster for large matrices
+        n_iter=5  # Default is 5, good balance between speed and accuracy
+    )
+    print(f"[SVD] Fitting TruncatedSVD: {tfidf.shape} -> {svd_k} components...")
     reduced = svd.fit_transform(tfidf)
+    print(f"[SVD] Explained variance ratio: {svd.explained_variance_ratio_.sum():.4f}")
 
     # If reduced dim < requested, pad zeros to target dim
     if svd_k < n_components:
@@ -296,8 +304,17 @@ def _fit_on_train_transform_all(
 
     # Handle edge cases where vocabulary is tiny
     svd_k = max(1, min(n_components, tfidf_train.shape[1] - 1 if tfidf_train.shape[1] > 1 else 1))
-    svd = TruncatedSVD(n_components=svd_k, random_state=random_state)
+    # Use randomized algorithm for speed
+    svd = TruncatedSVD(
+        n_components=svd_k, 
+        random_state=random_state,
+        algorithm='randomized',
+        n_iter=5
+    )
+    print(f"[SVD] Fitting TruncatedSVD on train: {tfidf_train.shape} -> {svd_k} components...")
     svd.fit(tfidf_train)
+    print(f"[SVD] Explained variance ratio: {svd.explained_variance_ratio_.sum():.4f}")
+    print(f"[SVD] Transforming all items: {tfidf_all.shape[0]} items...")
     reduced = svd.transform(tfidf_all)
 
     # If reduced dim < requested, pad zeros to target dim
@@ -331,26 +348,38 @@ def build_item_text_emb(
 
     Returns the absolute output path.
     """
+    import time
+    start_time = time.time()
+    
     if not dataset_name:
         raise KeyError("--dataset is required (e.g., --dataset Amazon_Beauty)")
+    
+    print(f"[Step 1/6] Loading dataset: {dataset_name}...")
     cfg = Config(model="BPR", dataset=dataset_name, config_file_list=config_files)
     dataset = create_dataset(cfg)
+    print(f"  → Dataset loaded: {dataset.num(dataset.iid_field)} items")
 
+    print(f"[Step 2/6] Reading item metadata...")
     item_file = _detect_item_file(dataset)
     if item_file is None:
         print("[WARN] .item file not found; falling back to empty titles for all items.")
         item_df = pd.DataFrame({cfg["ITEM_ID_FIELD"]: []})
     else:
         item_df = pd.read_csv(item_file, sep="\t")
+        print(f"  → Loaded {len(item_df)} item records")
 
     item_id_col = _find_col_by_base(item_df, [cfg["ITEM_ID_FIELD"], "item_id", "item", "iid"]) or cfg["ITEM_ID_FIELD"]
 
     chosen_title = _choose_title_field(item_df, title_field)
+    if chosen_title:
+        print(f"  → Using title field: '{chosen_title}'")
     token_to_title = _build_token_to_title_map(item_df, item_id_col, chosen_title)
     internal_tokens = _get_internal_item_tokens(dataset)
     texts_all = _build_texts_in_internal_order(internal_tokens, token_to_title)
+    print(f"  → Prepared {len(texts_all)} text entries")
 
     # Build split and collect train-only item ids to avoid leakage
+    print(f"[Step 3/6] Preparing data split...")
     train_data, valid_data, test_data = data_preparation(cfg, dataset)
     iid_field = cfg["ITEM_ID_FIELD"]
     try:
@@ -362,6 +391,10 @@ def build_item_text_emb(
     # Assemble train texts by internal id index (exclude PAD=0)
     train_texts = [texts_all[i] for i in range(1, len(texts_all)) if i in train_iids_set]
     # Guard: if train_texts ends up empty, fall back to all (rare/corrupt case)
+    print(f"[Step 4/6] Building TF-IDF + SVD features...")
+    print(f"  → Training set: {len(train_texts)} items")
+    print(f"  → Total items: {len(texts_all)} items")
+    
     if len(train_texts) == 0:
         print("[WARN] train_texts is empty; falling back to fitting on all_texts (may risk leakage).")
         emb = _fit_tfidf_svd(
@@ -388,6 +421,7 @@ def build_item_text_emb(
         )
 
     # Apply center + whiten normalization (using training set statistics)
+    print(f"[Step 5/6] Applying center + whiten normalization...")
     if enable_whiten:
         stats_path = output_path.replace('.npy', '_whiten_stats.npz')
         emb = _center_whiten_and_normalize(
@@ -396,8 +430,11 @@ def build_item_text_emb(
             output_stats_path=stats_path,
             enable_whiten=True,
         )
+    else:
+        print("  → Whitening disabled (--no_whiten)")
 
     # Cast dtype if requested
+    print(f"[Step 6/6] Saving embeddings...")
     if dtype == "float16":
         emb = emb.astype(np.float16)
     elif dtype == "float32":
@@ -407,7 +444,13 @@ def build_item_text_emb(
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     np.save(output_path, emb)
-    print(f"Saved item_text_emb to: {os.path.abspath(output_path)}  shape={emb.shape}  dtype={emb.dtype}")
+    
+    elapsed = time.time() - start_time
+    print(f"\n✅ Saved item_text_emb to: {os.path.abspath(output_path)}")
+    print(f"   - Shape: {emb.shape}")
+    print(f"   - Dtype: {emb.dtype}")
+    print(f"   - File size: {os.path.getsize(output_path) / 1024 / 1024:.2f} MB")
+    print(f"   - Total time: {elapsed:.1f}s ({elapsed/60:.1f} min)")
     return os.path.abspath(output_path)
 
 
