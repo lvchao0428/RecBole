@@ -90,8 +90,41 @@ class SASRecAlignMultiView(SASRecAlign):
                     )
                 )
 
-            # Multi-view concat projection: (num_views * hidden_size) → hidden_size
-            self.multiview_concat_proj = nn.Linear(self.num_text_views * self.hidden_size, self.hidden_size)
+            # Multi-view concat projection
+            # If base text exists, concat with base before projection: (base_dim + num_views * hidden_size) → hidden_size * 2
+            # Otherwise: (num_views * hidden_size) → hidden_size * 2 for alignment with dual-path model
+            multiview_input_dim = self.num_text_views * self.hidden_size  # 4×256 = 1024
+            if self.item_text_emb_base is not None:
+                base_dim = self.item_text_emb_base.shape[1]  # 256
+                multiview_input_dim += base_dim  # 1024 + 256 = 1280
+            
+            # Project to hidden_size * 2 (512) to align with dual-path model's fusion dimension
+            self.multiview_concat_proj = nn.Linear(multiview_input_dim, self.hidden_size * 2)
+            
+            # Reinitialize item fusion networks with correct dimensions
+            # Since we project multi-view to hidden_size * 2 (512), fusion input is:
+            # item_emb (256) + text_proj (512) = 768
+            if self.use_cross:
+                from recbole.model.sequential_recommender.sasrec_align import DCNV2Cross
+                from recbole.model.layers import MLPLayers
+                
+                fusion_input_dim = self.hidden_size + self.hidden_size * 2  # 256 + 512 = 768
+                
+                # Recreate item fusion networks with correct dimensions
+                self.item_fusion_cross = DCNV2Cross(fusion_input_dim, num_layers=self.text_cross_layer_num)
+                self.item_fusion_deep = MLPLayers(
+                    [fusion_input_dim, self.hidden_size], 
+                    dropout=0.0, 
+                    bn=self.text_mlp_bn
+                )
+                self.item_fusion_predictor = nn.Linear(
+                    fusion_input_dim + self.hidden_size,  # 768 + 256 = 1024
+                    self.hidden_size
+                )
+                
+                # Recreate dropout if needed
+                if self.cross_dropout_prob > 0.0:
+                    self.item_fusion_cross_dropout = nn.Dropout(self.cross_dropout_prob)
             
             # Ensure normalization layers exist
             if self.item_emb_norm is None and self.fused_item_norm_flag:
@@ -99,9 +132,20 @@ class SASRecAlignMultiView(SASRecAlign):
             if self.fused_item_norm is None and self.fused_item_norm_flag:
                 self.fused_item_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
             
+            # Log configuration
+            has_base = self.item_text_emb_base is not None
+            proj_input_dim = multiview_input_dim
+            proj_output_dim = self.hidden_size * 2  # 512
+            
             self.logger.info(
                 "SASRecAlignMultiView initialized: %d views, SENet ratio=%d, per-view alignment enabled",
                 self.num_text_views, self.text_view_senet_ratio
+            )
+            self.logger.info(
+                "Multi-view projection: [%d → %d] | Base features: %s | Fusion input dim: %d",
+                proj_input_dim, proj_output_dim, 
+                "enabled" if has_base else "disabled",
+                fusion_input_dim  # 768
             )
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
@@ -199,9 +243,20 @@ class SASRecAlignMultiView(SASRecAlign):
             weighted_views.append(weighted)
         
         # Concatenate all weighted views [B, num_views * hidden_size]
-        text_concat = torch.cat(weighted_views, dim=-1)
+        text_concat = torch.cat(weighted_views, dim=-1)  # [B, 1024]
         
-        # Step 4: Project to hidden_size [B, hidden_size]
+        # Step 3.5: Concat with base text features if available (align with dual-path model)
+        if self.item_text_emb_base is not None:
+            # Gather base features (TF-IDF)
+            base_feat = self.item_text_emb_base[all_ids]  # [B, 256]
+            if self.detach_text_emb:
+                base_feat = base_feat.detach()
+            # Concat: [B, 1024] + [B, 256] = [B, 1280]
+            text_concat = torch.cat([base_feat, text_concat], dim=-1)
+        
+        # Step 4: Project to hidden_size * 2 (512) to align with dual-path fusion dimension
+        # Input: [B, 1280] if base exists, else [B, 1024]
+        # Output: [B, 512]
         text_proj = self.multiview_concat_proj(text_concat)
         
         # Step 5: Use parent class's cross network fusion logic
@@ -216,16 +271,18 @@ class SASRecAlignMultiView(SASRecAlign):
     ) -> torch.Tensor:
         """
         Fuse item embeddings with text features using cross network.
-        This mimics the parent class's fusion logic but allows us to inject
-        the multi-view concatenated text features.
+        
+        This method handles multi-view text features (optionally with base features).
+        The text_raw has been projected from multi-view concat (+ optional base) 
+        to hidden_size * 2 (512) to align with dual-path model's fusion dimension.
         
         Args:
-            item_emb: Item embeddings [B, hidden_size]
-            text_raw: Projected multi-view text features [B, hidden_size]
+            item_emb: Item embeddings [B, hidden_size=256]
+            text_raw: Projected multi-view (+ base) text features [B, hidden_size*2=512]
             item_ids: Item IDs [B]
             
         Returns:
-            Fused embeddings [B, hidden_size]
+            Fused embeddings [B, hidden_size=256]
         """
         # Normalize text if configured
         if self.normalize_text:

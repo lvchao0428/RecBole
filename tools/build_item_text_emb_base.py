@@ -241,12 +241,18 @@ def _center_whiten_and_normalize(
         emb_whitened = emb_centered @ whiten_matrix
         emb_whitened[0, :] = 0.0
         emb_processed = emb_whitened
+        
+        # NOTE: Do NOT L2 normalize after whitening!
+        # Whitening already decorrelates features and sets Cov(X) = I
+        # L2 normalization would destroy this property
+        # If the model needs L2-normalized embeddings, do it at model load time
+        
     else:
         emb_processed = emb_centered
-    
-    # Step 4: L2 normalize (exclude PAD)
-    norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
-    emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
+        
+        # Step 4: L2 normalize (only if whitening is disabled)
+        norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
+        emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
     
     # Step 5: Save statistics for inference reuse
     if output_stats_path:

@@ -76,13 +76,15 @@ def verify_whitening(emb_path: str):
         print(f"❌ PAD embedding 不为零 (norm={pad_norm:.2e})")
     
     # 检查非PAD embedding是否L2归一化
-    norms = np.linalg.norm(emb[1:], axis=1)
+    # Note: Whitened embeddings are NOT L2-normalized by design
+    norms = np.linalg.norm(emb[1:100].astype(np.float64), axis=1)  # Sample 100 items, use float64
     mean_norm = norms.mean()
     std_norm = norms.std()
     if abs(mean_norm - 1.0) < 0.01 and std_norm < 0.01:
         print(f"✅ Embedding已L2归一化 (mean={mean_norm:.4f}, std={std_norm:.4f})")
     else:
-        print(f"⚠️  Embedding未充分L2归一化 (mean={mean_norm:.4f}, std={std_norm:.4f})")
+        print(f"ℹ️  Embedding未L2归一化 (mean={mean_norm:.4f}, std={std_norm:.4f})")
+        print(f"   提示: Whitened embeddings通常不做L2归一化（这是正常的）")
     
     # 检查是否中心化（均值接近0）
     train_sample = emb[1:min(1000, len(emb))]  # 取前1000个非PAD样本
@@ -115,14 +117,19 @@ def verify_whitening(emb_path: str):
     print(f"   - 非对角线平均值: {off_diag_mean:.4f} (期望≈0)")
     
     # 判断白化效果
-    if abs(diag_mean - 1.0) < 0.15 and off_diag_max < 0.3:
+    # 更严格的判断：对角线应该非常接近1.0，非对角线应该接近0
+    if abs(diag_mean - 1.0) < 0.1 and diag_std < 0.2 and off_diag_max < 0.3:
         print(f"✅ 白化效果良好")
         return True
-    elif abs(diag_mean - 1.0) < 0.3:
-        print(f"⚠️  白化效果一般（可能样本量不足或未启用whiten）")
+    elif abs(diag_mean - 1.0) < 0.2 and off_diag_max < 0.4:
+        print(f"⚠️  白化效果一般（可能样本量不足）")
         return True
     else:
         print(f"❌ 未检测到白化效果")
+        print(f"   可能原因：")
+        print(f"   1. 未启用whitening（使用了 --no_whiten）")
+        print(f"   2. 训练集样本量太小")
+        print(f"   3. 数据方差过小")
         return False
 
 

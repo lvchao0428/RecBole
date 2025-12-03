@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#set -euo pipefail
+set -euo pipefail
 
 # 仅生成TF-IDF基线特征（优化版：多核加速）
 
