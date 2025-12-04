@@ -591,6 +591,8 @@ def main():
     if (args.view_project_dim is not None or args.project_dim is not None) and args.dataset:
         train_ids_cache = _load_train_item_ids(args, n_items - 1)
 
+    enable_whiten = not args.no_whiten
+
     if split_chunks is not None:
         os.makedirs(args.split_output_dir, exist_ok=True)
         split_meta = {
@@ -664,18 +666,7 @@ def main():
         elif mat.ndim == 3:
             mat[0, :, :] = 0.0
 
-    # --- 5. Apply Center + Whiten normalization (before SVD projection) ---
-    enable_whiten = not args.no_whiten
-    if enable_whiten and mat is not None and mat.ndim == 2:
-        stats_path = args.output.replace('.npy', '_whiten_stats.npz')
-        mat = _center_whiten_and_normalize(
-            mat,
-            train_ids_cache,
-            output_stats_path=stats_path,
-            enable_whiten=True,
-        )
-
-    # --- 6. Optional Dimensionality Reduction (SVD) ---
+    # --- 5. Optional Dimensionality Reduction (SVD) ---
     # NOTE: SVD only implemented for 2D matrices currently.
     if args.project_dim is not None:
         if mat.ndim != 2:
@@ -690,6 +681,16 @@ def main():
                 label="final",
                 normalize=True,  # Re-normalize after whitening+projection
             )
+
+    # --- 6. Apply Center + Whiten normalization (after final projection) ---
+    if enable_whiten and mat is not None and mat.ndim == 2:
+        stats_path = args.output.replace('.npy', '_whiten_stats.npz')
+        mat = _center_whiten_and_normalize(
+            mat,
+            train_ids_cache,
+            output_stats_path=stats_path,
+            enable_whiten=True,
+        )
 
     # --- 7. Save ---
     if args.dtype == "float16":
