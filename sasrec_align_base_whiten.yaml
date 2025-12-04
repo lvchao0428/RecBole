@@ -1,0 +1,89 @@
+---
+# Configuration for SASRec with whitened TF-IDF embeddings
+# Whitening changes feature scale → adjust temperature and alignment weight
+
+model: SASRecAlign
+
+# Model parameters
+hidden_size: 256
+n_layers: 2
+n_heads: 2
+inner_size: 256
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+
+# Dataset
+dataset: Amazon_Beauty
+field_separator: "\t"
+seq_separator: " "
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+TIME_FIELD: timestamp
+MAX_ITEM_LIST_LENGTH: 50
+load_col:
+  inter: [user_id, item_id, rating, timestamp]
+  item: [item_id]
+
+# Training / Evaluation
+epochs: 200
+train_batch_size: 512
+eval_batch_size: 512
+learning_rate: 0.0001
+eval_step: 5
+stopping_step: 20
+clip_grad_norm: { max_norm: 5 }
+eval_args:
+  group_by: user
+  order: TO
+  split: {'LS': 'valid_and_test'}
+  mode:  {'valid': 'uni100','test':'full'}
+eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
+topk: [5, 10, 20]
+metrics: [Recall, MRR, NDCG, Hit, Precision]
+valid_metric: MRR@10
+loss_type: CE
+train_neg_sample_args: null
+
+# Whitened embedding path
+item_text_emb_path_base: dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
+
+# Text alignment settings (ADJUSTED FOR WHITENING)
+use_llm: false
+use_align: true
+use_cross: true
+text_cross_layer_num: 3
+
+# CRITICAL: Increased temperature for whitened features
+# Whitening → features not L2-normalized → larger similarities → need larger tau
+temperature: 0.15              # 原来0.07 → 增大到0.15
+alignment_weight: 0.05         # 减小对齐权重，避免过度拟合
+
+# Feature processing
+detach_text_emb: true
+normalize_text: false          # 白化后不再L2归一化
+fuse_text_feature: true
+
+# Regularization
+weight_decay: 1e-5
+label_smoothing: 0.1
+token_dropout_prob: 0.1
+cross_dropout_prob: 0.3       # 增加cross层dropout防止过拟合
+
+# Text fusion settings
+text_proj_norm: true
+fused_item_norm: true
+text_weight: 0.4
+text_tail_threshold: 5
+text_gate_init: 0.5
+
+# Scoring
+cosine_score: true
+cosine_scale: 10.0
+
+# Switches
+disable_text_feature: false
+text_gate_reg_l2: 0.0
+text_gate_reg_entropy: 0.0
+freeze_backbone: false
+align_exclude_topk: 0
+
