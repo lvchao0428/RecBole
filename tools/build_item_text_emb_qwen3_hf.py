@@ -324,16 +324,20 @@ def _center_whiten_and_normalize(
         # Step 3: Apply whitening to all embeddings (use float64 for computation)
         emb_whitened = emb_centered @ whiten_matrix
         emb_whitened[0, :] = 0.0
-        emb_processed = emb_whitened.astype(np.float32)  # Cast back to float32
         
-        # NOTE: Do NOT L2 normalize after whitening!
-        # Whitening already decorrelates features and sets Cov(X) = I
-        # L2 normalization would destroy this property
+        # NOTE: We MUST L2 normalize even after whitening for RecBole compatibility.
+        # While strictly speaking this distorts the identity covariance, 
+        # it is necessary to keep dot products in a reasonable range for InfoNCE/Temperature.
+        # Theoretical norm of whitened vector is sqrt(D), which is too large (e.g. sqrt(4096)=64).
+        norms = np.linalg.norm(emb_whitened[1:], axis=1, keepdims=True)
+        emb_whitened[1:] = emb_whitened[1:] / np.clip(norms, 1e-8, None)
+
+        emb_processed = emb_whitened.astype(np.float32)  # Cast back to float32
         
     else:
         emb_processed = emb_centered
         
-        # Step 4: L2 normalize (only if whitening is disabled)
+        # Step 4: L2 normalize
         norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
         emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
     
