@@ -80,6 +80,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --output dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy \
   --prompt_preset base \
   --output_mode mean \
+  --project_dim 256 \
   --dataset Amazon_Beauty \
   --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
   --batch_size 16 \
