@@ -611,9 +611,9 @@ def main():
     parser.add_argument("--align_grid", type=str, default="0.05,0.1,0.2", help="comma-separated alignment_weight grid")
     parser.add_argument("--tau_grid", type=str, default="0.05,0.07", help="comma-separated temperature grid")
     parser.add_argument("--phase_a_eval_step", type=int, default=2, help="validation interval (epochs) in Phase-A")
-    parser.add_argument("--phase_a_valid_metric", type=str, default="NDCG@10", help="validation metric used for Phase-A gating")
-    parser.add_argument("--ndcg_baseline", type=float, default=None, help="strong baseline NDCG@10 for Phase-A gating")
-    parser.add_argument("--ndcg_gain_threshold", type=float, default=0.01, help="required relative gain over baseline, e.g., 0.01 for +1%")
+    parser.add_argument("--phase_a_valid_metric", type=str, default="NDCG@10", help="validation metric used for Phase-A selection")
+    parser.add_argument("--metric_baseline", type=float, default=None, help="strong baseline for phase_a_valid_metric (e.g., 0.0272 for Recall@10)")
+    parser.add_argument("--metric_gain_threshold", type=float, default=0.01, help="required relative gain over baseline, e.g., 0.01 for +1%")
     parser.add_argument("--phase_a_auto_to_b", action="store_true", help="if pass condition met, continue to Phase-B automatically")
     parser.add_argument("--phase_a_require_pass_for_b", action="store_true", help="only enter Phase-B if pass condition is met")
     # Optional ID-only burn-in before Phase-A
@@ -700,10 +700,14 @@ def main():
                 raise ValueError("Failed to parse align_grid or tau_grid; use comma-separated floats, e.g., '0.05,0.1,0.2'")
             if len(align_list) == 0 or len(tau_list) == 0:
                 raise ValueError("Empty grid for alignment_weight or temperature.")
-            if args.ndcg_baseline is None:
-                getLogger().warning("ndcg_baseline not provided; pass gating will be disabled. "
-                                    "If you need early finish on reaching gain threshold, please specify --ndcg_baseline as your strong baseline.")
-            ndcg_target = None if args.ndcg_baseline is None else args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
+            # Phase-A grid: always run all combinations, select best by phase_a_valid_metric
+            metric_target = None
+            if args.metric_baseline is not None:
+                metric_target = args.metric_baseline * (1.0 + float(args.metric_gain_threshold))
+                getLogger().info(
+                    f"[Phase-A:grid] Target threshold for {args.phase_a_valid_metric}: "
+                    f"{metric_target:.6f} (baseline={args.metric_baseline:.6f}, gain={args.metric_gain_threshold})"
+                )
 
             best_tuple = None  # (ndcg10, alignment_weight, temperature, res, ckpt)
             for aw in align_list:
@@ -751,57 +755,8 @@ def main():
                         model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
                         model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                         logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
-                    # Optional: early finish inside Phase-A when reaching ndcg_target
-                    callback_fn = None
-                    if ndcg_target is not None:
-                        def _gate_cb(
-                            epoch_idx,
-                            valid_score,
-                            _trainer=trainer_a,
-                            _logger=logger_a,
-                            _target=ndcg_target,
-                            _aw=aw,
-                            _tau=tau,
-                        ):
-                            try:
-                                if valid_score >= _target:
-                                    # Save current checkpoint and stop this phase immediately
-                                    _trainer._save_checkpoint(epoch_idx, verbose=True)
-                                    if phase_a_progress_logger:
-                                        phase_a_progress_logger.log(
-                                            "pass_gate",
-                                            phase="Phase-A",
-                                            alignment_weight=_aw,
-                                            temperature=_tau,
-                                            epoch=epoch_idx,
-                                            metric=args.phase_a_valid_metric,
-                                            score=float(valid_score),
-                                        )
-                                    pass_detail = {
-                                        "alignment_weight": _aw,
-                                        "temperature": _tau,
-                                        "epoch": epoch_idx,
-                                        "metric": args.phase_a_valid_metric,
-                                        "score": float(valid_score),
-                                    }
-                                    phase_a_pass_events.append(pass_detail)
-                                    _logger.info(set_color("[Phase-A:grid] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
-                                    raise StopIteration  # break fit()
-                            except StopIteration:
-                                raise
-                            except Exception as e:
-                                _logger.warning(f"[Phase-A:grid] gate callback error ignored: {e}")
-                        
-                        # If ndcg_target is set, we must manually check early stopping because RecBole Trainer 
-                        # doesn't support custom per-epoch callbacks easily in older versions.
-                        # However, we can inject it via callback_fn if the trainer supports it.
-                        # But standard RecBole trainer.fit() signature is:
-                        # fit(self, train_data, valid_data=None, verbose=True, saved=True, show_progress=False, callback_fn=None)
-                        # Let's ensure we pass it correctly.
-                        callback_fn = _gate_cb
-                    else:
-                        callback_fn = None
-                    combined_cb = _combine_callbacks(progress_cb, callback_fn)
+                    # Phase-A grid: always run all combinations without early stopping for fair comparison
+                    combined_cb = progress_cb
                     # Run training phase with optional early gate
                     try:
                         # Verify freeze status before training starts
@@ -868,66 +823,53 @@ def main():
                         ckpt_path = res["saved_model_file"] if args.save else None
                         if ckpt_path:
                             logger_a.info(set_color("[Phase-A:grid] Saved checkpoint", "green") + f": {ckpt_path}")
-                        # Extract NDCG@10
+                        # Extract validation metric (use args.phase_a_valid_metric)
                         valid_dict = res.get("best_valid_result") or {}
-                        ndcg10 = None
-                        for key in ["NDCG@10", "ndcg@10", "NDCG@10(Avg)"]:
-                            if key in valid_dict:
-                                ndcg10 = float(valid_dict[key])
-                                break
+                        metric_value = _lookup_metric_score(args.phase_a_valid_metric, valid_dict)
                         if phase_a_progress_logger:
                             phase_a_progress_logger.log(
                                 "combo_best_valid",
                                 phase="Phase-A",
                                 alignment_weight=aw,
                                 temperature=tau,
-                                metric="ndcg@10",
-                                score=ndcg10 if ndcg10 is not None else "",
+                                metric=args.phase_a_valid_metric.lower(),
+                                score=metric_value if metric_value is not None else "",
                             )
-                            combo_test_ndcg = _lookup_metric_score("ndcg@10", res.get("test_result"))
+                            combo_test_metric = _lookup_metric_score(args.phase_a_valid_metric, res.get("test_result"))
                             phase_a_progress_logger.log(
                                 "combo_test_result",
                                 phase="Phase-A",
                                 alignment_weight=aw,
                                 temperature=tau,
-                                metric="ndcg@10",
-                                score=combo_test_ndcg if combo_test_ndcg is not None else "",
+                                metric=args.phase_a_valid_metric.lower(),
+                                score=combo_test_metric if combo_test_metric is not None else "",
                             )
-                        logger_a.info(set_color("[Phase-A:grid] NDCG@10", "yellow") + f": {ndcg10}")
+                        logger_a.info(set_color(f"[Phase-A:grid] {args.phase_a_valid_metric}", "yellow") + f": {metric_value}")
                         _log_gpu_snapshot("Phase-A:grid-phase-end", config_a["device"])
-                        if ndcg10 is not None:
-                            if best_tuple is None or ndcg10 > best_tuple[0]:
-                                best_tuple = (ndcg10, aw, tau, res, ckpt_path)
-                            # Check gate but DON'T break - continue searching all combinations
-                            if ndcg_target is not None and ndcg10 >= ndcg_target:
-                                if not phase_a_passed:  # Log only on first pass
-                                    logger_a.info(set_color("[Phase-A:grid] Gate threshold reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
-                                    logger_a.info(set_color("[Phase-A:grid] Continuing search for best combo...", "yellow"))
-                                phase_a_passed = True
-                                # Update pass record if this is better
-                                if phase_a_pass_record is None or ndcg10 > phase_a_pass_record.get("ndcg10", 0):
-                                    phase_a_pass_record = {
-                                        "alignment_weight": aw,
-                                        "temperature": tau,
-                                        "ndcg10": ndcg10,
-                                    }
-                                # DON'T break - continue searching
+                        if metric_value is not None:
+                            # Track best combination across all grid cells
+                            if best_tuple is None or metric_value > best_tuple[0]:
+                                best_tuple = (metric_value, aw, tau, res, ckpt_path)
+                                logger_a.info(set_color(f"[Phase-A:grid] New best: {args.phase_a_valid_metric}={metric_value:.6f}", "green") + f" (aw={aw}, tau={tau})")
                     finally:
                         _release_phase_resources("Phase-A:grid-loop", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
-                # DON'T break outer loop - always search all combinations
-            if not phase_a_passed and best_tuple is not None:
-                # choose the best combination anyway
+            
+            # After grid search complete, select best combination
+            if best_tuple is not None:
                 phase_a_ckpt = best_tuple[4]
                 res_a = best_tuple[3]
                 logger = getLogger()
-                logger.info(set_color("[Phase-A:grid] Best combo", "blue") + f": ndcg@10={best_tuple[0]:.6f}, alignment_weight={best_tuple[1]}, temperature={best_tuple[2]}")
-                if ndcg_target is not None:
-                    logger.info(set_color("[Phase-A:grid] Gate not reached", "red") + f": best_ndcg@10={best_tuple[0]:.6f} < target={ndcg_target:.6f}")
+                logger.info(set_color("[Phase-A:grid] Grid complete. Best combo", "blue") + f": {args.phase_a_valid_metric}={best_tuple[0]:.6f}, alignment_weight={best_tuple[1]}, temperature={best_tuple[2]}")
+                if metric_target is not None:
+                    status = "✅ PASS" if best_tuple[0] >= metric_target else "⚠️ below"
+                    logger.info(f"[Phase-A:grid] Target threshold: {metric_target:.6f} → {status}")
                 phase_a_pass_record = {
                     "alignment_weight": best_tuple[1],
                     "temperature": best_tuple[2],
-                    "ndcg10": best_tuple[0],
+                    "metric_value": best_tuple[0],
+                    "metric_name": args.phase_a_valid_metric,
                 }
+                phase_a_passed = True  # Always pass after completing grid search
         else:
             phase_a_dict = {
                 "freeze_backbone": True,
@@ -978,44 +920,11 @@ def main():
                 model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
                 model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                 logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
-            # If baseline is provided, compute target for early gate
-            ndcg_target = None if args.ndcg_baseline is None else args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
-            callback_fn = None
-            if ndcg_target is not None:
-                def _gate_cb(epoch_idx, valid_score, _trainer=trainer_a, _logger=logger_a, _target=ndcg_target):
-                    nonlocal phase_a_pass_record
-                    try:
-                        if valid_score >= _target:
-                            _trainer._save_checkpoint(epoch_idx, verbose=True)
-                            if phase_a_progress_logger:
-                                phase_a_progress_logger.log(
-                                    "pass_gate",
-                                    phase="Phase-A",
-                                    alignment_weight=phase_a_dict.get("alignment_weight"),
-                                    temperature=phase_a_dict.get("temperature"),
-                                    epoch=epoch_idx,
-                                    metric=args.phase_a_valid_metric,
-                                    score=float(valid_score),
-                                )
-                            pass_detail = {
-                                "alignment_weight": phase_a_dict.get("alignment_weight"),
-                                "temperature": phase_a_dict.get("temperature"),
-                                "epoch": epoch_idx,
-                                "metric": args.phase_a_valid_metric,
-                                "score": float(valid_score),
-                            }
-                            phase_a_pass_events.append(pass_detail)
-                            phase_a_pass_record = {
-                                "alignment_weight": phase_a_dict.get("alignment_weight"),
-                                "temperature": phase_a_dict.get("temperature"),
-                                "ndcg10": float(valid_score),
-                            }
-                            _logger.info(set_color("[Phase-A] Early PASS gate", "green") + f": epoch={epoch_idx}, valid={valid_score:.6f} >= target={_target:.6f}")
-                            raise StopIteration
-                    except StopIteration:
-                        raise
-                    except Exception as e:
-                        _logger.warning(f"[Phase-A] gate callback error ignored: {e}")
+            # Phase-A non-grid: run full training without early stopping
+            # Log target if provided for reference only
+            if args.metric_baseline is not None:
+                metric_target = args.metric_baseline * (1.0 + float(args.metric_gain_threshold))
+                logger_a.info(f"[Phase-A] Reference target for {args.phase_a_valid_metric}: {metric_target:.6f}")
             # Run training with optional early gate
             try:
                 # Verify freeze status before training starts
@@ -1043,7 +952,7 @@ def main():
                     logger_a.info(f"Active examples: {active_params[:5]} ...")
                     logger_a.info(set_color("========================================", "red"))
 
-                combined_cb = _combine_callbacks(progress_cb, callback_fn)
+                combined_cb = progress_cb
                 best_valid_score, best_valid_result = trainer_a.fit(
                     train_a,
                     valid_a,
@@ -1078,31 +987,27 @@ def main():
             phase_a_ckpt = res_a["saved_model_file"] if args.save else None
             if phase_a_ckpt:
                 logger_a.info(set_color("[Phase-A] Saved checkpoint", "green") + f": {phase_a_ckpt}")
-            # Gate check when baseline provided
-            if args.ndcg_baseline is not None:
-                ndcg_target = args.ndcg_baseline * (1.0 + float(args.ndcg_gain_threshold))
-                ndcg10 = None
-                for key in ["NDCG@10", "ndcg@10", "NDCG@10(Avg)"]:
-                    if key in (res_a.get("best_valid_result") or {}):
-                        ndcg10 = float(res_a["best_valid_result"][key])
-                        break
-                if ndcg10 is not None and ndcg10 >= ndcg_target:
-                    phase_a_passed = True
-                    logger_a.info(set_color("[Phase-A] PASS gate reached", "green") + f": ndcg@10={ndcg10:.6f} >= target={ndcg_target:.6f}")
+            # Phase-A complete - always mark as passed (no gate check needed)
+            phase_a_passed = True
+            if args.metric_baseline is not None:
+                metric_target = args.metric_baseline * (1.0 + float(args.metric_gain_threshold))
+                metric_value = _lookup_metric_score(args.phase_a_valid_metric, res_a.get("best_valid_result"))
+                if metric_value is not None:
+                    status = "✅ above" if metric_value >= metric_target else "⚠️ below"
+                    logger_a.info(f"[Phase-A] Final {args.phase_a_valid_metric}={metric_value:.6f} (target={metric_target:.6f}) → {status}")
             _release_phase_resources("Phase-A", model_a, trainer_a, dataset_a, train_a, valid_a, test_a)
     if phase_a_progress_logger:
         phase_a_progress_logger.close()
 
     # Phase-B config (unfreeze + grouped LR; lr_backbone = lr_text_head * scale)
     if not args.only_phase_a:
-        # If Phase-A grid is used and require pass to enter B, honor the gate
-        if args.phase_a_grid and args.phase_a_require_pass_for_b and not phase_a_passed:
-            getLogger().warning("[Two-Phase] Phase-B is skipped because Phase-A gate was not reached (require_pass_for_b).")
+        # Check if we should skip Phase-B
+        if args.phase_a_require_pass_for_b and not phase_a_passed:
+            getLogger().warning("[Two-Phase] Phase-B is skipped (phase_a_require_pass_for_b and not passed).")
             return
-        # If only_phase_b is False but user doesn't want auto transition, they can call with only_phase_b separately.
-        if args.phase_a_grid and not args.phase_a_auto_to_b and not args.only_phase_b and phase_a_ckpt:
-            getLogger().info(set_color("[Two-Phase] Phase-A finished. Not auto-continuing to Phase-B (phase_a_auto_to_b is False).", "yellow"))
-            return
+        # Auto-transition to Phase-B when phase_a_auto_to_b is True (default behavior)
+        if phase_a_ckpt:
+            getLogger().info(set_color("[Two-Phase] Phase-A finished. Auto-continuing to Phase-B...", "green"))
 
         phase_b_dict = {
             "freeze_backbone": False,

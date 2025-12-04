@@ -19,11 +19,14 @@ python scripts/two_phase_train.py \
   --burnin_eval_step 2 \
   --phase_a_epochs 6 \
   --phase_a_eval_step 1 \
-  --phase_a_valid_metric Recall@10 \
+  --phase_a_valid_metric "Recall@10" \
+  --ndcg_baseline 0.0272 \
+  --ndcg_gain_threshold 0.01 \
   --lr_text_head 1e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
   --phase_b_alignment_weight 0.05 \
+  --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs \
