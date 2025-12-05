@@ -624,11 +624,12 @@ def main():
     parser.add_argument("--watchdog_log", type=str, default=None, help="path to append watchdog JSON lines (default run_metrics/resource_watchdog.log)")
     parser.add_argument("--watchdog_cpu_gb", type=float, default=0.0, help="optional CPU RSS threshold in GB for warning")
     parser.add_argument("--watchdog_gpu_gb", type=float, default=0.0, help="optional GPU alloc threshold in GB for warning")
+    parser.add_argument("--watchdog_disable", action="store_true", help="disable resource watchdog regardless of other settings")
     args, _ = parser.parse_known_args()
     args.variant_label = _build_variant_label_from_args(args)
 
     watchdog = None
-    if args.watchdog_interval and args.watchdog_interval > 0:
+    if (not args.watchdog_disable) and args.watchdog_interval and args.watchdog_interval > 0:
         wd_log = args.watchdog_log or os.path.join("run_metrics", "resource_watchdog.log")
         wd_device = torch.device(torch.cuda.current_device()) if torch.cuda.is_available() else None
         watchdog = ResourceWatchdog(
@@ -641,6 +642,8 @@ def main():
         )
         watchdog.start()
         atexit.register(lambda wd=watchdog: wd and wd.stop())
+    elif args.watchdog_disable:
+        getLogger().info("[Watchdog] disabled via --watchdog_disable")
 
     if args.only_phase_a and args.only_phase_b:
         raise ValueError("only_phase_a and only_phase_b cannot be used together.")

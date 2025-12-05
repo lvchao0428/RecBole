@@ -31,9 +31,6 @@ python scripts/two_phase_train.py \
   --checkpoint_dir ./saved/phase_runs \
   --seed 2025 \
   --variant_features "sasrec,tfidf,llm,beauty" \
-  --watchdog_interval 20 \
-  --watchdog_log "run_metrics/watchdog_tfidf_llm_beauty.log" \
-  --watchdog_cpu_gb 40 \
-  --watchdog_gpu_gb 28 \
+  --watchdog_disable \
   --save
 
