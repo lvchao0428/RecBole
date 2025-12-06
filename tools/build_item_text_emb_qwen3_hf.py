@@ -325,13 +325,11 @@ def _center_whiten_and_normalize(
         emb_whitened = emb_centered @ whiten_matrix
         emb_whitened[0, :] = 0.0
         
-        # NOTE: We MUST L2 normalize even after whitening for RecBole compatibility.
-        # While strictly speaking this distorts the identity covariance, 
-        # it is necessary to keep dot products in a reasonable range for InfoNCE/Temperature.
-        # Theoretical norm of whitened vector is sqrt(D), which is too large (e.g. sqrt(4096)=64).
-        norms = np.linalg.norm(emb_whitened[1:], axis=1, keepdims=True)
-        emb_whitened[1:] = emb_whitened[1:] / np.clip(norms, 1e-8, None)
-
+        # NOTE: Do NOT L2 normalize after whitening!
+        # Whitening already decorrelates features and sets Cov(X) = I
+        # L2 normalization would destroy this property (variance becomes 1/D instead of 1)
+        # If the model needs L2-normalized embeddings, do it at model load time
+        
         emb_processed = emb_whitened.astype(np.float32)  # Cast back to float32
         
     else:
@@ -672,14 +670,14 @@ def main():
         if mat.ndim != 2:
             print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
         else:
-            # Final SVD after whitening - normalize is OK here
+            # SVD projection BEFORE whitening - do NOT normalize to preserve variance
             mat = _apply_truncated_svd(
                 mat,
                 target_dim=args.project_dim,
                 train_ids=train_ids_cache,
                 random_state=args.svd_random_state,
                 label="final",
-                normalize=True,  # Re-normalize after whitening+projection
+                normalize=False,  # Preserve variance for subsequent whitening
             )
 
     # --- 6. Apply Center + Whiten normalization (after final projection) ---
