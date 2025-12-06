@@ -755,7 +755,30 @@ def main():
                             ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
                         except Exception:
                             ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
-                        model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
+                        
+                        # Check for dimension mismatches (e.g., multiview with/without base features)
+                        mismatched_keys = []
+                        current_state = model_a.state_dict()
+                        for key, ckpt_tensor in ckpt_b["state_dict"].items():
+                            if key in current_state:
+                                if ckpt_tensor.shape != current_state[key].shape:
+                                    mismatched_keys.append(
+                                        f"{key}: ckpt{list(ckpt_tensor.shape)} vs model{list(current_state[key].shape)}"
+                                    )
+                        
+                        if mismatched_keys:
+                            logger_a.warning(set_color("[Phase-A:grid] Dimension mismatch in burn-in checkpoint:", "yellow"))
+                            for mk in mismatched_keys:
+                                logger_a.warning(f"  - {mk}")
+                            logger_a.warning(set_color("[Phase-A:grid] Skipping mismatched layers, loading compatible ones only", "yellow"))
+                            
+                            # Filter out mismatched keys
+                            filtered_state = {k: v for k, v in ckpt_b["state_dict"].items() 
+                                            if k in current_state and v.shape == current_state[k].shape}
+                            model_a.load_state_dict(filtered_state, strict=False)
+                        else:
+                            model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
+                        
                         model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                         logger_a.info(set_color("[Phase-A:grid] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
                     # Phase-A grid: always run all combinations without early stopping for fair comparison
@@ -920,7 +943,30 @@ def main():
                     ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"])
                 except Exception:
                     ckpt_b = torch.load(burnin_ckpt, map_location=config_a["device"], weights_only=False)
-                model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
+                
+                # Check for dimension mismatches (e.g., multiview with/without base features)
+                mismatched_keys = []
+                current_state = model_a.state_dict()
+                for key, ckpt_tensor in ckpt_b["state_dict"].items():
+                    if key in current_state:
+                        if ckpt_tensor.shape != current_state[key].shape:
+                            mismatched_keys.append(
+                                f"{key}: ckpt{list(ckpt_tensor.shape)} vs model{list(current_state[key].shape)}"
+                            )
+                
+                if mismatched_keys:
+                    logger_a.warning(set_color("[Phase-A] Dimension mismatch in burn-in checkpoint:", "yellow"))
+                    for mk in mismatched_keys:
+                        logger_a.warning(f"  - {mk}")
+                    logger_a.warning(set_color("[Phase-A] Skipping mismatched layers, loading compatible ones only", "yellow"))
+                    
+                    # Filter out mismatched keys
+                    filtered_state = {k: v for k, v in ckpt_b["state_dict"].items() 
+                                    if k in current_state and v.shape == current_state[k].shape}
+                    model_a.load_state_dict(filtered_state, strict=False)
+                else:
+                    model_a.load_state_dict(ckpt_b["state_dict"], strict=False)
+                
                 model_a.load_other_parameter(ckpt_b.get("other_parameter"))
                 logger_a.info(set_color("[Phase-A] Loaded burn-in checkpoint (strict=False)", "green") + f": {burnin_ckpt}")
             # Phase-A non-grid: run full training without early stopping
