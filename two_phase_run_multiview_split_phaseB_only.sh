@@ -29,7 +29,7 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 #   2. 找到最新的 *-phase_a.pth 文件
 #   3. 或者查看 Phase A 运行日志中的 "[Phase-A] Saved checkpoint: ..." 输出
 
-PHASE_A_CHECKPOINT="./saved/phase_runs_multiview_4views/SASRecAlignMultiView-Amazon_Beauty-phase_a.pth"
+PHASE_A_CHECKPOINT="./saved/phase_runs_multiview_4views/SASRecAlignMultiView-Dec-06-2025_23-16-28.pth"
 
 # 检查 checkpoint 是否存在
 if [ ! -f "$PHASE_A_CHECKPOINT" ]; then
