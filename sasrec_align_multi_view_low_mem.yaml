@@ -1,0 +1,90 @@
+# Multi-View Alignment Configuration - Low Memory Version
+# 用于内存受限场景（如 OOM）
+
+# 继承基础配置
+# yaml_base: sasrec_align_multi_view.yaml
+
+# ==========================================
+# 内存优化参数
+# ==========================================
+
+# 训练批次大小（减小以节省内存）
+train_batch_size: 512  # 从默认值（通常 1024-2048）降低
+
+# 评估批次大小（减小以节省内存）
+eval_batch_size: 512  # 从默认值（通常 1024-4096）降低
+
+# ==========================================
+# 梯度累积（可选）
+# ==========================================
+# 如果需要保持有效批次大小，可以使用梯度累积
+# 例如：train_batch_size=512 + 累积4步 = 有效批次2048
+# gradient_accumulation_steps: 4  # 需要在 trainer 中支持
+
+# ==========================================
+# DataLoader 参数
+# ==========================================
+# 减少 worker 数量以节省内存
+worker: 0  # 使用主进程加载数据（最省内存）
+# worker: 2  # 或者使用少量 worker
+
+# ==========================================
+# 混合精度训练（如果支持）
+# ==========================================
+# 使用 FP16 可以显著降低内存占用
+# fp16: True  # 需要在模型/trainer 中支持
+# amp: True   # PyTorch AMP
+
+# ==========================================
+# Checkpoint 参数
+# ==========================================
+# 禁用一些不必要的保存以节省内存
+# save_step: -1  # 不在训练中间保存
+# save_dataloaders: False  # 不保存 dataloader 状态
+
+# ==========================================
+# 其他优化
+# ==========================================
+# 减少序列长度（如果可能）
+# MAX_ITEM_LIST_LENGTH: 50  # 从默认值降低
+
+# 禁用某些内存密集型特性
+# metrics: ['Recall@10', 'NDCG@10']  # 只计算必要的指标
+# topk: [10]  # 减少 topk 值
+
+# ==========================================
+# 模型特定参数（Multi-View）
+# ==========================================
+# 如果模型支持，可以减少某些维度
+
+# 文本特征相关
+# item_text_emb_file: dataset/Amazon_Beauty/item_text_emb.qwen3.multiview.npy
+# item_text_emb_split_dir: dataset/Amazon_Beauty/qwen3_4views
+
+# SENet reduction ratio（增加以减少参数）
+# senet_reduction: 8  # 从 4 增加到 8
+
+# Cross Network 层数（减少以节省内存）
+# cross_net_layers: 1  # 从 2 减少到 1
+
+# ==========================================
+# 注意事项
+# ==========================================
+# 1. 这些参数会影响模型性能
+# 2. 建议逐步调整，观察内存使用情况
+# 3. 如果仍然 OOM，考虑：
+#    - 使用更大的 GPU
+#    - 使用 CPU offload
+#    - 减小模型规模
+
+# ==========================================
+# 使用方法
+# ==========================================
+# python scripts/two_phase_train.py \
+#   --model SASRecAlignMultiView \
+#   --dataset Amazon_Beauty \
+#   --config_files "sasrec_align_multi_view.yaml sasrec_align_multi_view_low_mem.yaml" \
+#   --only_phase_b \
+#   --resume_from <checkpoint> \
+#   ...
+
