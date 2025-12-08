@@ -13,15 +13,15 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_toys_base.yaml" \
   --phase_a_grid \
-  --align_grid "0.01,0.02,0.05,0.08" \
-  --tau_grid "0.05,0.07" \
+  --align_grid "0.01,0.03,0.05" \
+  --tau_grid "0.05,0.07,0.1" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
-  --phase_a_epochs 20 \
-  --phase_a_eval_step 2 \
-  --phase_a_valid_metric NDCG@10 \
-  --ndcg_baseline 0.0303 \
-  --ndcg_gain_threshold 0.01 \
+  --phase_a_epochs 6 \
+  --phase_a_eval_step 1 \
+  --phase_a_valid_metric "Recall@10" \
+  --metric_baseline 0.0272 \
+  --metric_gain_threshold 0.01 \
   --lr_text_head 1e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
@@ -32,10 +32,7 @@ python scripts/two_phase_train.py \
   --checkpoint_dir ./saved/phase_runs \
   --seed 2025 \
   --variant_features "sasrec,tfidf,toys" \
-  --watchdog_interval 20 \
-  --watchdog_log "run_metrics/watchdog_tfidf_toys.log" \
-  --watchdog_cpu_gb 40 \
-  --watchdog_gpu_gb 28 \
+  --watchdog_disable \
   --save
 
 
