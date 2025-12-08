@@ -1,0 +1,90 @@
+---
+model: SASRecAlignMultiView
+hidden_size: 256
+fusion_chunk_size: 65536
+
+# Dataset (Amazon_Toys_and_Games specific)
+dataset: Amazon_Toys_and_Games
+field_separator: "\t"
+seq_separator: " "
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+LABEL_FIELD: label
+NEG_PREFIX: neg_
+RATING_FIELD: rating
+TIME_FIELD: timestamp
+ITEM_LIST_LENGTH_FIELD: item_length
+LIST_SUFFIX: _list
+MAX_ITEM_LIST_LENGTH: 50
+POSITION_FIELD: position_id
+load_col:
+  inter: [user_id, item_id, rating, timestamp]
+  item: [item_id]
+
+# Training / evaluation
+epochs: 200
+train_batch_size: 512
+eval_batch_size: 512
+learning_rate: 0.0001
+eval_step: 5
+stopping_step: 20
+clip_grad_norm: { max_norm: 5 }
+eval_args:
+  group_by: user
+  order: TO
+  split: {'LS': 'valid_and_test'}
+  mode:  {'valid': 'full','test':'full'}
+eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
+topk: [5, 10, 20]
+metrics: [Recall, MRR, NDCG, Hit, Precision]
+valid_metric: MRR@10
+loss_type: CE
+train_neg_sample_args: null
+
+# Text feature sources (TF-IDF base + 4-view Qwen3 split embeddings)
+# Architecture: base[256] + multi-view[4×64→256] = fusion[512]
+# Fair comparison: same fusion dimension (512) as TF-IDF+LLM baseline
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_llm: ""  # Not using single LLM path (using split views instead)
+item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen3_4views
+use_llm: false  # Using split views, not single LLM embedding
+use_align: true
+use_cross: true  # CHANGED: Enable cross network fusion (aligned with qwen3)
+text_cross_layer_num: 2  # ADDED: Same as qwen3 config
+use_seq_text_cross: false
+use_text_view_split: true
+num_text_views: 4  # CHANGED: 4 views instead of 5
+text_view_senet_ratio: 4  # SENet compression ratio
+text_view_half_precision: true
+
+# Alignment and gating (aligned with sasrec_align_qwen3.yaml)
+alignment_weight: 0.05
+temperature: 0.07  # Shared temperature for all views
+detach_text_emb: true
+normalize_text: true
+text_weight: 0.8
+text_tail_threshold: 5
+text_gate_init: 0.5
+text_gate_reg_l2: 0.05
+text_gate_reg_entropy: 0.0
+
+# Regularization & scoring (aligned with sasrec_align_qwen3.yaml)
+weight_decay: 1e-5
+label_smoothing: 0.1
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+token_dropout_prob: 0.2
+cross_dropout_prob: 0.5  # For cross network
+cosine_score: true  # CHANGED: Enable cosine scoring (aligned with qwen3)
+cosine_scale: 10.0
+
+# Stabilizers (aligned with sasrec_align_qwen3.yaml)
+text_proj_norm: true
+fused_item_norm: true
+disable_text_feature: false
+text_mlp_bn: false
+freeze_backbone: false
+align_exclude_topk: 0
+fuse_text_feature: true  # ADDED: Ensure text fusion is enabled
+use_fusion: false  # Keep false (using cross network instead)
+
