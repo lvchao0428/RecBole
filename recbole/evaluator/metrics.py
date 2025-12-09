@@ -888,7 +888,7 @@ class StratifiedNDCG(TopkMetric):
         return None
     
     def _dcg_at_k(self, r, k):
-        r = np.asfarray(r)[:k]
+        r = np.asarray(r, dtype=np.float64)[:k]
         if r.size:
             return np.sum(r / np.log2(np.arange(2, r.size + 2)))
         return 0.0
