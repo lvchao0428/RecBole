@@ -1,0 +1,212 @@
+{
+  "Amazon_Beauty": {
+    "dataset": "Amazon_Beauty",
+    "paths": {
+      "llm": "/home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy",
+      "multiview_merged": "/home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.multiview.npy"
+    },
+    "llm": {
+      "basic_stats": {
+        "shape": [
+          259205,
+          256
+        ],
+        "mean": -0.0002764036471489817,
+        "std": 0.9512094259262085,
+        "min": -8.140625,
+        "max": 8.9140625,
+        "norm_mean": 14.991926193237305,
+        "norm_std": 2.621248722076416,
+        "sparsity": 4.701876892806852e-06,
+        "feature_var_mean": 0.9047242403030396,
+        "feature_var_std": 0.06138140335679054,
+        "feature_var_min": 0.7808600068092346,
+        "feature_var_max": 1.0316708087921143
+      },
+      "feature_space": {
+        "mean_pairwise_cosine": 0.01442436221987009,
+        "std_pairwise_cosine": 0.09229379147291183,
+        "min_pairwise_cosine": -0.33049193024635315,
+        "max_pairwise_cosine": 1.0000003576278687,
+        "median_pairwise_cosine": -8.473824709653854e-05,
+        "effective_rank": 229.06651306152344,
+        "top_10_singular_values": [
+          126.60419464111328,
+          116.89937591552734,
+          105.22750854492188,
+          102.97794342041016,
+          92.65432739257812,
+          91.19340515136719,
+          89.24622344970703,
+          85.7272720336914,
+          84.4827651977539,
+          83.22338104248047
+        ],
+        "singular_value_decay": 0.6425744891166687
+      }
+    },
+    "multiview_merged": {
+      "basic_stats": {
+        "shape": [
+          259205,
+          256
+        ],
+        "mean": 0.00018132494005840272,
+        "std": 1.0000295639038086,
+        "min": -16.3125,
+        "max": 23.4375,
+        "norm_mean": 15.751023292541504,
+        "norm_std": 2.8143234252929688,
+        "sparsity": 4.626526301575972e-06,
+        "feature_var_mean": 0.9999797344207764,
+        "feature_var_std": 0.006604738067835569,
+        "feature_var_min": 0.972058892250061,
+        "feature_var_max": 1.0505598783493042
+      },
+      "feature_space": {
+        "mean_pairwise_cosine": 0.013746618293225765,
+        "std_pairwise_cosine": 0.08739659190177917,
+        "min_pairwise_cosine": -0.4126806855201721,
+        "max_pairwise_cosine": 1.0000001192092896,
+        "median_pairwise_cosine": 0.0023063714616000652,
+        "effective_rank": 235.6263885498047,
+        "top_10_singular_values": [
+          112.75664520263672,
+          108.32930755615234,
+          102.57170867919922,
+          91.75688171386719,
+          88.87519836425781,
+          82.39698791503906,
+          80.6737289428711,
+          78.7560043334961,
+          76.0411376953125,
+          75.3440170288086
+        ],
+        "singular_value_decay": 0.656999945640564
+      }
+    },
+    "llm_vs_multiview": {
+      "mean_cosine": 0.0042135757394135,
+      "std_cosine": 0.06088241934776306,
+      "min_cosine": -0.19798222184181213,
+      "max_cosine": 0.20405662059783936,
+      "sample_size": 2000
+    }
+  },
+  "Amazon_Toys_and_Games": {
+    "dataset": "Amazon_Toys_and_Games",
+    "paths": {
+      "llm": "/home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.qwen3.base.npy",
+      "multiview_merged": "/home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.qwen3.multiview.npy"
+    },
+    "llm": {
+      "basic_stats": {
+        "shape": [
+          336073,
+          256
+        ],
+        "mean": -1.1394442481105216e-05,
+        "std": 0.9580132961273193,
+        "min": -9.203125,
+        "max": 9.875,
+        "norm_mean": 15.082820892333984,
+        "norm_std": 2.7317214012145996,
+        "sparsity": 3.9286479425600984e-06,
+        "feature_var_mean": 0.917677104473114,
+        "feature_var_std": 0.05377772077918053,
+        "feature_var_min": 0.8221188187599182,
+        "feature_var_max": 1.0367375612258911
+      },
+      "feature_space": {
+        "mean_pairwise_cosine": 0.03426159545779228,
+        "std_pairwise_cosine": 0.10758347809314728,
+        "min_pairwise_cosine": -0.2769731283187866,
+        "max_pairwise_cosine": 1.000000238418579,
+        "median_pairwise_cosine": 0.014172164723277092,
+        "effective_rank": 218.32376098632812,
+        "top_10_singular_values": [
+          177.21311950683594,
+          136.16226196289062,
+          113.47537231445312,
+          108.6876220703125,
+          102.14559173583984,
+          97.34209442138672,
+          90.3489761352539,
+          88.96736145019531,
+          86.34326934814453,
+          83.41565704345703
+        ],
+        "singular_value_decay": 0.4339122772216797
+      }
+    },
+    "multiview_merged": {
+      "basic_stats": {
+        "shape": [
+          336073,
+          256
+        ],
+        "mean": -0.00032319530146196485,
+        "std": 1.0019476413726807,
+        "min": -39.03125,
+        "max": 27.921875,
+        "norm_mean": 15.770207405090332,
+        "norm_std": 2.880661964416504,
+        "sparsity": 3.707806786025655e-06,
+        "feature_var_mean": 1.0037684440612793,
+        "feature_var_std": 0.009837387129664421,
+        "feature_var_min": 0.9899685978889465,
+        "feature_var_max": 1.11014986038208
+      },
+      "feature_space": {
+        "mean_pairwise_cosine": 0.02938709408044815,
+        "std_pairwise_cosine": 0.09789783507585526,
+        "min_pairwise_cosine": -0.2896452844142914,
+        "max_pairwise_cosine": 0.9999997615814209,
+        "median_pairwise_cosine": 0.01556264329701662,
+        "effective_rank": 226.8959197998047,
+        "top_10_singular_values": [
+          143.81422424316406,
+          124.97805786132812,
+          113.25518798828125,
+          102.68228912353516,
+          98.57980346679688,
+          89.06507110595703,
+          85.37808227539062,
+          82.73969268798828,
+          79.5844955444336,
+          76.1303482055664
+        ],
+        "singular_value_decay": 0.5231713652610779
+      }
+    },
+    "llm_vs_multiview": {
+      "mean_cosine": -0.0007991028833203018,
+      "std_cosine": 0.06064252182841301,
+      "min_cosine": -0.20943954586982727,
+      "max_cosine": 0.1887473165988922,
+      "sample_size": 2000
+    }
+  },
+  "delta": {
+    "llm_mean_pairwise_cosine": [
+      0.01442436221987009,
+      0.03426159545779228,
+      0.01983723323792219
+    ],
+    "llm_std_pairwise_cosine": [
+      0.09229379147291183,
+      0.10758347809314728,
+      0.015289686620235443
+    ],
+    "llm_median_pairwise_cosine": [
+      -8.473824709653854e-05,
+      0.014172164723277092,
+      0.01425690297037363
+    ],
+    "llm_effective_rank": [
+      229.06651306152344,
+      218.32376098632812,
+      -10.742752075195312
+    ]
+  }
+}
