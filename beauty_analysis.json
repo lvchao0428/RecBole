@@ -1,0 +1,29 @@
+{
+  "dataset": "Amazon_Beauty",
+  "statistics": {
+    "base": {
+      "name": "base",
+      "shape": [
+        259205,
+        256
+      ],
+      "mean": 0.000133514404296875,
+      "std": Infinity,
+      "min": -8.375,
+      "max": 17.328125,
+      "norm_mean": 15.8125,
+      "norm_std": Infinity,
+      "sparsity": 4.807367720530082e-06,
+      "feature_var_mean": Infinity,
+      "feature_var_std": NaN,
+      "feature_var_min": 0.1175537109375,
+      "feature_var_max": Infinity
+    },
+    "views": {}
+  },
+  "feature_space": {
+    "views": {}
+  },
+  "diversity": null,
+  "view_vs_llm": null
+}

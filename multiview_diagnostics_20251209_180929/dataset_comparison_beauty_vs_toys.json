@@ -1,0 +1,46 @@
+{
+  "beauty": {
+    "name": "Amazon_Beauty",
+    "interactions": null,
+    "items": null,
+    "users": null
+  },
+  "toys": {
+    "name": "Amazon_Toys_and_Games",
+    "interactions": null,
+    "items": null,
+    "users": null
+  },
+  "embedding_comparison": {
+    "dataset1": "Amazon_Beauty",
+    "dataset2": "Amazon_Toys_and_Games",
+    "comparison": {
+      "Amazon_Beauty": {
+        "llm_embedding_shape": [
+          259205,
+          256
+        ],
+        "llm_embedding_dtype": "float32",
+        "inter_item_similarity_mean": 0.0631985142827034,
+        "inter_item_similarity_std": 0.14767087996006012,
+        "inter_item_similarity_median": 0.0212672371417284,
+        "inter_item_similarity_q25": -0.025573402643203735,
+        "inter_item_similarity_q75": 0.10023199021816254,
+        "high_similarity_ratio": 0.0007214428857715431
+      },
+      "Amazon_Toys_and_Games": {
+        "llm_embedding_shape": [
+          336073,
+          256
+        ],
+        "llm_embedding_dtype": "float32",
+        "inter_item_similarity_mean": 0.04317262023687363,
+        "inter_item_similarity_std": 0.12914226949214935,
+        "inter_item_similarity_median": 0.016146618872880936,
+        "inter_item_similarity_q25": -0.028305310755968094,
+        "inter_item_similarity_q75": 0.07429850846529007,
+        "high_similarity_ratio": 0.00044889779559118237
+      }
+    }
+  }
+}
