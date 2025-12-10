@@ -1,0 +1,295 @@
+{
+  "dataset": "Amazon_Toys_and_Games",
+  "statistics": {
+    "base": {
+      "name": "base",
+      "shape": [
+        336073,
+        256
+      ],
+      "mean": -7.068600098136812e-05,
+      "std": 0.9935065507888794,
+      "min": -10.578125,
+      "max": 11.984375,
+      "norm_mean": 15.773467063903809,
+      "norm_std": 1.9707003831863403,
+      "sparsity": 4.0448801302098055e-06,
+      "feature_var_mean": 0.986931562423706,
+      "feature_var_std": 0.005456548649817705,
+      "feature_var_min": 0.977966845035553,
+      "feature_var_max": 1.0210884809494019
+    },
+    "llm": {
+      "name": "llm",
+      "shape": [
+        336073,
+        256
+      ],
+      "mean": -1.1394442481105216e-05,
+      "std": 0.9580132961273193,
+      "min": -9.203125,
+      "max": 9.875,
+      "norm_mean": 15.082820892333984,
+      "norm_std": 2.7317214012145996,
+      "sparsity": 3.9286479425600984e-06,
+      "feature_var_mean": 0.917677104473114,
+      "feature_var_std": 0.05377772077918053,
+      "feature_var_min": 0.8221188187599182,
+      "feature_var_max": 1.0367375612258911
+    },
+    "views": {
+      "function": {
+        "name": "function",
+        "shape": [
+          336073,
+          64
+        ],
+        "mean": 0.01465840544551611,
+        "std": 0.12204523384571075,
+        "min": -0.494873046875,
+        "max": 0.98681640625,
+        "norm_mean": 0.9833403825759888,
+        "norm_std": 0.008672450669109821,
+        "sparsity": 4.268045930497243e-05,
+        "feature_var_mean": 0.0014169777277857065,
+        "feature_var_std": 0.003002787474542856,
+        "feature_var_min": 0.00019150279695168138,
+        "feature_var_max": 0.02037747949361801
+      },
+      "audience": {
+        "name": "audience",
+        "shape": [
+          336073,
+          64
+        ],
+        "mean": 0.01455831527709961,
+        "std": 0.12218599766492844,
+        "min": -0.71728515625,
+        "max": 0.98779296875,
+        "norm_mean": 0.9843685626983643,
+        "norm_std": 0.008207304403185844,
+        "sparsity": 4.351733105605032e-05,
+        "feature_var_mean": 0.001361512579023838,
+        "feature_var_std": 0.0028980649076402187,
+        "feature_var_min": 0.00018406401795800775,
+        "feature_var_max": 0.019623897969722748
+      },
+      "view_2": {
+        "name": "view_2",
+        "shape": [
+          336073,
+          64
+        ],
+        "mean": 0.014335999265313148,
+        "std": 0.12197329849004745,
+        "min": -0.703125,
+        "max": 0.98583984375,
+        "norm_mean": 0.9824649095535278,
+        "norm_std": 0.008649404160678387,
+        "sparsity": 4.216903767931372e-05,
+        "feature_var_mean": 0.0015320716192945838,
+        "feature_var_std": 0.0033168753143399954,
+        "feature_var_min": 0.00020789082918781787,
+        "feature_var_max": 0.022633865475654602
+      },
+      "view_3": {
+        "name": "view_3",
+        "shape": [
+          336073,
+          64
+        ],
+        "mean": 0.014501961879432201,
+        "std": 0.12218263000249863,
+        "min": -0.62353515625,
+        "max": 0.9853515625,
+        "norm_mean": 0.9842953681945801,
+        "norm_std": 0.007292394060641527,
+        "sparsity": 3.872856492488239e-05,
+        "feature_var_mean": 0.0014845356345176697,
+        "feature_var_std": 0.002664819359779358,
+        "feature_var_min": 0.0002094283845508471,
+        "feature_var_max": 0.014922799542546272
+      }
+    }
+  },
+  "feature_space": {
+    "llm": {
+      "name": "llm",
+      "mean_pairwise_cosine": 0.029193846508860588,
+      "std_pairwise_cosine": 0.10093057155609131,
+      "min_pairwise_cosine": -0.2769731283187866,
+      "max_pairwise_cosine": 1.000000238418579,
+      "median_pairwise_cosine": 0.013242820277810097,
+      "effective_rank": 215.4012908935547,
+      "top_10_singular_values": [
+        102.48631286621094,
+        94.55442810058594,
+        79.15302276611328,
+        69.38690948486328,
+        65.2166748046875,
+        64.23969268798828,
+        61.02537155151367,
+        59.8701171875,
+        57.87590408325195,
+        55.83584213256836
+      ],
+      "singular_value_decay": 0.5353685617446899
+    },
+    "views": {
+      "function": {
+        "name": "function",
+        "mean_pairwise_cosine": 0.9351897239685059,
+        "std_pairwise_cosine": 0.06117938831448555,
+        "min_pairwise_cosine": 0.0,
+        "max_pairwise_cosine": 1.0000001192092896,
+        "median_pairwise_cosine": 0.9471931457519531,
+        "effective_rank": 45.106300354003906,
+        "top_10_singular_values": [
+          4.809924125671387,
+          2.5712392330169678,
+          2.2061262130737305,
+          1.7346305847167969,
+          1.64484703540802,
+          1.5167406797409058,
+          1.4390275478363037,
+          1.2002017498016357,
+          1.107169508934021,
+          1.0837045907974243
+        ],
+        "singular_value_decay": 0.20294193923473358
+      },
+      "audience": {
+        "name": "audience",
+        "mean_pairwise_cosine": 0.9394341707229614,
+        "std_pairwise_cosine": 0.060450807213783264,
+        "min_pairwise_cosine": 0.0,
+        "max_pairwise_cosine": 1.0000001192092896,
+        "median_pairwise_cosine": 0.9512295722961426,
+        "effective_rank": 45.35756301879883,
+        "top_10_singular_values": [
+          4.521275520324707,
+          2.4973864555358887,
+          2.2339677810668945,
+          1.7122150659561157,
+          1.6073620319366455,
+          1.4704402685165405,
+          1.4174106121063232,
+          1.153905987739563,
+          1.0806971788406372,
+          1.0499645471572876
+        ],
+        "singular_value_decay": 0.21342627704143524
+      },
+      "view_2": {
+        "name": "view_2",
+        "mean_pairwise_cosine": 0.926743745803833,
+        "std_pairwise_cosine": 0.06358016282320023,
+        "min_pairwise_cosine": 0.0,
+        "max_pairwise_cosine": 0.9999998807907104,
+        "median_pairwise_cosine": 0.9395555257797241,
+        "effective_rank": 45.03030014038086,
+        "top_10_singular_values": [
+          5.186183929443359,
+          2.679985523223877,
+          2.3211545944213867,
+          1.8619016408920288,
+          1.720104455947876,
+          1.5855244398117065,
+          1.5384677648544312,
+          1.275252342224121,
+          1.196142315864563,
+          1.1459389925003052
+        ],
+        "singular_value_decay": 0.19563230872154236
+      },
+      "view_3": {
+        "name": "view_3",
+        "mean_pairwise_cosine": 0.9269475936889648,
+        "std_pairwise_cosine": 0.055946532636880875,
+        "min_pairwise_cosine": 0.0,
+        "max_pairwise_cosine": 1.0000001192092896,
+        "median_pairwise_cosine": 0.9356396198272705,
+        "effective_rank": 47.429752349853516,
+        "top_10_singular_values": [
+          4.216578960418701,
+          3.0025970935821533,
+          2.307363271713257,
+          2.1744658946990967,
+          2.0447635650634766,
+          1.7389544248580933,
+          1.5848389863967896,
+          1.4622163772583008,
+          1.3137301206588745,
+          1.1426938772201538
+        ],
+        "singular_value_decay": 0.25895655155181885
+      }
+    }
+  },
+  "diversity": {
+    "pairwise_cosine_similarity": {
+      "function_vs_audience": 0.9674471616744995,
+      "function_vs_view_2": 0.9538619518280029,
+      "function_vs_view_3": 0.9559191465377808,
+      "audience_vs_view_2": 0.9698905348777771,
+      "audience_vs_view_3": 0.9612113237380981,
+      "view_2_vs_view_3": 0.9484437108039856
+    },
+    "pairwise_correlation": {
+      "function_vs_audience": 0.965846836566925,
+      "function_vs_view_2": 0.9540461897850037,
+      "function_vs_view_3": 0.9546808004379272,
+      "audience_vs_view_2": 0.9716902375221252,
+      "audience_vs_view_3": 0.9626044034957886,
+      "view_2_vs_view_3": 0.9510658383369446
+    },
+    "mean_pairwise_cosine": 0.9594623446464539,
+    "mean_pairwise_correlation": 0.959989070892334,
+    "diversity_score": 0.04053765535354614
+  },
+  "view_vs_llm": {
+    "multiview_merged": {
+      "mean_cosine_to_llm": 0.021065274253487587,
+      "std_cosine_to_llm": 0.07138866931200027,
+      "comparison": "Merged multi-view (all 4 views combined) vs Single LLM"
+    },
+    "function": {
+      "dimension": 64,
+      "note": "Individual view dimension (64D) differs from single LLM (256D)"
+    },
+    "audience": {
+      "dimension": 64,
+      "note": "Individual view dimension (64D) differs from single LLM (256D)"
+    },
+    "view_2": {
+      "dimension": 64,
+      "note": "Individual view dimension (64D) differs from single LLM (256D)"
+    },
+    "view_3": {
+      "dimension": 64,
+      "note": "Individual view dimension (64D) differs from single LLM (256D)"
+    }
+  },
+  "view_prompts": {
+    "function": {
+      "prompt": "What are the main functions and features of [TITLE] {text}?",
+      "file": "view_0.npy",
+      "vector_dim": 64
+    },
+    "audience": {
+      "prompt": "Who is the ideal user or target audience for [TITLE] {text}?",
+      "file": "view_1.npy",
+      "vector_dim": 64
+    },
+    "view_2": {
+      "prompt": "When and where would someone typically use [TITLE] {text}?",
+      "file": "view_2.npy",
+      "vector_dim": 64
+    },
+    "view_3": {
+      "prompt": "How is [TITLE] {text} designed? Describe its materials, size, and appearance.",
+      "file": "view_3.npy",
+      "vector_dim": 64
+    }
+  }
+}
