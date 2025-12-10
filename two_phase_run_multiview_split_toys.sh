@@ -36,7 +36,7 @@ python scripts/two_phase_train.py \
   --burnin_eval_step 2 \
   --phase_a_epochs 6 \
   --phase_a_eval_step 1 \
-  --phase_a_valid_metric "Recall@10" \
+  --phase_a_valid_metric "mrr@10" \
   --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
   --lr_text_head 1e-3 \
