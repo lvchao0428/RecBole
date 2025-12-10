@@ -63,12 +63,25 @@ PROMPT_PRESETS = {
         # View 4: Category/Context
         "Categorize the item [TITLE] {text} and describe its context.",
     ],
-    "multiview-opt":[
+    "multiview-opt": [
         "Core attributes of [TITLE] {text}: name, function, main category",
         "Key traits of [TITLE] {text}: applicable group, core material/ingredient, usage scenario",
         "User value of [TITLE] {text}: solved pain point/met demand",
         "Fine category of [TITLE] {text} (specific type only)"
-        ],
+    ],
+    # Universal multi-view prompts based on 5W1H semantic orthogonality
+    # Designed for cross-domain effectiveness (Beauty, Toys, etc.)
+    # Key insight: What vs Who forms strong adversarial pair (-0.23 on Beauty)
+    "multiview-universal": [
+        # View 0: WHAT - functional capabilities (adversarial to View 1)
+        "What are the main functions and features of [TITLE] {text}?",
+        # View 1: WHO - user demographics (adversarial to View 0)
+        "Who is the ideal user or target audience for [TITLE] {text}?",
+        # View 2: WHEN/WHERE - usage context (adversarial to View 3)
+        "When and where would someone typically use [TITLE] {text}?",
+        # View 3: HOW - physical attributes (adversarial to View 2)
+        "How is [TITLE] {text} designed? Describe its materials, size, and appearance.",
+    ],
     "description": [
         "Describe [TITLE] {text} in detail.",
     ]
