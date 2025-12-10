@@ -63,6 +63,12 @@ PROMPT_PRESETS = {
         # View 4: Category/Context
         "Categorize the item [TITLE] {text} and describe its context.",
     ],
+    "multiview-opt":[
+        "Core attributes of [TITLE] {text}: name, function, main category",
+        "Key traits of [TITLE] {text}: applicable group, core material/ingredient, usage scenario",
+        "User value of [TITLE] {text}: solved pain point/met demand",
+        "Fine category of [TITLE] {text} (specific type only)"
+        ],
     "description": [
         "Describe [TITLE] {text} in detail.",
     ]

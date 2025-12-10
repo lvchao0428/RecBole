@@ -18,18 +18,21 @@ echo "  - Total views: 4"
 echo ""
 
 python tools/build_item_text_emb_qwen3_hf.py \
-  --mapping /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_index_mapping.csv \
+  --mapping dataset/Amazon_Toys_and_Games/item_index_mapping.csv \
   --model_name_or_path /home/charlie/project/qwen/Model \
-  --output /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb_qwen3_4views.npy \
-  --batch_size 16 \
-  --max_length 128 \
-  --dtype float16 \
-  --dataset Amazon_Toys_and_Games \
-  --config /home/charlie/project/RecBole/sasrec_base_plain.yaml \
-  --prompt_preset multiview \
+  --output dataset/Amazon_Toys_and_Games/item_text_emb.qwen3.multiview.npy \
+  --prompt_preset multiview-opt \
   --output_mode concat \
-  --view_project_dim 128 \
-  --split_output_dir /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb_qwen3_4views_split
+  --split_output_dir dataset/Amazon_Toys_and_Games/qwen3_4views \
+  --view_project_dim 64 \
+  --dataset Amazon_Toys_and_Games \
+  --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
+  --batch_size 16 \
+  --max_length 0 \
+  --dtype float16 \
+  --device cuda:0 \
+  --svd_random_state 42 \
+  --use_chat_template
 
 echo ""
 echo "[Multi-View 4-Views] Done!"
