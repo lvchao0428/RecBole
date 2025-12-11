@@ -201,6 +201,7 @@ def _center_whiten_and_normalize(
     train_ids: np.ndarray,
     output_stats_path: Optional[str] = None,
     enable_whiten: bool = True,
+    enable_center: bool = True,
 ) -> np.ndarray:
     """Center + Whiten + L2 normalize, using training set statistics only.
     
@@ -209,12 +210,22 @@ def _center_whiten_and_normalize(
         train_ids: Array of training item internal IDs (excluding PAD=0)
         output_stats_path: Optional path to save mean and whiten_matrix
         enable_whiten: Whether to apply whitening (if False, only center+L2)
+        enable_center: Whether to apply centering (if False, skip center+whiten entirely and only L2 normalize)
     
     Returns:
         Processed embedding matrix with same shape as input
     """
     if emb is None or emb.size == 0:
         return emb
+    
+    # If centering is disabled, skip center+whiten entirely and only L2 normalize
+    if not enable_center:
+        print("[Center] Centering disabled. Only applying L2 normalization.")
+        emb_processed = emb.copy().astype(np.float32)
+        norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
+        emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
+        emb_processed[0, :] = 0.0  # Keep PAD as zeros
+        return emb_processed
     
     # Extract training embeddings (exclude PAD=0)
     train_mask = np.isin(np.arange(len(emb)), train_ids)
@@ -359,6 +370,7 @@ def build_item_text_emb(
     svd_random_state: int = 42,
     pre_svd_l2: bool = False,  # Changed: disable by default for better whitening
     enable_whiten: bool = True,
+    enable_center: bool = True,
 ) -> str:
     """Main pipeline to build base item text embeddings and save to output_path.
 
@@ -438,16 +450,17 @@ def build_item_text_emb(
 
     # Apply center + whiten normalization (using training set statistics)
     print(f"[Step 5/6] Applying center + whiten normalization...")
-    if enable_whiten:
-        stats_path = output_path.replace('.npy', '_whiten_stats.npz')
+    if enable_center or enable_whiten:
+        stats_path = output_path.replace('.npy', '_whiten_stats.npz') if enable_center else None
         emb = _center_whiten_and_normalize(
             emb,
             train_iids,
             output_stats_path=stats_path,
-            enable_whiten=True,
+            enable_whiten=enable_whiten,
+            enable_center=enable_center,
         )
     else:
-        print("  → Whitening disabled (--no_whiten)")
+        print("  → Center and whitening disabled (--no_center --no_whiten)")
 
     # Cast dtype if requested
     print(f"[Step 6/6] Saving embeddings...")
@@ -532,6 +545,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
     )
+    p.add_argument(
+        "--no_center",
+        action="store_true",
+        help="Disable centering (mean subtraction). If set, skip center+whiten entirely and only L2 normalize.",
+    )
     return p.parse_args()
 
 
@@ -552,6 +570,7 @@ def main():
         svd_random_state=args.svd_random_state,
         pre_svd_l2=(not args.no_pre_svd_l2),
         enable_whiten=(not args.no_whiten),
+        enable_center=(not args.no_center),
     )
 
 

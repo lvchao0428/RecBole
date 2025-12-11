@@ -185,6 +185,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
     )
+    p.add_argument(
+        "--no_center",
+        action="store_true",
+        help="Disable centering (mean subtraction). If set, skip center+whiten entirely and only L2 normalize.",
+    )
     return p.parse_args()
 
 
@@ -286,6 +291,7 @@ def _center_whiten_and_normalize(
     train_ids: np.ndarray,
     output_stats_path: Optional[str] = None,
     enable_whiten: bool = True,
+    enable_center: bool = True,
 ) -> np.ndarray:
     """Center + Whiten + L2 normalize, using training set statistics only.
     
@@ -294,6 +300,7 @@ def _center_whiten_and_normalize(
         train_ids: Array of training item internal IDs (excluding PAD=0)
         output_stats_path: Optional path to save mean and whiten_matrix
         enable_whiten: Whether to apply whitening (if False, only center+L2)
+        enable_center: Whether to apply centering (if False, skip center+whiten entirely and only L2 normalize)
     
     Returns:
         Processed embedding matrix with same shape as input
@@ -305,6 +312,15 @@ def _center_whiten_and_normalize(
     if emb.ndim == 3:
         print("[WARN] Skipping center/whiten for 3D tensor (mode=stack). Apply per-view instead.")
         return emb
+    
+    # If centering is disabled, skip center+whiten entirely and only L2 normalize
+    if not enable_center:
+        print("[Center] Centering disabled. Only applying L2 normalization.")
+        emb_processed = emb.copy().astype(np.float32)
+        norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
+        emb_processed[1:] = emb_processed[1:] / np.clip(norms, 1e-8, None)
+        emb_processed[0, :] = 0.0  # Keep PAD as zeros
+        return emb_processed
     
     # Extract training embeddings (exclude PAD=0)
     if train_ids is None or len(train_ids) == 0:
@@ -609,6 +625,7 @@ def main():
         train_ids_cache = _load_train_item_ids(args, n_items - 1)
 
     enable_whiten = not args.no_whiten
+    enable_center = not args.no_center
 
     if split_chunks is not None:
         os.makedirs(args.split_output_dir, exist_ok=True)
@@ -636,16 +653,17 @@ def main():
                 )
             
             # Apply center + whiten to each view independently
-            if enable_whiten:
+            if enable_center or enable_whiten:
                 view_stats_path = os.path.join(
                     args.split_output_dir, 
                     f"view_{view_idx}_whiten_stats.npz"
-                )
+                ) if enable_center else None
                 view_mat = _center_whiten_and_normalize(
                     view_mat,
                     train_ids_cache,
                     output_stats_path=view_stats_path,
-                    enable_whiten=True,
+                    enable_whiten=enable_whiten,
+                    enable_center=enable_center,
                 )
             
             save_mat = view_mat
@@ -700,13 +718,14 @@ def main():
             )
 
     # --- 6. Apply Center + Whiten normalization (after final projection) ---
-    if enable_whiten and mat is not None and mat.ndim == 2:
-        stats_path = args.output.replace('.npy', '_whiten_stats.npz')
+    if (enable_center or enable_whiten) and mat is not None and mat.ndim == 2:
+        stats_path = args.output.replace('.npy', '_whiten_stats.npz') if enable_center else None
         mat = _center_whiten_and_normalize(
             mat,
             train_ids_cache,
             output_stats_path=stats_path,
-            enable_whiten=True,
+            enable_whiten=enable_whiten,
+            enable_center=enable_center,
         )
 
     # --- 7. Save ---

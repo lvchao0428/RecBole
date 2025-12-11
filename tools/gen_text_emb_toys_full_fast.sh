@@ -90,6 +90,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --device cuda:0 \
   --svd_random_state 42 \
   --use_chat_template
+  --no_center --no_whiten
 
 echo ""
 echo "✅ Qwen3单视图特征生成完成"
@@ -121,6 +122,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --device cuda:0 \
   --svd_random_state 42 \
   --use_chat_template
+  --no_center --no_whiten
 
 echo ""
 echo "✅ Qwen3多视图特征生成完成"
