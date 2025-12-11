@@ -23,11 +23,11 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_multi_view_toys_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.01,0.03,0.05" \
-  --tau_grid "0.05,0.07,0.1" \
+  --align_grid "0.03,0.05" \
+  --tau_grid "0.05,0.07" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
-  --phase_a_epochs 6 \
+  --phase_a_epochs 15 \
   --phase_a_eval_step 1 \
   --phase_a_valid_metric "Recall@10" \
   --metric_baseline 0.0272 \
