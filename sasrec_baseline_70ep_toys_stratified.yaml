@@ -30,7 +30,7 @@ load_col:
   item: [item_id]
 
 # Training / Evaluation (70 epochs baseline)
-epochs: 70
+epochs: 50
 train_batch_size: 512
 eval_batch_size: 512
 learning_rate: 0.0001
