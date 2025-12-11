@@ -290,8 +290,8 @@ def _center_whiten_and_normalize(
     emb: np.ndarray,
     train_ids: np.ndarray,
     output_stats_path: Optional[str] = None,
-    enable_whiten: bool = True,
-    enable_center: bool = True,
+    enable_whiten: bool = False,
+    enable_center: bool = False,
 ) -> np.ndarray:
     """Center + Whiten + L2 normalize, using training set statistics only.
     

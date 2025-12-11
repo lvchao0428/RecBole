@@ -200,8 +200,8 @@ def _center_whiten_and_normalize(
     emb: np.ndarray,
     train_ids: np.ndarray,
     output_stats_path: Optional[str] = None,
-    enable_whiten: bool = True,
-    enable_center: bool = True,
+    enable_whiten: bool = False,
+    enable_center: bool = False,
 ) -> np.ndarray:
     """Center + Whiten + L2 normalize, using training set statistics only.
     
@@ -369,8 +369,8 @@ def build_item_text_emb(
     dtype: str = "float16",
     svd_random_state: int = 42,
     pre_svd_l2: bool = False,  # Changed: disable by default for better whitening
-    enable_whiten: bool = True,
-    enable_center: bool = True,
+    enable_whiten: bool = False,
+    enable_center: bool = False,
 ) -> str:
     """Main pipeline to build base item text embeddings and save to output_path.
 
