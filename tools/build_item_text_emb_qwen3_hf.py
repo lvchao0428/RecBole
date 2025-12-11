@@ -181,14 +181,14 @@ def parse_args() -> argparse.Namespace:
         help="YAML config files for dataset loading.",
     )
     p.add_argument(
-        "--no_whiten",
+        "--whiten",
         action="store_true",
-        help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
+        help="Enable whitening transformation (disabled by default).",
     )
     p.add_argument(
-        "--no_center",
+        "--center",
         action="store_true",
-        help="Disable centering (mean subtraction). If set, skip center+whiten entirely and only L2 normalize.",
+        help="Enable centering (mean subtraction). If not set, skip center+whiten and only L2 normalize.",
     )
     return p.parse_args()
 
@@ -624,8 +624,8 @@ def main():
     if (args.view_project_dim is not None or args.project_dim is not None) and args.dataset:
         train_ids_cache = _load_train_item_ids(args, n_items - 1)
 
-    enable_whiten = not args.no_whiten
-    enable_center = not args.no_center
+    enable_whiten = args.whiten
+    enable_center = args.center
 
     if split_chunks is not None:
         os.makedirs(args.split_output_dir, exist_ok=True)

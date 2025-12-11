@@ -460,7 +460,7 @@ def build_item_text_emb(
             enable_center=enable_center,
         )
     else:
-        print("  → Center and whitening disabled (--no_center --no_whiten)")
+        print("  → Center and whitening disabled (use --center --whiten to enable)")
 
     # Cast dtype if requested
     print(f"[Step 6/6] Saving embeddings...")
@@ -536,19 +536,19 @@ def parse_args() -> argparse.Namespace:
         help="Output dtype for the saved matrix",
     )
     p.add_argument(
-        "--no_pre_svd_l2",
+        "--pre_svd_l2",
         action="store_true",
-        help="Disable row-wise L2 normalization before SVD (enabled by default).",
+        help="Enable row-wise L2 normalization before SVD (disabled by default).",
     )
     p.add_argument(
-        "--no_whiten",
+        "--whiten",
         action="store_true",
-        help="Disable whitening transformation (enabled by default). Only center + L2 normalize.",
+        help="Enable whitening transformation (disabled by default).",
     )
     p.add_argument(
-        "--no_center",
+        "--center",
         action="store_true",
-        help="Disable centering (mean subtraction). If set, skip center+whiten entirely and only L2 normalize.",
+        help="Enable centering (mean subtraction). If not set, skip center+whiten and only L2 normalize.",
     )
     return p.parse_args()
 
@@ -568,9 +568,9 @@ def main():
         max_features=args.max_features,
         dtype=args.dtype,
         svd_random_state=args.svd_random_state,
-        pre_svd_l2=(not args.no_pre_svd_l2),
-        enable_whiten=(not args.no_whiten),
-        enable_center=(not args.no_center),
+        pre_svd_l2=args.pre_svd_l2,
+        enable_whiten=args.whiten,
+        enable_center=args.center,
     )
 
 
