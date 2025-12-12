@@ -68,6 +68,25 @@ class DatasetAnalyzer:
         min_interactions_per_item = item_interactions.min()
         max_interactions_per_item = item_interactions.max()
         std_interactions_per_item = item_interactions.std()
+
+        # 物品分层（按交互次数）
+        def safe_ratio(numerator, denominator):
+            return 0.0 if denominator == 0 else 100 * numerator / denominator
+
+        strata_masks = {
+            'item_new': (item_interactions >= 1) & (item_interactions < 3),       # [1, 3)
+            'item_few': (item_interactions >= 3) & (item_interactions < 10),      # [3, 10)
+            'item_frequent': (item_interactions >= 10),                           # [10, +∞)
+        }
+
+        strata_stats = {}
+        for key, mask in strata_masks.items():
+            item_count = int(mask.sum())
+            interaction_count = int(item_interactions[mask].sum()) if item_count > 0 else 0
+            strata_stats[f'{key}_count'] = item_count
+            strata_stats[f'{key}_ratio_items'] = safe_ratio(item_count, n_items)
+            strata_stats[f'{key}_interactions'] = interaction_count
+            strata_stats[f'{key}_ratio_interactions'] = safe_ratio(interaction_count, n_interactions)
         
         # 稀疏度计算
         total_possible_interactions = n_users * n_items
@@ -117,6 +136,7 @@ class DatasetAnalyzer:
         }
         
         stats.update(rating_stats)
+        stats.update(strata_stats)
         self.stats = stats
         return stats
     
@@ -218,6 +238,18 @@ def create_comparison_table(df: pd.DataFrame, metrics: List[str] = None) -> str:
         'user_gini': '用户Gini系数',
         'item_gini': '物品Gini系数',
         'avg_rating': '平均评分',
+        'item_new_count': 'new物品数',
+        'item_few_count': 'few物品数',
+        'item_frequent_count': 'frequent物品数',
+        'item_new_ratio_items': 'new物品占比(数量)',
+        'item_few_ratio_items': 'few物品占比(数量)',
+        'item_frequent_ratio_items': 'frequent物品占比(数量)',
+        'item_new_interactions': 'new交互数',
+        'item_few_interactions': 'few交互数',
+        'item_frequent_interactions': 'frequent交互数',
+        'item_new_ratio_interactions': 'new交互占比(次数)',
+        'item_few_ratio_interactions': 'few交互占比(次数)',
+        'item_frequent_ratio_interactions': 'frequent交互占比(次数)',
     }
     
     lines = []
@@ -238,7 +270,7 @@ def create_comparison_table(df: pd.DataFrame, metrics: List[str] = None) -> str:
             row = metric_names.get(metric, metric).ljust(25)
             for dataset in df.index:
                 value = df.loc[dataset, metric]
-                if metric in ['sparsity', 'density']:
+                if metric in ['sparsity', 'density'] or metric.endswith('_ratio_items') or metric.endswith('_ratio_interactions'):
                     formatted = f"{value:.4f}%".ljust(25)
                 elif metric in ['user_gini', 'item_gini', 'avg_rating']:
                     formatted = f"{value:.4f}".ljust(25)
@@ -426,6 +458,28 @@ def main():
                 if metric in df.columns:
                     percentile = metric.replace('item_p', 'P')
                     print(f"  {percentile}: {df.loc[dataset, metric]:.2f}")
+
+            # 物品交互分层
+            if 'item_new_count' in df.columns:
+                print(f"\n{dataset} - 物品交互分层 (按交互次数):")
+                print(
+                    f"  new      [1, 3):  {int(df.loc[dataset, 'item_new_count'])} items "
+                    f"({df.loc[dataset, 'item_new_ratio_items']:.4f}%), "
+                    f"{int(df.loc[dataset, 'item_new_interactions'])} interactions "
+                    f"({df.loc[dataset, 'item_new_ratio_interactions']:.4f}%)"
+                )
+                print(
+                    f"  few      [3, 10): {int(df.loc[dataset, 'item_few_count'])} items "
+                    f"({df.loc[dataset, 'item_few_ratio_items']:.4f}%), "
+                    f"{int(df.loc[dataset, 'item_few_interactions'])} interactions "
+                    f"({df.loc[dataset, 'item_few_ratio_interactions']:.4f}%)"
+                )
+                print(
+                    f"  frequent [10,+∞): {int(df.loc[dataset, 'item_frequent_count'])} items "
+                    f"({df.loc[dataset, 'item_frequent_ratio_items']:.4f}%), "
+                    f"{int(df.loc[dataset, 'item_frequent_interactions'])} interactions "
+                    f"({df.loc[dataset, 'item_frequent_ratio_interactions']:.4f}%)"
+                )
         
         print("\n" + "="*100)
         print("分析完成!")
