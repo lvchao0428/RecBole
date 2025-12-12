@@ -81,7 +81,7 @@ echo ""
 # macOS可能使用MPS后端，如无GPU可改为 --device cpu
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/ml-1m/item_index_mapping.csv \
-  --model_name_or_path /path/to/your/qwen/Model \
+  --model_name_or_path /home/charlie/project/qwen/Model \
   --output dataset/ml-1m/item_text_emb.qwen3.base.npy \
   --prompt_preset base \
   --output_mode mean \
@@ -113,7 +113,7 @@ echo ""
 
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/ml-1m/item_index_mapping.csv \
-  --model_name_or_path /path/to/your/qwen/Model \
+  --model_name_or_path /home/charlie/project/qwen/Model \
   --output dataset/ml-1m/item_text_emb.qwen3.multiview.npy \
   --prompt_preset multiview \
   --output_mode concat \
