@@ -46,7 +46,9 @@ python tools/build_item_text_emb_base.py \
   --ngram_min 1 \
   --ngram_max 2 \
   --min_df 2 \
-  --dtype float16
+  --dtype float16 \
+  --whiten \
+  --center
 
 echo ""
 echo "✅ TF-IDF特征生成完成"
@@ -91,7 +93,9 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --dtype float16 \
   --device cuda:0 \
   --svd_random_state 42 \
-  --use_chat_template 
+  --use_chat_template  \
+  --whiten \
+  --center
 
 echo ""
 echo "✅ Qwen3单视图特征生成完成"
@@ -122,7 +126,9 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --dtype float16 \
   --device cuda:0 \
   --svd_random_state 42 \
-  --use_chat_template 
+  --use_chat_template \
+  --whiten \
+  --center
 
 echo ""
 echo "✅ Qwen3多视图特征生成完成"
