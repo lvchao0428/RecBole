@@ -93,7 +93,7 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --dtype float16 \
   --device cuda:0 \
   --svd_random_state 42 \
-  --use_chat_template  \
+  --use_chat_template \
   --whiten \
   --center
 

@@ -405,6 +405,7 @@ def main():
         datasets_info = [
             (os.path.join(args.server_path, 'ml-1m'), 'ml-1m', 'MovieLens-1M (Full)'),
             (os.path.join(args.server_path, 'Amazon_Beauty'), 'Amazon_Beauty', 'Amazon Beauty (Full)'),
+            (os.path.join(args.server_path, 'Amazon_Movies_and_TV'), 'Amazon_Movies_and_TV', 'Amazon Movies & TV (Full)'),
         ]
     
     elif args.datasets:
