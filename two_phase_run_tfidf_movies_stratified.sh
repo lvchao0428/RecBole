@@ -4,7 +4,7 @@
 # Two-phase TF-IDF baseline with Stratified Evaluation (Amazon_Movies_and_TV Dataset)
 # 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
 
-cd /Users/lvchao0428/project/ownRecBole/RecBole
+cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
@@ -16,6 +16,11 @@ echo "Item Stratification:"
 echo "  - new:      [1, 3)   interactions"
 echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
+echo ""
+echo "Metrics:"
+echo "  - Standard: Recall, NDCG, MRR, etc."
+echo "  - Stratified: Recall_new@K, NDCG_few@K, etc."
+echo "  - Coverage: Coverage_new@K, Coverage_frequent@K, etc."
 echo ""
 
 python scripts/two_phase_train.py \

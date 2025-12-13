@@ -46,7 +46,9 @@ python tools/build_item_text_emb_base.py \
   --ngram_min 1 \
   --ngram_max 2 \
   --min_df 2 \
-  --dtype float16
+  --dtype float16 \
+  --whiten \
+  --center
 
 echo ""
 echo "✅ TF-IDF特征生成完成"
@@ -79,7 +81,7 @@ echo ""
 # macOS可能使用MPS后端，如无GPU可改为 --device cpu
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/Amazon_Movies_and_TV/item_index_mapping.csv \
-  --model_name_or_path /path/to/your/qwen/Model \
+  --model_name_or_path /home/charlie/project/qwen/Model \
   --output dataset/Amazon_Movies_and_TV/item_text_emb.qwen3.base.npy \
   --prompt_preset base \
   --output_mode mean \
@@ -111,7 +113,7 @@ echo ""
 
 python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/Amazon_Movies_and_TV/item_index_mapping.csv \
-  --model_name_or_path /path/to/your/qwen/Model \
+  --model_name_or_path /home/charlie/project/qwen/Model \
   --output dataset/Amazon_Movies_and_TV/item_text_emb.qwen3.multiview.npy \
   --prompt_preset multiview \
   --output_mode concat \
