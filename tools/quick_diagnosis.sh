@@ -56,6 +56,7 @@ quick_check() {
 # Check both datasets
 quick_check "Amazon_Beauty"
 quick_check "Amazon_Toys_and_Games"
+quick_check "Amazon_Movies_and_TV"
 
 # Quick embedding comparison
 echo "================================================================================"

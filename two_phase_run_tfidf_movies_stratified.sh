@@ -28,7 +28,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Movies_and_TV \
   --config_files "sasrec_align_movies_base_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.05" \
+  --align_grid "0.01" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \

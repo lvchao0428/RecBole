@@ -13,7 +13,7 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 # ========================================
 # 请将下面的路径替换为你实际的 checkpoint 文件路径
 # 例如：CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/SASRec_Align-Dec-13-2025_10-30-45.pth"
-CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/YOUR_CHECKPOINT_FILE.pth"
+CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/SASRec_Align-Dec-13-2025_13-27-11.pth"
 
 # 检查 checkpoint 是否存在
 if [ ! -f "$CHECKPOINT_PATH" ]; then
@@ -39,7 +39,7 @@ python scripts/two_phase_train.py \
   --config_files "sasrec_align_movies_base_stratified.yaml" \
   --only_phase_b \
   --resume_from "$CHECKPOINT_PATH" \
-  --phase_b_epochs 40 \
+  --phase_b_epochs 20 \
   --phase_b_alignment_weight 0.05 \
   --phase_b_text_gate_reg_l2 0.05 \
   --phase_b_text_weight 0.8 \
