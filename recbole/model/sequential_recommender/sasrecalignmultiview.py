@@ -24,6 +24,8 @@ class SASRecAlignMultiView(SASRecAlign):
         super().__init__(config, dataset)
 
         self.use_text_view_split = bool(config["use_text_view_split"]) if "use_text_view_split" in config else False
+        # NEW: Switch to enable/disable DCN-V2 text_cross for multiview (default: False for backward compatibility)
+        self.use_multiview_text_cross = bool(config["use_multiview_text_cross"]) if "use_multiview_text_cross" in config else False
         if "item_text_emb_split_dir" in config and config["item_text_emb_split_dir"]:
             self.text_view_split_dir = os.path.abspath(os.path.expanduser(config["item_text_emb_split_dir"]))
         else:
@@ -101,6 +103,16 @@ class SASRecAlignMultiView(SASRecAlign):
             # Project to hidden_size (256) for fair comparison with TF-IDF+LLM baseline
             self.multiview_concat_proj = nn.Linear(multiview_input_dim, self.hidden_size)
             
+            # ===== Optional: Add text_cross DCN-V2 for multiview features (match TF-IDF+LLM baseline) =====
+            # Controlled by use_multiview_text_cross (default: False for backward compatibility)
+            # When enabled, this ensures fair comparison: both models have 2 DCN-V2 layers
+            # DCN-V2 #1: multiview_text_cross (after concat projection) - OPTIONAL
+            # DCN-V2 #2: item_fusion_cross (after combining with item embedding) - ALWAYS
+            self.multiview_text_cross = None
+            self.multiview_text_deep = None
+            self.multiview_text_predictor = None
+            self.multiview_text_cross_dropout = None
+            
             # Reinitialize item fusion networks with correct dimensions
             # Since we project multi-view to hidden_size (256), fusion input is:
             # item_emb (256) + text_proj (256) = 512
@@ -108,6 +120,23 @@ class SASRecAlignMultiView(SASRecAlign):
                 from recbole.model.sequential_recommender.sasrec_align import DCNV2Cross
                 from recbole.model.layers import MLPLayers
                 
+                # ===== DCN-V2 #1: multiview text cross (parallel to TF-IDF+LLM's text_cross) =====
+                # Only created when use_multiview_text_cross=True
+                if self.use_multiview_text_cross:
+                    # Input: [B, hidden_size] after multiview_concat_proj
+                    # This matches the text_cross + text_deep + text_predictor in SASRecAlign
+                    self.multiview_text_cross = DCNV2Cross(self.hidden_size, num_layers=self.text_cross_layer_num)
+                    self.multiview_text_deep = MLPLayers(
+                        [self.hidden_size, self.hidden_size], 
+                        dropout=0.0, 
+                        bn=self.text_mlp_bn
+                    )
+                    # Cross output (hidden_size) + Deep output (hidden_size) → hidden_size
+                    self.multiview_text_predictor = nn.Linear(self.hidden_size + self.hidden_size, self.hidden_size)
+                    if self.cross_dropout_prob > 0.0:
+                        self.multiview_text_cross_dropout = nn.Dropout(self.cross_dropout_prob)
+                
+                # ===== DCN-V2 #2: item fusion cross (always enabled when use_cross=True) =====
                 fusion_input_dim = self.hidden_size + self.hidden_size  # 256 + 256 = 512
                 
                 # Recreate item fusion networks with correct dimensions
@@ -136,6 +165,7 @@ class SASRecAlignMultiView(SASRecAlign):
             has_base = self.item_text_emb_base is not None
             proj_input_dim = multiview_input_dim
             proj_output_dim = self.hidden_size  # 256
+            has_text_cross = self.multiview_text_cross is not None
             
             self.logger.info(
                 "SASRecAlignMultiView initialized: %d views, SENet ratio=%d, per-view alignment enabled",
@@ -145,7 +175,13 @@ class SASRecAlignMultiView(SASRecAlign):
                 "Multi-view projection: [%d → %d] | Base features: %s | Fusion input dim: %d",
                 proj_input_dim, proj_output_dim, 
                 "enabled" if has_base else "disabled",
-                fusion_input_dim  # 768
+                fusion_input_dim
+            )
+            self.logger.info(
+                "DCN-V2 layers: multiview_text_cross=%s (W: %dx%d × %d layers) | item_fusion_cross (W: %dx%d × %d layers)",
+                "enabled" if has_text_cross else "disabled",
+                self.hidden_size, self.hidden_size, self.text_cross_layer_num,
+                fusion_input_dim, fusion_input_dim, self.text_cross_layer_num
             )
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
@@ -259,7 +295,26 @@ class SASRecAlignMultiView(SASRecAlign):
         # Output: [B, 256]
         text_proj = self.multiview_concat_proj(text_concat)
         
-        # Step 5: Use parent class's cross network fusion logic
+        # Step 4.5: Apply DCN-V2 #1 (multiview_text_cross) - matches text_cross in SASRecAlign
+        # This ensures fair comparison with TF-IDF+LLM baseline which has text_cross layer
+        if (
+            self.use_cross 
+            and self.multiview_text_cross is not None 
+            and self.multiview_text_deep is not None 
+            and self.multiview_text_predictor is not None
+        ):
+            cross_out = self.multiview_text_cross(text_proj)  # [B, 256]
+            if self.multiview_text_cross_dropout is not None:
+                cross_out = self.multiview_text_cross_dropout(cross_out)
+            deep_out = self.multiview_text_deep(text_proj)  # [B, 256]
+            text_fused = torch.cat([cross_out, deep_out], dim=1)  # [B, 512]
+            text_proj = self.multiview_text_predictor(text_fused)  # [B, 256]
+            
+            # Apply text projection norm if available (inherited from parent)
+            if self.text_proj_norm is not None:
+                text_proj = self.text_proj_norm(text_proj)
+        
+        # Step 5: Use cross network fusion logic (DCN-V2 #2: item_fusion_cross)
         # This includes: gate, cross network, alignment, etc.
         return self._fuse_with_cross_network(item_emb, text_proj, all_ids)
     

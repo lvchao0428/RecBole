@@ -63,6 +63,7 @@ use_cross: true  # CHANGED: Enable cross network fusion (aligned with qwen3)
 text_cross_layer_num: 2  # ADDED: Same as qwen3 config
 use_seq_text_cross: false
 use_text_view_split: true
+use_multiview_text_cross: true  # Enable DCN-V2 for multiview text (fair comparison with TF-IDF+LLM)
 num_text_views: 4  # CHANGED: 4 views instead of 5
 text_view_senet_ratio: 4  # SENet compression ratio
 text_view_half_precision: true

@@ -13,7 +13,7 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 # ========================================
 # 请将下面的路径替换为你实际的 checkpoint 文件路径
 # 例如：CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/SASRec_Align-Dec-13-2025_10-30-45.pth"
-CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/SASRec_Align-Dec-13-2025_13-29-01.pth"
+CHECKPOINT_PATH="./saved/phase_runs_movies_stratified/SASRec_Align-Dec-14-2025_10-03-52.pth"
 
 # 检查 checkpoint 是否存在
 if [ ! -f "$CHECKPOINT_PATH" ]; then
