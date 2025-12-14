@@ -940,6 +940,181 @@ class StratifiedNDCG(TopkMetric):
         return metric_dict
 
 
+class StratifiedMRR(TopkMetric):
+    r"""StratifiedMRR calculates MRR@K stratified by item interaction count.
+    
+    Strata:
+    - new: interaction count in [1, 3)
+    - few: interaction count in [3, 10)
+    - frequent: interaction count in [10, +inf)
+    
+    MRR (Mean Reciprocal Rank) computes the reciprocal rank of the first relevant item.
+    """
+    
+    metric_type = EvaluatorType.RANKING
+    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    
+    def __init__(self, config):
+        super().__init__(config)
+        self.topk = config["topk"]
+        self.new_threshold = (1, 3)
+        self.few_threshold = (3, 10)
+        self.freq_threshold = (10, float('inf'))
+    
+    def used_info(self, dataobject):
+        import torch
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.to(torch.bool).numpy()
+        pos_len_list = pos_len_list.squeeze(-1).numpy()
+        rec_items = dataobject.get("rec.items").numpy()
+        item_counter = dataobject.get("data.count_items")
+        return topk_idx, pos_len_list, rec_items, item_counter
+    
+    def _get_item_stratum(self, item_id, item_counter):
+        count = item_counter.get(item_id, 0)
+        if self.new_threshold[0] <= count < self.new_threshold[1]:
+            return 'new'
+        elif self.few_threshold[0] <= count < self.few_threshold[1]:
+            return 'few'
+        elif count >= self.freq_threshold[0]:
+            return 'frequent'
+        return None
+    
+    def calculate_metric(self, dataobject):
+        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        
+        # For each stratum, collect reciprocal ranks
+        strata_rr = {'new': [], 'few': [], 'frequent': []}
+        
+        n_users = topk_idx.shape[0]
+        max_k = max(self.topk)
+        
+        for user_idx in range(n_users):
+            user_topk = topk_idx[user_idx]
+            user_rec_items = rec_items[user_idx]
+            
+            # Track first hit position for each stratum
+            stratum_first_hit = {'new': -1, 'few': -1, 'frequent': -1}
+            stratum_has_item = {'new': False, 'few': False, 'frequent': False}
+            
+            for k_idx in range(min(len(user_rec_items), max_k)):
+                item_id = user_rec_items[k_idx]
+                is_hit = user_topk[k_idx]
+                stratum = self._get_item_stratum(item_id, item_counter)
+                
+                if stratum in strata_rr:
+                    stratum_has_item[stratum] = True
+                    # Record first hit position if not already recorded
+                    if is_hit and stratum_first_hit[stratum] == -1:
+                        stratum_first_hit[stratum] = k_idx + 1  # 1-based rank
+            
+            # Calculate reciprocal rank for each stratum this user has items for
+            for stratum in ['new', 'few', 'frequent']:
+                if stratum_has_item[stratum]:
+                    if stratum_first_hit[stratum] > 0:
+                        rr = 1.0 / stratum_first_hit[stratum]
+                    else:
+                        rr = 0.0
+                    strata_rr[stratum].append(rr)
+        
+        metric_dict = {}
+        for stratum in ['new', 'few', 'frequent']:
+            for k in self.topk:
+                if len(strata_rr[stratum]) > 0:
+                    mrr = np.mean(strata_rr[stratum])
+                else:
+                    mrr = 0.0
+                key = "MRR_{}@{}".format(stratum, k)
+                metric_dict[key] = round(mrr, self.decimal_place)
+        return metric_dict
+
+
+class StratifiedHit(TopkMetric):
+    r"""StratifiedHit calculates Hit@K (Hit Rate) stratified by item interaction count.
+    
+    Strata:
+    - new: interaction count in [1, 3)
+    - few: interaction count in [3, 10)
+    - frequent: interaction count in [10, +inf)
+    
+    Hit Rate measures whether there is at least one hit in the recommendation list.
+    """
+    
+    metric_type = EvaluatorType.RANKING
+    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    
+    def __init__(self, config):
+        super().__init__(config)
+        self.topk = config["topk"]
+        self.new_threshold = (1, 3)
+        self.few_threshold = (3, 10)
+        self.freq_threshold = (10, float('inf'))
+    
+    def used_info(self, dataobject):
+        import torch
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.to(torch.bool).numpy()
+        pos_len_list = pos_len_list.squeeze(-1).numpy()
+        rec_items = dataobject.get("rec.items").numpy()
+        item_counter = dataobject.get("data.count_items")
+        return topk_idx, pos_len_list, rec_items, item_counter
+    
+    def _get_item_stratum(self, item_id, item_counter):
+        count = item_counter.get(item_id, 0)
+        if self.new_threshold[0] <= count < self.new_threshold[1]:
+            return 'new'
+        elif self.few_threshold[0] <= count < self.few_threshold[1]:
+            return 'few'
+        elif count >= self.freq_threshold[0]:
+            return 'frequent'
+        return None
+    
+    def calculate_metric(self, dataobject):
+        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        
+        # For each stratum, track hit/miss per user
+        strata_hits = {'new': [], 'few': [], 'frequent': []}
+        
+        n_users = topk_idx.shape[0]
+        max_k = max(self.topk)
+        
+        for user_idx in range(n_users):
+            user_topk = topk_idx[user_idx]
+            user_rec_items = rec_items[user_idx]
+            
+            # Track if user has any item and any hit for each stratum
+            stratum_has_item = {'new': False, 'few': False, 'frequent': False}
+            stratum_has_hit = {'new': False, 'few': False, 'frequent': False}
+            
+            for k_idx in range(min(len(user_rec_items), max_k)):
+                item_id = user_rec_items[k_idx]
+                is_hit = user_topk[k_idx]
+                stratum = self._get_item_stratum(item_id, item_counter)
+                
+                if stratum in strata_hits:
+                    stratum_has_item[stratum] = True
+                    if is_hit:
+                        stratum_has_hit[stratum] = True
+            
+            # Record hit/miss for each stratum this user has items for
+            for stratum in ['new', 'few', 'frequent']:
+                if stratum_has_item[stratum]:
+                    strata_hits[stratum].append(1 if stratum_has_hit[stratum] else 0)
+        
+        metric_dict = {}
+        for stratum in ['new', 'few', 'frequent']:
+            for k in self.topk:
+                if len(strata_hits[stratum]) > 0:
+                    hit_rate = np.mean(strata_hits[stratum])
+                else:
+                    hit_rate = 0.0
+                key = "Hit_{}@{}".format(stratum, k)
+                metric_dict[key] = round(hit_rate, self.decimal_place)
+        return metric_dict
+
+
 class ItemPopularityStats(TopkMetric):
     r"""ItemPopularityStats calculates coverage of different item strata in recommendations."""
     
