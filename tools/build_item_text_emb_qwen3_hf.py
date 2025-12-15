@@ -137,6 +137,43 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Load AutoModelForCausalLM instead of AutoModel.",
     )
+    
+    # --- Generative Mode Arguments ---
+    p.add_argument(
+        "--generative",
+        action="store_true",
+        help="Enable generative mode: generate answer first, then extract embedding from the answer.",
+    )
+    p.add_argument(
+        "--gen_max_new_tokens",
+        type=int,
+        default=128,
+        help="Max new tokens to generate in generative mode (default: 128).",
+    )
+    p.add_argument(
+        "--gen_temperature",
+        type=float,
+        default=0.0,
+        help="Temperature for generation. 0 = deterministic greedy decoding (default: 0).",
+    )
+    p.add_argument(
+        "--gen_top_p",
+        type=float,
+        default=1.0,
+        help="Top-p (nucleus) sampling parameter (default: 1.0, no filtering).",
+    )
+    p.add_argument(
+        "--gen_top_k",
+        type=int,
+        default=0,
+        help="Top-k sampling parameter. 0 = disabled (default: 0).",
+    )
+    p.add_argument(
+        "--gen_repetition_penalty",
+        type=float,
+        default=1.0,
+        help="Repetition penalty for generation (default: 1.0, no penalty).",
+    )
     p.add_argument("--placeholder_text", default="N/A", help="Fallback text.")
     p.add_argument("--pad_placeholder_text", default="[PAD]", help="Placeholder for PAD row.")
     p.add_argument(
@@ -252,6 +289,150 @@ def encode_batch(
         if enc["input_ids"].shape[1] == 0:
             # Handle empty edge case
             return np.zeros((len(texts), model.config.hidden_size), dtype=np.float32)
+
+        outputs = model(**enc, output_hidden_states=True, return_dict=True)
+        last_hidden = getattr(outputs, "last_hidden_state", None)
+        if last_hidden is None:
+            last_hidden = outputs.hidden_states[-1]
+            
+        attn_mask = enc.get("attention_mask", torch.ones_like(last_hidden[:, :, 0]))
+        mask = attn_mask.unsqueeze(-1).type_as(last_hidden)
+        summed = (last_hidden * mask).sum(dim=1)
+        counts = mask.sum(dim=1).clamp(min=1e-6)
+        emb = summed / counts
+        emb = torch.nn.functional.normalize(emb, dim=1)
+        return emb.to(torch.float32).detach().cpu().numpy()
+
+
+@torch.no_grad()
+def encode_batch_generative(
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    texts: List[str],
+    max_length: int,
+    device: torch.device,
+    torch_dtype: torch.dtype,
+    gen_max_new_tokens: int = 128,
+    gen_temperature: float = 0.0,
+    gen_top_p: float = 1.0,
+    gen_top_k: int = 0,
+    gen_repetition_penalty: float = 1.0,
+) -> np.ndarray:
+    """Generate answers for prompts, then extract embeddings from the generated text.
+    
+    This is a generative approach: 
+    1. Feed prompt to model
+    2. Generate answer text (with temperature=0 for determinism)
+    3. Extract embedding from the generated answer
+    
+    Args:
+        model: HuggingFace CausalLM model
+        tokenizer: HuggingFace tokenizer
+        texts: List of prompt texts (with item info already filled in)
+        max_length: Max input sequence length (0 = no truncation)
+        device: torch device
+        torch_dtype: torch dtype for computation
+        gen_max_new_tokens: Max new tokens to generate
+        gen_temperature: Temperature for sampling (0 = greedy)
+        gen_top_p: Nucleus sampling parameter
+        gen_top_k: Top-k sampling parameter
+        gen_repetition_penalty: Repetition penalty
+    
+    Returns:
+        np.ndarray of shape [batch_size, hidden_dim]
+    """
+    do_trunc = isinstance(max_length, int) and max_length > 0
+    
+    # Determine sampling strategy
+    do_sample = gen_temperature > 0
+    
+    # Build generation config
+    gen_kwargs = {
+        "max_new_tokens": gen_max_new_tokens,
+        "do_sample": do_sample,
+        "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
+        "repetition_penalty": gen_repetition_penalty,
+    }
+    
+    if do_sample:
+        gen_kwargs["temperature"] = gen_temperature
+        gen_kwargs["top_p"] = gen_top_p
+        if gen_top_k > 0:
+            gen_kwargs["top_k"] = gen_top_k
+    
+    # Store generated texts for embedding extraction
+    generated_texts = []
+    
+    # Generate for each text (batch generation can be tricky with variable lengths)
+    for txt in texts:
+        enc = tokenizer(
+            txt,
+            padding=False,
+            truncation=do_trunc,
+            max_length=(max_length if do_trunc else None),
+            return_tensors="pt",
+        )
+        enc = {k: v.to(device) for k, v in enc.items()}
+        
+        # Generate
+        output_ids = model.generate(
+            **enc,
+            **gen_kwargs,
+        )
+        
+        # Decode only the newly generated tokens (exclude input)
+        input_len = enc["input_ids"].shape[1]
+        new_tokens = output_ids[0, input_len:]
+        generated_text = tokenizer.decode(new_tokens, skip_special_tokens=True)
+        
+        # Fallback if generation is empty
+        if len(generated_text.strip()) == 0:
+            generated_text = txt  # Use original prompt as fallback
+        
+        generated_texts.append(generated_text)
+    
+    # Now extract embeddings from the generated texts
+    # We can reuse the non-generative encode_batch for this
+    if getattr(tokenizer, "pad_token_id", None) is None:
+        # Fallback: encode one by one if no pad token
+        outs = []
+        for gen_txt in generated_texts:
+            enc = tokenizer(
+                gen_txt,
+                padding=False,
+                truncation=do_trunc,
+                max_length=(max_length if do_trunc else None),
+                return_tensors="pt",
+            )
+            enc = {k: v.to(device) for k, v in enc.items()}
+            outputs = model(**enc, output_hidden_states=True, return_dict=True)
+            last_hidden = getattr(outputs, "last_hidden_state", None)
+            if last_hidden is None:
+                last_hidden = outputs.hidden_states[-1]
+            
+            # Mean pooling
+            attn_mask = enc.get("attention_mask", torch.ones_like(last_hidden[:, :, 0]))
+            mask = attn_mask.unsqueeze(-1).type_as(last_hidden)
+            summed = (last_hidden * mask).sum(dim=1)
+            counts = mask.sum(dim=1).clamp(min=1e-6)
+            emb = summed / counts
+            emb = torch.nn.functional.normalize(emb, dim=1)
+            outs.append(emb.to(torch.float32).detach().cpu().numpy())
+        return np.concatenate(outs, axis=0) if outs else np.zeros((0, model.config.hidden_size), dtype=np.float32)
+    else:
+        # Batch encoding of generated texts
+        enc = tokenizer(
+            generated_texts,
+            padding=True,
+            truncation=do_trunc,
+            max_length=(max_length if do_trunc else None),
+            return_tensors="pt",
+        )
+        enc = {k: v.to(device) for k, v in enc.items()}
+        
+        if enc["input_ids"].shape[1] == 0:
+            return np.zeros((len(generated_texts), model.config.hidden_size), dtype=np.float32)
 
         outputs = model(**enc, output_hidden_states=True, return_dict=True)
         last_hidden = getattr(outputs, "last_hidden_state", None)
@@ -512,7 +693,12 @@ def main():
     except Exception:
         is_qwen_like = False
 
-    use_causal = args.use_causal_lm or is_qwen_like
+    # Generative mode requires CausalLM
+    use_causal = args.use_causal_lm or is_qwen_like or args.generative
+    if args.generative and not use_causal:
+        print("[Generative] Forcing use_causal_lm=True for generative mode.")
+        use_causal = True
+    
     if use_causal:
         model = AutoModelForCausalLM.from_pretrained(
             args.model_name_or_path,
@@ -549,7 +735,12 @@ def main():
     
     n_items = len(item_raw_texts)
     max_len_str = str(args.max_length) if isinstance(args.max_length, int) and args.max_length > 0 else "unlimited"
-    print(f"Encoding {n_items} items with batch_size={args.batch_size}, {len(prompts)} prompts, mode={args.output_mode}...")
+    
+    # Print mode info
+    mode_str = "generative" if args.generative else "embedding-only"
+    if args.generative:
+        print(f"[Generative Mode] temperature={args.gen_temperature}, max_new_tokens={args.gen_max_new_tokens}")
+    print(f"Encoding {n_items} items with batch_size={args.batch_size}, {len(prompts)} prompts, mode={args.output_mode}, encode_mode={mode_str}...")
     
     split_chunks = None
     if args.split_output_dir:
@@ -570,15 +761,26 @@ def main():
                     base_prompt = prompt_tmpl.replace("{text}", raw)
                     if use_chat:
                         messages = [{"role": "user", "content": base_prompt}]
+                        # For generative mode, add generation prompt to trigger response
                         chat_text = tokenizer.apply_chat_template(
-                            messages, tokenize=False, add_generation_prompt=False
+                            messages, tokenize=False, add_generation_prompt=args.generative
                         )
                         batch_texts.append(chat_text)
                     else:
                         batch_texts.append(base_prompt)
 
-                # Encode
-                emb = encode_batch(model, tokenizer, batch_texts, args.max_length, device, torch_dtype)
+                # Encode: use generative or embedding-only mode
+                if args.generative:
+                    emb = encode_batch_generative(
+                        model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
+                        gen_max_new_tokens=args.gen_max_new_tokens,
+                        gen_temperature=args.gen_temperature,
+                        gen_top_p=args.gen_top_p,
+                        gen_top_k=args.gen_top_k,
+                        gen_repetition_penalty=args.gen_repetition_penalty,
+                    )
+                else:
+                    emb = encode_batch(model, tokenizer, batch_texts, args.max_length, device, torch_dtype)
                 batch_prompt_embs.append(emb) # [B, D]
             
             # Stack prompt embeddings: [B, K, D]
