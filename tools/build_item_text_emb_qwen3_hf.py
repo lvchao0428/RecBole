@@ -189,6 +189,11 @@ def parse_args() -> argparse.Namespace:
         default=1.0,
         help="Repetition penalty for generation (default: 1.0, no penalty).",
     )
+    p.add_argument(
+        "--save_generated_texts",
+        default=None,
+        help="Path to save generated texts as JSON (e.g., generated_texts.json). Only used in generative mode.",
+    )
     p.add_argument("--placeholder_text", default="N/A", help="Fallback text.")
     p.add_argument("--pad_placeholder_text", default="[PAD]", help="Placeholder for PAD row.")
     p.add_argument(
@@ -332,7 +337,8 @@ def encode_batch_generative(
     gen_top_p: float = 1.0,
     gen_top_k: int = 0,
     gen_repetition_penalty: float = 1.0,
-) -> np.ndarray:
+    return_generated_texts: bool = False,
+) -> Union[np.ndarray, tuple]:
     """Generate answers for prompts, then extract embeddings from the generated text.
     
     This is a generative approach: 
@@ -354,9 +360,13 @@ def encode_batch_generative(
         gen_top_p: Nucleus sampling parameter
         gen_top_k: Top-k sampling parameter
         gen_repetition_penalty: Repetition penalty
+        return_generated_texts: If True, also return the generated texts
     
     Returns:
-        np.ndarray of shape [batch_size, hidden_dim]
+        If return_generated_texts is False:
+            np.ndarray of shape [batch_size, hidden_dim]
+        If return_generated_texts is True:
+            tuple of (np.ndarray, List[str]) where the list contains generated texts
     """
     do_trunc = isinstance(max_length, int) and max_length > 0
     
@@ -496,7 +506,10 @@ def encode_batch_generative(
             emb = summed / counts
             emb = torch.nn.functional.normalize(emb, dim=1)
             outs.append(emb.to(torch.float32).detach().cpu().numpy())
-        return np.concatenate(outs, axis=0) if outs else np.zeros((0, model.config.hidden_size), dtype=np.float32)
+        emb_result = np.concatenate(outs, axis=0) if outs else np.zeros((0, model.config.hidden_size), dtype=np.float32)
+        if return_generated_texts:
+            return emb_result, generated_texts
+        return emb_result
     else:
         # Batch encoding of generated texts
         enc = tokenizer(
@@ -509,7 +522,10 @@ def encode_batch_generative(
         enc = {k: v.to(device) for k, v in enc.items()}
         
         if enc["input_ids"].shape[1] == 0:
-            return np.zeros((len(generated_texts), model.config.hidden_size), dtype=np.float32)
+            emb_result = np.zeros((len(generated_texts), model.config.hidden_size), dtype=np.float32)
+            if return_generated_texts:
+                return emb_result, generated_texts
+            return emb_result
 
         outputs = model(**enc, output_hidden_states=True, return_dict=True)
         last_hidden = getattr(outputs, "last_hidden_state", None)
@@ -522,7 +538,10 @@ def encode_batch_generative(
         counts = mask.sum(dim=1).clamp(min=1e-6)
         emb = summed / counts
         emb = torch.nn.functional.normalize(emb, dim=1)
-        return emb.to(torch.float32).detach().cpu().numpy()
+        emb_result = emb.to(torch.float32).detach().cpu().numpy()
+        if return_generated_texts:
+            return emb_result, generated_texts
+        return emb_result
 
 
 def _load_train_item_ids(args, max_row: int):
@@ -912,15 +931,21 @@ def main():
     if args.split_output_dir:
         split_chunks = [[] for _ in range(len(prompts))]
     view_mats_for_concat = [] if needs_view_concat else None
+    
+    # Storage for generated texts (only used in generative mode with --save_generated_texts)
+    save_gen_texts = args.generative and args.save_generated_texts is not None
+    all_generated_texts = [] if save_gen_texts else None  # List of dicts per item
 
     with tqdm(total=n_items, unit="items") as pbar:
         for i in range(0, n_items, args.batch_size):
             batch_raw = item_raw_texts[i : i + args.batch_size]
+            batch_start_idx = i
             
             # For this batch, calculate embeddings for each prompt
             batch_prompt_embs = [] # will hold [Batch_Size, Hidden] for each prompt
+            batch_gen_texts_per_view = [] if save_gen_texts else None  # [K][B] texts
             
-            for prompt_tmpl in prompts:
+            for prompt_idx, prompt_tmpl in enumerate(prompts):
                 # Prepare texts for this prompt
                 batch_texts = []
                 for raw in batch_raw:
@@ -937,17 +962,46 @@ def main():
 
                 # Encode: use generative or embedding-only mode
                 if args.generative:
-                    emb = encode_batch_generative(
-                        model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
-                        gen_max_new_tokens=args.gen_max_new_tokens,
-                        gen_temperature=args.gen_temperature,
-                        gen_top_p=args.gen_top_p,
-                        gen_top_k=args.gen_top_k,
-                        gen_repetition_penalty=args.gen_repetition_penalty,
-                    )
+                    if save_gen_texts:
+                        emb, gen_texts = encode_batch_generative(
+                            model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
+                            gen_max_new_tokens=args.gen_max_new_tokens,
+                            gen_temperature=args.gen_temperature,
+                            gen_top_p=args.gen_top_p,
+                            gen_top_k=args.gen_top_k,
+                            gen_repetition_penalty=args.gen_repetition_penalty,
+                            return_generated_texts=True,
+                        )
+                        batch_gen_texts_per_view.append(gen_texts)
+                    else:
+                        emb = encode_batch_generative(
+                            model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
+                            gen_max_new_tokens=args.gen_max_new_tokens,
+                            gen_temperature=args.gen_temperature,
+                            gen_top_p=args.gen_top_p,
+                            gen_top_k=args.gen_top_k,
+                            gen_repetition_penalty=args.gen_repetition_penalty,
+                        )
                 else:
                     emb = encode_batch(model, tokenizer, batch_texts, args.max_length, device, torch_dtype)
                 batch_prompt_embs.append(emb) # [B, D]
+            
+            # Collect generated texts for this batch
+            if save_gen_texts and batch_gen_texts_per_view:
+                for batch_offset, raw_text in enumerate(batch_raw):
+                    item_idx = batch_start_idx + batch_offset
+                    item_record = {
+                        "internal_item_id": item_idx,
+                        "raw_text": raw_text,
+                        "views": []
+                    }
+                    for view_idx, prompt_tmpl in enumerate(prompts):
+                        item_record["views"].append({
+                            "view_index": view_idx,
+                            "prompt": prompt_tmpl,
+                            "generated_text": batch_gen_texts_per_view[view_idx][batch_offset]
+                        })
+                    all_generated_texts.append(item_record)
             
             # Stack prompt embeddings: [B, K, D]
             # Note: batch_prompt_embs is List of [B, D]
@@ -1110,6 +1164,20 @@ def main():
         f"Saved Qwen3 embeddings to: {os.path.abspath(args.output)}  "
         f"shape={mat.shape}  dtype={mat.dtype}  (prompts={len(prompts)}, mode={args.output_mode})"
     )
+    
+    # --- 8. Save Generated Texts (if enabled) ---
+    if all_generated_texts is not None and len(all_generated_texts) > 0:
+        gen_texts_output = {
+            "num_items": len(all_generated_texts),
+            "num_views": len(prompts),
+            "prompts": prompts,
+            "items": all_generated_texts,
+        }
+        gen_texts_path = args.save_generated_texts
+        os.makedirs(os.path.dirname(os.path.abspath(gen_texts_path)), exist_ok=True)
+        with open(gen_texts_path, "w", encoding="utf-8") as f:
+            json.dump(gen_texts_output, f, ensure_ascii=False, indent=2)
+        print(f"[Generative] Saved generated texts to: {os.path.abspath(gen_texts_path)} ({len(all_generated_texts)} items)")
 
 
 if __name__ == "__main__":

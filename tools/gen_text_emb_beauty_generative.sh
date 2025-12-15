@@ -92,7 +92,8 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --generative \
   --gen_max_new_tokens 64 \
   --gen_temperature 0.0 \
-  --flash_attn
+  --flash_attn \
+  --save_generated_texts dataset/Amazon_Beauty/qwen3_generative_4views/generated_texts.json
 
 echo ""
 echo "✅ Qwen3生成式多视图特征生成完成"
@@ -102,6 +103,7 @@ echo "   - 视图1 (WHO):        dataset/Amazon_Beauty/qwen3_generative_4views/v
 echo "   - 视图2 (WHEN/WHERE): dataset/Amazon_Beauty/qwen3_generative_4views/view_2.npy"
 echo "   - 视图3 (HOW):        dataset/Amazon_Beauty/qwen3_generative_4views/view_3.npy"
 echo "   - 元数据: dataset/Amazon_Beauty/qwen3_generative_4views/views.json"
+echo "   - 生成文本: dataset/Amazon_Beauty/qwen3_generative_4views/generated_texts.json"
 echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -113,11 +115,13 @@ echo "生成的特征文件："
 echo "  [Qwen3生成式多视图]"
 echo "    - dataset/Amazon_Beauty/item_text_emb.qwen3.generative.multiview.npy"
 echo "    - dataset/Amazon_Beauty/qwen3_generative_4views/ (分视图)"
+echo "    - dataset/Amazon_Beauty/qwen3_generative_4views/generated_texts.json (生成的中间文本)"
 echo ""
 echo "关键参数说明："
-echo "  --generative           : 启用生成式模式"
-echo "  --gen_temperature 0.0  : 确定性生成（greedy decoding）"
-echo "  --gen_max_new_tokens   : 生成的最大token数"
+echo "  --generative             : 启用生成式模式"
+echo "  --gen_temperature 0.0    : 确定性生成（greedy decoding）"
+echo "  --gen_max_new_tokens     : 生成的最大token数"
+echo "  --save_generated_texts   : 保存LLM生成的中间文本到JSON文件"
 echo ""
 echo "🚀 显存优化技巧："
 echo "  --load_in_4bit      : INT4量化，显存减少~75%"
