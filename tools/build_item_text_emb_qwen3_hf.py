@@ -103,6 +103,21 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dtype", choices=["float16", "bfloat16", "float32"], default="float16")
     p.add_argument("--device", default=None, help="cuda device or cpu")
     p.add_argument("--device_map", default=None, help="HF accelerate device_map (e.g. 'auto')")
+    p.add_argument(
+        "--flash_attn",
+        action="store_true",
+        help="Enable Flash Attention 2 for faster inference (requires flash-attn package).",
+    )
+    p.add_argument(
+        "--load_in_8bit",
+        action="store_true",
+        help="Load model in INT8 quantization (requires bitsandbytes). Reduces VRAM ~50%%.",
+    )
+    p.add_argument(
+        "--load_in_4bit",
+        action="store_true",
+        help="Load model in INT4 quantization (requires bitsandbytes). Reduces VRAM ~75%%.",
+    )
     
     # --- Prompting Arguments ---
     p.add_argument(
@@ -325,6 +340,8 @@ def encode_batch_generative(
     2. Generate answer text (with temperature=0 for determinism)
     3. Extract embedding from the generated answer
     
+    **Optimized**: Uses batch generation with left-padding for significant speedup.
+    
     Args:
         model: HuggingFace CausalLM model
         tokenizer: HuggingFace tokenizer
@@ -346,51 +363,111 @@ def encode_batch_generative(
     # Determine sampling strategy
     do_sample = gen_temperature > 0
     
-    # Build generation config
+    # =============================================
+    # Find pad/eos token for Qwen 1.x (which has None for all special tokens)
+    # =============================================
+    vocab = tokenizer.get_vocab()
+    pad_token_id_to_use = None
+    eos_token_id_to_use = None
+    
+    for cand in ['<|endoftext|>', '<|extra_0|>', '<|im_end|>', '</s>', '<eos>']:
+        if cand in vocab:
+            if pad_token_id_to_use is None:
+                pad_token_id_to_use = vocab[cand]
+            if eos_token_id_to_use is None:
+                eos_token_id_to_use = vocab[cand]
+            break
+    
+    if pad_token_id_to_use is None:
+        pad_token_id_to_use = 0
+    if eos_token_id_to_use is None:
+        eos_token_id_to_use = pad_token_id_to_use
+    
+    # Build generation config with valid token ids
     gen_kwargs = {
         "max_new_tokens": gen_max_new_tokens,
         "do_sample": do_sample,
-        "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-        "repetition_penalty": gen_repetition_penalty,
+        "pad_token_id": pad_token_id_to_use,
+        "eos_token_id": eos_token_id_to_use,
     }
     
+    # Only add sampling parameters when do_sample=True
     if do_sample:
         gen_kwargs["temperature"] = gen_temperature
         gen_kwargs["top_p"] = gen_top_p
+        gen_kwargs["repetition_penalty"] = gen_repetition_penalty
         if gen_top_k > 0:
             gen_kwargs["top_k"] = gen_top_k
+    # When do_sample=False (greedy), don't set temperature/top_p/top_k to avoid warnings
     
     # Store generated texts for embedding extraction
     generated_texts = []
     
-    # Generate for each text (batch generation can be tricky with variable lengths)
-    for txt in texts:
+    # =============================================
+    # Try batch generation first (Qwen 2.5 supports it)
+    # Fall back to sequential if it fails (Qwen 1.x)
+    # =============================================
+    try:
+        # Batch tokenize with left-padding
+        original_padding_side = tokenizer.padding_side
+        tokenizer.padding_side = "left"
+        
         enc = tokenizer(
-            txt,
-            padding=False,
+            texts,
+            padding=True,
             truncation=do_trunc,
             max_length=(max_length if do_trunc else None),
             return_tensors="pt",
         )
         enc = {k: v.to(device) for k, v in enc.items()}
         
-        # Generate
+        tokenizer.padding_side = original_padding_side
+        
+        # Batch generate
         output_ids = model.generate(
             **enc,
             **gen_kwargs,
         )
         
-        # Decode only the newly generated tokens (exclude input)
-        input_len = enc["input_ids"].shape[1]
-        new_tokens = output_ids[0, input_len:]
-        generated_text = tokenizer.decode(new_tokens, skip_special_tokens=True)
+        # Decode each generated sequence
+        seq_len = enc["input_ids"].shape[1]
         
-        # Fallback if generation is empty
-        if len(generated_text.strip()) == 0:
-            generated_text = txt  # Use original prompt as fallback
+        for i in range(output_ids.shape[0]):
+            new_tokens = output_ids[i, seq_len:]
+            generated_text = tokenizer.decode(new_tokens, skip_special_tokens=True)
+            
+            if len(generated_text.strip()) == 0:
+                generated_text = texts[i]
+            
+            generated_texts.append(generated_text)
+            
+    except Exception as e:
+        # Fallback to sequential generation (for Qwen 1.x or other issues)
+        print(f"[Warning] Batch generation failed ({e}), falling back to sequential...")
+        generated_texts = []
         
-        generated_texts.append(generated_text)
+        for txt in texts:
+            enc = tokenizer(
+                txt,
+                padding=False,
+                truncation=do_trunc,
+                max_length=(max_length if do_trunc else None),
+                return_tensors="pt",
+            )
+            enc = {k: v.to(device) for k, v in enc.items()}
+            
+            try:
+                output_ids = model.generate(**enc, **gen_kwargs)
+                input_len = enc["input_ids"].shape[1]
+                new_tokens = output_ids[0, input_len:]
+                generated_text = tokenizer.decode(new_tokens, skip_special_tokens=True)
+                
+                if len(generated_text.strip()) == 0:
+                    generated_text = txt
+                
+                generated_texts.append(generated_text)
+            except Exception:
+                generated_texts.append(txt)
     
     # Now extract embeddings from the generated texts
     # We can reuse the non-generative encode_batch for this
@@ -680,11 +757,52 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_name_or_path, trust_remote_code=True, padding_side="left"
     )
-    if tokenizer.pad_token is None:
-        for cand in [getattr(tokenizer, "eos_token", None), getattr(tokenizer, "unk_token", None), getattr(tokenizer, "bos_token", None)]:
-            if isinstance(cand, str) and tokenizer.convert_tokens_to_ids(cand) is not None:
-                tokenizer.pad_token = cand
+    
+    # Debug: print all special tokens
+    print(f"[Tokenizer Debug] eos_token='{tokenizer.eos_token}', eos_token_id={tokenizer.eos_token_id}")
+    print(f"[Tokenizer Debug] pad_token='{tokenizer.pad_token}', pad_token_id={tokenizer.pad_token_id}")
+    
+    # Ensure pad_token is set (Qwen 1.x doesn't support add_special_tokens)
+    def _check_pad_valid(tok):
+        try:
+            pid = tok.pad_token_id
+            return pid is not None and isinstance(pid, int) and pid >= 0
+        except Exception:
+            return False
+    
+    if not _check_pad_valid(tokenizer):
+        vocab = tokenizer.get_vocab()
+        # Qwen 1.x uses <|endoftext|> as eos, check vocab
+        candidates = ['<|endoftext|>', '<|extra_0|>', '<|im_end|>', '<eos>', '</s>', '[PAD]', '<pad>']
+        
+        set_pad_token = None
+        set_pad_id = None
+        for cand in candidates:
+            if cand in vocab:
+                set_pad_token = cand
+                set_pad_id = vocab[cand]
                 break
+        
+        if set_pad_id is None:
+            # Fallback: use token 0
+            set_pad_id = 0
+            set_pad_token = tokenizer.decode([0])
+        
+        # Directly set attributes (for tokenizers that don't support add_special_tokens)
+        try:
+            tokenizer.add_special_tokens({'pad_token': set_pad_token})
+            print(f"[Tokenizer] Added pad_token = '{set_pad_token}'")
+        except ValueError:
+            # Qwen 1.x doesn't support adding tokens, set directly
+            tokenizer.pad_token = set_pad_token
+            tokenizer._pad_token = set_pad_token
+            # Also need to set the internal special tokens map
+            if hasattr(tokenizer, 'special_tokens'):
+                tokenizer.special_tokens['<|padding|>'] = set_pad_id
+            print(f"[Tokenizer] Directly set pad_token = '{set_pad_token}' (id={set_pad_id})")
+    
+    # For Qwen tokenizer, we need to handle padding manually if pad_token_id is still None
+    print(f"[Tokenizer] Final: pad_token='{tokenizer.pad_token}', pad_token_id={tokenizer.pad_token_id}")
 
     try:
         hf_cfg = AutoConfig.from_pretrained(args.model_name_or_path, trust_remote_code=True)
@@ -699,24 +817,72 @@ def main():
         print("[Generative] Forcing use_causal_lm=True for generative mode.")
         use_causal = True
     
-    if use_causal:
-        model = AutoModelForCausalLM.from_pretrained(
-            args.model_name_or_path,
-            trust_remote_code=True,
-            torch_dtype=torch_dtype,
-            device_map=args.device_map,
-            low_cpu_mem_usage=True,
-        )
-    else:
-        model = AutoModel.from_pretrained(
-            args.model_name_or_path,
-            trust_remote_code=True,
-            torch_dtype=torch_dtype,
-            device_map=args.device_map,
-            low_cpu_mem_usage=True,
-        )
+    # Flash Attention 2 support (with fallback for models that don't support it)
+    use_flash_attn = args.flash_attn
+    if use_flash_attn:
+        print("[Flash Attention 2] Attempting to enable - requires flash-attn package.")
     
-    if args.device_map is None:
+    # Quantization support
+    quantization_config = None
+    if args.load_in_4bit or args.load_in_8bit:
+        try:
+            from transformers import BitsAndBytesConfig
+            if args.load_in_4bit:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch_dtype,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                )
+                print("[Quantization] INT4 (NF4) enabled - VRAM reduced ~75%")
+            else:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                )
+                print("[Quantization] INT8 enabled - VRAM reduced ~50%")
+        except ImportError:
+            print("[Quantization] ⚠️  bitsandbytes not installed. Run: pip install bitsandbytes")
+            quantization_config = None
+    
+    def _load_model_with_fallback(model_cls, use_flash: bool, quant_config):
+        """Try to load model with flash attention, fallback if not supported."""
+        base_kwargs = {
+            "trust_remote_code": True,
+            "torch_dtype": torch_dtype,
+            "device_map": args.device_map or ("auto" if quant_config else None),  # quantization requires device_map
+            "low_cpu_mem_usage": True,
+        }
+        
+        if quant_config:
+            base_kwargs["quantization_config"] = quant_config
+        
+        if use_flash:
+            try:
+                model = model_cls.from_pretrained(
+                    args.model_name_or_path,
+                    attn_implementation="flash_attention_2",
+                    **base_kwargs,
+                )
+                print("[Flash Attention 2] ✅ Enabled successfully.")
+                return model
+            except TypeError as e:
+                if "attn_implementation" in str(e):
+                    print(f"[Flash Attention 2] ⚠️  Model doesn't support attn_implementation, falling back to default.")
+                else:
+                    raise
+            except ImportError:
+                print("[Flash Attention 2] ⚠️  flash-attn not installed, falling back to default.")
+        
+        # Fallback: load without flash attention
+        return model_cls.from_pretrained(args.model_name_or_path, **base_kwargs)
+    
+    if use_causal:
+        model = _load_model_with_fallback(AutoModelForCausalLM, use_flash_attn, quantization_config)
+    else:
+        model = _load_model_with_fallback(AutoModel, use_flash_attn, quantization_config)
+    
+    # Move to device only if not using device_map or quantization
+    if args.device_map is None and quantization_config is None:
         model = model.to(device)
     model.eval()
 
