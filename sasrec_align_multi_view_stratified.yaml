@@ -43,7 +43,7 @@ topk: [5, 10, 20]
 # 评估指标：标准指标 + 分档指标
 metrics: [
   Recall, MRR, NDCG, Hit, Precision,           # 标准指标
-  StratifiedRecall, StratifiedNDCG,             # 分档指标
+  StratifiedRecall, StratifiedNDCG, StratifiedMRR, StratifiedHit,  # 分档指标
   ItemPopularityStats                            # Item 分布统计
 ]
 

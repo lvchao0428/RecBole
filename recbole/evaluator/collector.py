@@ -168,6 +168,12 @@ class Collector(object):
             result = torch.cat((pos_idx, pos_len_list), dim=1)
             self.data_struct.update_tensor("rec.topk", result)
 
+        if self.register.need("rec.positive_i"):
+            # Store the positive item IDs for stratified metrics
+            # positive_i contains the item indices, we need to store them per user
+            # For full ranking, each user has one positive item
+            self.data_struct.update_tensor("rec.positive_i", positive_i.clone().detach())
+
         if self.register.need("rec.meanrank"):
 
             desc_scores, desc_index = torch.sort(scores_tensor, dim=-1, descending=True)
@@ -229,7 +235,7 @@ class Collector(object):
             if hasattr(value, 'cpu'):
                 self.data_struct._data_dict[key] = value.cpu()
         returned_struct = copy.deepcopy(self.data_struct)
-        for key in ["rec.topk", "rec.meanrank", "rec.score", "rec.items", "data.label"]:
+        for key in ["rec.topk", "rec.meanrank", "rec.score", "rec.items", "rec.positive_i", "data.label"]:
             if key in self.data_struct:
                 del self.data_struct[key]
         return returned_struct

@@ -778,19 +778,22 @@ class TailPercentage(AbstractMetric):
 # ==========================================
 # Stratified Metrics by Item Popularity
 # Added 2025-12-07
+# Fixed 2025-12-15: Stratify by ground truth item, not recommended items
 # ==========================================
 
 class StratifiedRecall(TopkMetric):
-    r"""StratifiedRecall calculates Recall@K stratified by item interaction count.
+    r"""StratifiedRecall calculates Recall@K stratified by the ground truth item's interaction count.
     
-    Strata:
+    Strata (based on ground truth item's training interaction count):
     - new: interaction count in [1, 3)
     - few: interaction count in [3, 10)
     - frequent: interaction count in [10, +inf)
+    
+    For users whose ground truth item is in stratum X, compute their Recall and average.
     """
     
     metric_type = EvaluatorType.RANKING
-    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    metric_need = ["rec.topk", "rec.positive_i", "data.count_items"]
     
     def __init__(self, config):
         super().__init__(config)
@@ -799,18 +802,9 @@ class StratifiedRecall(TopkMetric):
         self.few_threshold = (3, 10)
         self.freq_threshold = (10, float('inf'))
     
-    def used_info(self, dataobject):
-        import torch
-        rec_mat = dataobject.get("rec.topk")
-        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
-        topk_idx = topk_idx.to(torch.bool).numpy()
-        pos_len_list = pos_len_list.squeeze(-1).numpy()
-        rec_items = dataobject.get("rec.items").numpy()
-        item_counter = dataobject.get("data.count_items")
-        return topk_idx, pos_len_list, rec_items, item_counter
-    
     def _get_item_stratum(self, item_id, item_counter):
-        count = item_counter.get(item_id, 0)
+        """Determine stratum based on item's interaction count in training data."""
+        count = item_counter.get(int(item_id), 0)
         if self.new_threshold[0] <= count < self.new_threshold[1]:
             return 'new'
         elif self.few_threshold[0] <= count < self.few_threshold[1]:
@@ -820,45 +814,70 @@ class StratifiedRecall(TopkMetric):
         return None
     
     def calculate_metric(self, dataobject):
-        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        import torch
+        # Get hit indicators and positive length
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.numpy()  # [n_users, max_k] - 1 if position is hit
+        pos_len_list = pos_len_list.squeeze(-1).numpy()  # [n_users] - number of positive items
         
-        strata_stats = {
-            'new': {'hit': 0, 'total': 0},
-            'few': {'hit': 0, 'total': 0},
-            'frequent': {'hit': 0, 'total': 0}
-        }
+        # Get ground truth item IDs
+        positive_i = dataobject.get("rec.positive_i").numpy()  # [n_users] - ground truth item ID
+        item_counter = dataobject.get("data.count_items")
         
         n_users = topk_idx.shape[0]
+        
+        # Collect recall scores per stratum
+        strata_recalls = {'new': [], 'few': [], 'frequent': []}
+        
         for user_idx in range(n_users):
-            user_topk = topk_idx[user_idx]
-            user_rec_items = rec_items[user_idx]
-            for k_idx in range(len(user_rec_items)):
-                item_id = user_rec_items[k_idx]
-                is_hit = user_topk[k_idx]
-                stratum = self._get_item_stratum(item_id, item_counter)
-                if stratum in strata_stats:
-                    strata_stats[stratum]['total'] += 1
-                    if is_hit:
-                        strata_stats[stratum]['hit'] += 1
+            pos_item = positive_i[user_idx]
+            pos_len = pos_len_list[user_idx]
+            
+            # Determine stratum by ground truth item
+            stratum = self._get_item_stratum(pos_item, item_counter)
+            if stratum is None:
+                continue
+            
+            # Calculate recall for this user at each k
+            # Recall@K = (number of hits in top-K) / pos_len
+            user_hits = topk_idx[user_idx]  # hit indicators
+            
+            # Store recall for max_k (we'll use the same for all k since it's per-user)
+            # For each k, we compute hits up to position k
+            for k in self.topk:
+                hits_at_k = np.sum(user_hits[:k])
+                recall_at_k = hits_at_k / pos_len if pos_len > 0 else 0.0
+                
+                # We need to collect per-k, so use a different structure
+                if k not in strata_recalls.get(stratum + '_k', {}):
+                    if stratum + '_k' not in strata_recalls:
+                        strata_recalls[stratum + '_k'] = {}
+                    strata_recalls[stratum + '_k'][k] = []
+                strata_recalls[stratum + '_k'][k].append(recall_at_k)
         
         metric_dict = {}
         for stratum in ['new', 'few', 'frequent']:
-            stats = strata_stats[stratum]
             for k in self.topk:
-                if stats['total'] > 0:
-                    recall = stats['hit'] / stats['total']
-                else:
-                    recall = 0.0
                 key = "Recall_{}@{}".format(stratum, k)
-                metric_dict[key] = round(recall, self.decimal_place)
+                k_key = stratum + '_k'
+                if k_key in strata_recalls and k in strata_recalls[k_key] and len(strata_recalls[k_key][k]) > 0:
+                    avg_recall = np.mean(strata_recalls[k_key][k])
+                else:
+                    avg_recall = 0.0
+                metric_dict[key] = round(avg_recall, self.decimal_place)
+        
         return metric_dict
 
 
 class StratifiedNDCG(TopkMetric):
-    r"""StratifiedNDCG calculates NDCG@K stratified by item interaction count."""
+    r"""StratifiedNDCG calculates NDCG@K stratified by the ground truth item's interaction count.
+    
+    For users whose ground truth item is in stratum X, compute their NDCG and average.
+    """
     
     metric_type = EvaluatorType.RANKING
-    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    metric_need = ["rec.topk", "rec.positive_i", "data.count_items"]
     
     def __init__(self, config):
         super().__init__(config)
@@ -867,18 +886,8 @@ class StratifiedNDCG(TopkMetric):
         self.few_threshold = (3, 10)
         self.freq_threshold = (10, float('inf'))
     
-    def used_info(self, dataobject):
-        import torch
-        rec_mat = dataobject.get("rec.topk")
-        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
-        topk_idx = topk_idx.to(torch.bool).numpy()
-        pos_len_list = pos_len_list.squeeze(-1).numpy()
-        rec_items = dataobject.get("rec.items").numpy()
-        item_counter = dataobject.get("data.count_items")
-        return topk_idx, pos_len_list, rec_items, item_counter
-    
     def _get_item_stratum(self, item_id, item_counter):
-        count = item_counter.get(item_id, 0)
+        count = item_counter.get(int(item_id), 0)
         if self.new_threshold[0] <= count < self.new_threshold[1]:
             return 'new'
         elif self.few_threshold[0] <= count < self.few_threshold[1]:
@@ -887,72 +896,71 @@ class StratifiedNDCG(TopkMetric):
             return 'frequent'
         return None
     
-    def _dcg_at_k(self, r, k):
-        r = np.asarray(r, dtype=np.float64)[:k]
-        if r.size:
-            return np.sum(r / np.log2(np.arange(2, r.size + 2)))
-        return 0.0
-    
-    def _idcg_at_k(self, pos_len, k):
-        idcg = np.sum(1.0 / np.log2(np.arange(2, min(pos_len, k) + 2)))
-        return idcg
-    
     def calculate_metric(self, dataobject):
         import torch
-        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.numpy()
+        pos_len_list = pos_len_list.squeeze(-1).numpy()
         
-        strata_results = {'new': [], 'few': [], 'frequent': []}
+        positive_i = dataobject.get("rec.positive_i").numpy()
+        item_counter = dataobject.get("data.count_items")
+        
         n_users = topk_idx.shape[0]
         
+        # Collect NDCG per stratum per k
+        strata_ndcg = {stratum: {k: [] for k in self.topk} for stratum in ['new', 'few', 'frequent']}
+        
         for user_idx in range(n_users):
-            user_topk = topk_idx[user_idx]
-            user_rec_items = rec_items[user_idx]
-            user_pos_len = pos_len_list[user_idx]
+            pos_item = positive_i[user_idx]
+            pos_len = int(pos_len_list[user_idx])
             
-            stratum_hits = {'new': [], 'few': [], 'frequent': []}
-            stratum_pos_count = {'new': 0, 'few': 0, 'frequent': 0}
+            stratum = self._get_item_stratum(pos_item, item_counter)
+            if stratum is None:
+                continue
             
-            for k_idx in range(len(user_rec_items)):
-                item_id = user_rec_items[k_idx]
-                is_hit = user_topk[k_idx]
-                stratum = self._get_item_stratum(item_id, item_counter)
-                if stratum in stratum_hits:
-                    stratum_hits[stratum].append(1 if is_hit else 0)
-                    if is_hit:
-                        stratum_pos_count[stratum] += 1
+            user_hits = topk_idx[user_idx]
             
-            for stratum in ['new', 'few', 'frequent']:
-                if len(stratum_hits[stratum]) > 0 and stratum_pos_count[stratum] > 0:
-                    dcg = self._dcg_at_k(stratum_hits[stratum], max(self.topk))
-                    idcg = self._idcg_at_k(stratum_pos_count[stratum], max(self.topk))
-                    ndcg = dcg / idcg if idcg > 0 else 0.0
-                    strata_results[stratum].append(ndcg)
+            for k in self.topk:
+                # DCG@K
+                hits_k = user_hits[:k]
+                ranks = np.arange(1, k + 1)
+                dcg = np.sum(hits_k / np.log2(ranks + 1))
+                
+                # IDCG@K - ideal case where all positives are at top
+                idcg_len = min(pos_len, k)
+                idcg = np.sum(1.0 / np.log2(np.arange(1, idcg_len + 1) + 1)) if idcg_len > 0 else 0.0
+                
+                ndcg = dcg / idcg if idcg > 0 else 0.0
+                strata_ndcg[stratum][k].append(ndcg)
         
         metric_dict = {}
         for stratum in ['new', 'few', 'frequent']:
             for k in self.topk:
-                if len(strata_results[stratum]) > 0:
-                    avg_ndcg = np.mean(strata_results[stratum])
+                key = "NDCG_{}@{}".format(stratum, k)
+                if len(strata_ndcg[stratum][k]) > 0:
+                    avg_ndcg = np.mean(strata_ndcg[stratum][k])
                 else:
                     avg_ndcg = 0.0
-                key = "NDCG_{}@{}".format(stratum, k)
                 metric_dict[key] = round(avg_ndcg, self.decimal_place)
+        
         return metric_dict
 
 
 class StratifiedMRR(TopkMetric):
-    r"""StratifiedMRR calculates MRR@K stratified by item interaction count.
+    r"""StratifiedMRR calculates MRR@K stratified by the ground truth item's interaction count.
     
-    Strata:
+    Strata (based on ground truth item's training interaction count):
     - new: interaction count in [1, 3)
     - few: interaction count in [3, 10)
     - frequent: interaction count in [10, +inf)
     
     MRR (Mean Reciprocal Rank) computes the reciprocal rank of the first relevant item.
+    For users whose ground truth item is in stratum X, compute their MRR and average.
     """
     
     metric_type = EvaluatorType.RANKING
-    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    metric_need = ["rec.topk", "rec.positive_i", "data.count_items"]
     
     def __init__(self, config):
         super().__init__(config)
@@ -961,18 +969,8 @@ class StratifiedMRR(TopkMetric):
         self.few_threshold = (3, 10)
         self.freq_threshold = (10, float('inf'))
     
-    def used_info(self, dataobject):
-        import torch
-        rec_mat = dataobject.get("rec.topk")
-        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
-        topk_idx = topk_idx.to(torch.bool).numpy()
-        pos_len_list = pos_len_list.squeeze(-1).numpy()
-        rec_items = dataobject.get("rec.items").numpy()
-        item_counter = dataobject.get("data.count_items")
-        return topk_idx, pos_len_list, rec_items, item_counter
-    
     def _get_item_stratum(self, item_id, item_counter):
-        count = item_counter.get(item_id, 0)
+        count = item_counter.get(int(item_id), 0)
         if self.new_threshold[0] <= count < self.new_threshold[1]:
             return 'new'
         elif self.few_threshold[0] <= count < self.few_threshold[1]:
@@ -982,67 +980,68 @@ class StratifiedMRR(TopkMetric):
         return None
     
     def calculate_metric(self, dataobject):
-        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        import torch
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.numpy()
         
-        # For each stratum, collect reciprocal ranks
-        strata_rr = {'new': [], 'few': [], 'frequent': []}
+        positive_i = dataobject.get("rec.positive_i").numpy()
+        item_counter = dataobject.get("data.count_items")
         
         n_users = topk_idx.shape[0]
-        max_k = max(self.topk)
+        
+        # Collect MRR per stratum per k
+        strata_rr = {stratum: {k: [] for k in self.topk} for stratum in ['new', 'few', 'frequent']}
         
         for user_idx in range(n_users):
-            user_topk = topk_idx[user_idx]
-            user_rec_items = rec_items[user_idx]
+            pos_item = positive_i[user_idx]
             
-            # Track first hit position for each stratum
-            stratum_first_hit = {'new': -1, 'few': -1, 'frequent': -1}
-            stratum_has_item = {'new': False, 'few': False, 'frequent': False}
+            stratum = self._get_item_stratum(pos_item, item_counter)
+            if stratum is None:
+                continue
             
-            for k_idx in range(min(len(user_rec_items), max_k)):
-                item_id = user_rec_items[k_idx]
-                is_hit = user_topk[k_idx]
-                stratum = self._get_item_stratum(item_id, item_counter)
+            user_hits = topk_idx[user_idx]
+            
+            for k in self.topk:
+                # Find first hit position within top-k
+                hits_k = user_hits[:k]
+                hit_positions = np.where(hits_k > 0)[0]
                 
-                if stratum in strata_rr:
-                    stratum_has_item[stratum] = True
-                    # Record first hit position if not already recorded
-                    if is_hit and stratum_first_hit[stratum] == -1:
-                        stratum_first_hit[stratum] = k_idx + 1  # 1-based rank
-            
-            # Calculate reciprocal rank for each stratum this user has items for
-            for stratum in ['new', 'few', 'frequent']:
-                if stratum_has_item[stratum]:
-                    if stratum_first_hit[stratum] > 0:
-                        rr = 1.0 / stratum_first_hit[stratum]
-                    else:
-                        rr = 0.0
-                    strata_rr[stratum].append(rr)
+                if len(hit_positions) > 0:
+                    first_hit_rank = hit_positions[0] + 1  # 1-based rank
+                    rr = 1.0 / first_hit_rank
+                else:
+                    rr = 0.0
+                
+                strata_rr[stratum][k].append(rr)
         
         metric_dict = {}
         for stratum in ['new', 'few', 'frequent']:
             for k in self.topk:
-                if len(strata_rr[stratum]) > 0:
-                    mrr = np.mean(strata_rr[stratum])
+                key = "MRR_{}@{}".format(stratum, k)
+                if len(strata_rr[stratum][k]) > 0:
+                    mrr = np.mean(strata_rr[stratum][k])
                 else:
                     mrr = 0.0
-                key = "MRR_{}@{}".format(stratum, k)
                 metric_dict[key] = round(mrr, self.decimal_place)
+        
         return metric_dict
 
 
 class StratifiedHit(TopkMetric):
-    r"""StratifiedHit calculates Hit@K (Hit Rate) stratified by item interaction count.
+    r"""StratifiedHit calculates Hit@K (Hit Rate) stratified by the ground truth item's interaction count.
     
-    Strata:
+    Strata (based on ground truth item's training interaction count):
     - new: interaction count in [1, 3)
     - few: interaction count in [3, 10)
     - frequent: interaction count in [10, +inf)
     
     Hit Rate measures whether there is at least one hit in the recommendation list.
+    For users whose ground truth item is in stratum X, compute their Hit Rate and average.
     """
     
     metric_type = EvaluatorType.RANKING
-    metric_need = ["rec.topk", "rec.items", "data.count_items"]
+    metric_need = ["rec.topk", "rec.positive_i", "data.count_items"]
     
     def __init__(self, config):
         super().__init__(config)
@@ -1051,18 +1050,8 @@ class StratifiedHit(TopkMetric):
         self.few_threshold = (3, 10)
         self.freq_threshold = (10, float('inf'))
     
-    def used_info(self, dataobject):
-        import torch
-        rec_mat = dataobject.get("rec.topk")
-        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
-        topk_idx = topk_idx.to(torch.bool).numpy()
-        pos_len_list = pos_len_list.squeeze(-1).numpy()
-        rec_items = dataobject.get("rec.items").numpy()
-        item_counter = dataobject.get("data.count_items")
-        return topk_idx, pos_len_list, rec_items, item_counter
-    
     def _get_item_stratum(self, item_id, item_counter):
-        count = item_counter.get(item_id, 0)
+        count = item_counter.get(int(item_id), 0)
         if self.new_threshold[0] <= count < self.new_threshold[1]:
             return 'new'
         elif self.few_threshold[0] <= count < self.few_threshold[1]:
@@ -1072,46 +1061,44 @@ class StratifiedHit(TopkMetric):
         return None
     
     def calculate_metric(self, dataobject):
-        topk_idx, pos_len_list, rec_items, item_counter = self.used_info(dataobject)
+        import torch
+        rec_mat = dataobject.get("rec.topk")
+        topk_idx, pos_len_list = torch.split(rec_mat, [max(self.topk), 1], dim=1)
+        topk_idx = topk_idx.numpy()
         
-        # For each stratum, track hit/miss per user
-        strata_hits = {'new': [], 'few': [], 'frequent': []}
+        positive_i = dataobject.get("rec.positive_i").numpy()
+        item_counter = dataobject.get("data.count_items")
         
         n_users = topk_idx.shape[0]
-        max_k = max(self.topk)
+        
+        # Collect hit per stratum per k
+        strata_hits = {stratum: {k: [] for k in self.topk} for stratum in ['new', 'few', 'frequent']}
         
         for user_idx in range(n_users):
-            user_topk = topk_idx[user_idx]
-            user_rec_items = rec_items[user_idx]
+            pos_item = positive_i[user_idx]
             
-            # Track if user has any item and any hit for each stratum
-            stratum_has_item = {'new': False, 'few': False, 'frequent': False}
-            stratum_has_hit = {'new': False, 'few': False, 'frequent': False}
+            stratum = self._get_item_stratum(pos_item, item_counter)
+            if stratum is None:
+                continue
             
-            for k_idx in range(min(len(user_rec_items), max_k)):
-                item_id = user_rec_items[k_idx]
-                is_hit = user_topk[k_idx]
-                stratum = self._get_item_stratum(item_id, item_counter)
-                
-                if stratum in strata_hits:
-                    stratum_has_item[stratum] = True
-                    if is_hit:
-                        stratum_has_hit[stratum] = True
+            user_hits = topk_idx[user_idx]
             
-            # Record hit/miss for each stratum this user has items for
-            for stratum in ['new', 'few', 'frequent']:
-                if stratum_has_item[stratum]:
-                    strata_hits[stratum].append(1 if stratum_has_hit[stratum] else 0)
+            for k in self.topk:
+                # Check if there's any hit in top-k
+                hits_k = user_hits[:k]
+                has_hit = 1 if np.sum(hits_k) > 0 else 0
+                strata_hits[stratum][k].append(has_hit)
         
         metric_dict = {}
         for stratum in ['new', 'few', 'frequent']:
             for k in self.topk:
-                if len(strata_hits[stratum]) > 0:
-                    hit_rate = np.mean(strata_hits[stratum])
+                key = "Hit_{}@{}".format(stratum, k)
+                if len(strata_hits[stratum][k]) > 0:
+                    hit_rate = np.mean(strata_hits[stratum][k])
                 else:
                     hit_rate = 0.0
-                key = "Hit_{}@{}".format(stratum, k)
                 metric_dict[key] = round(hit_rate, self.decimal_place)
+        
         return metric_dict
 
 

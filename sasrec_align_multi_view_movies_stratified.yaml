@@ -1,3 +1,4 @@
+            # ===== Optional: Add text_cross DCN-V2 for multiview features (match TF-IDF+LLM baseline) =====
 ---
 # SASRec Multi-View + Stratified Evaluation (Amazon_Movies_and_TV Dataset)
 
@@ -42,7 +43,7 @@ topk: [5, 10, 20]
 # 评估指标：标准指标 + 分档指标
 metrics: [
   Recall, MRR, NDCG, Hit, Precision,
-  StratifiedRecall, StratifiedNDCG,
+  StratifiedRecall, StratifiedNDCG, StratifiedMRR, StratifiedHit,
   ItemPopularityStats
 ]
 
@@ -52,7 +53,6 @@ train_neg_sample_args: null
 
 # Text feature sources (TF-IDF base + 4-view Qwen3 split embeddings)
 # Architecture: base[256] + multi-view[4×64→256] = fusion[512]
-#
 item_text_emb_path_base: dataset/Amazon_Movies_and_TV/item_text_emb.base.npy
 item_text_emb_path_llm: ""
 item_text_emb_split_dir: dataset/Amazon_Movies_and_TV/qwen3_4views
