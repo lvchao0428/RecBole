@@ -78,13 +78,13 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --mapping dataset/Amazon_Beauty/item_index_mapping.csv \
   --model_name_or_path /home/charlie/project/qwen/Qwen2.5-7B-Instruct \
   --output dataset/Amazon_Beauty/item_text_emb.qwen3.generative.multiview.npy \
-  --prompt_preset multiview-universal \
+  --prompt_preset multiview \
   --output_mode concat \
-  --split_output_dir dataset/Amazon_Beauty/qwen3_generative_4views \
+  --split_output_dir dataset/Amazon_Beauty/qwen3_generative_4views_multiview \
   --view_project_dim 64 \
   --dataset Amazon_Beauty \
   --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
-  --batch_size 256 \
+  --batch_size 64 \
   --max_length 512 \
   --dtype bfloat16 \
   --svd_random_state 42 \
@@ -93,7 +93,9 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --gen_max_new_tokens 64 \
   --gen_temperature 0.0 \
   --flash_attn \
-  --save_generated_texts dataset/Amazon_Beauty/qwen3_generative_4views/generated_texts.json
+  --center \
+  --whiten \
+  --save_generated_texts dataset/Amazon_Beauty/qwen3_generative_4views_multiview/generated_texts.json
 
 echo ""
 echo "✅ Qwen3生成式多视图特征生成完成"

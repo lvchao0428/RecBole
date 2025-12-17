@@ -56,7 +56,7 @@ train_neg_sample_args: null
 # Fair comparison: same fusion dimension (512) as TF-IDF+LLM baseline
 item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 item_text_emb_path_llm: ""  # Not using single LLM path (using split views instead)
-item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen3_generative_4views
+item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen3_generative_4views_multiview
 use_llm: false  # Using split views, not single LLM embedding
 use_align: true
 use_cross: true  # CHANGED: Enable cross network fusion (aligned with qwen3)
