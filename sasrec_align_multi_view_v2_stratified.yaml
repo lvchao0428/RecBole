@@ -10,7 +10,7 @@
 
 model: SASRecAlignMultiViewV2
 hidden_size: 256
-fusion_chunk_size: 65536
+fusion_chunk_size: 16384  # Reduced from 65536 to prevent CUDA timeout
 
 # Dataset / data loader
 dataset: Amazon_Beauty
@@ -64,10 +64,10 @@ item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwe
 use_llm: false
 use_align: true
 use_cross: true
-text_cross_layer_num: 2
+text_cross_layer_num: 1  # Reduced from 2 to prevent CUDA timeout with multiview_text_cross
 use_seq_text_cross: false
 use_text_view_split: true
-use_multiview_text_cross: true
+use_multiview_text_cross: true  # Required for multi-view fusion
 num_text_views: 4
 
 # ========== V2 新增配置 ==========
