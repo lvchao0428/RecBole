@@ -4,7 +4,7 @@
 # Two-phase TF-IDF+LLM with Stratified Evaluation
 # 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
 
-cd /home/charlie/project/RecBole
+#cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
@@ -26,6 +26,7 @@ python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_qwen3_stratified.yaml" \
+  --nproc 4 \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \

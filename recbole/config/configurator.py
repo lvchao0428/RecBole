@@ -494,16 +494,18 @@ class Config(object):
             )
         else:
             assert len(gpu_id.split(",")) >= self.final_config_dict["nproc"]
-            torch.distributed.init_process_group(
-                backend="nccl",
-                rank=self.final_config_dict["local_rank"]
-                + self.final_config_dict["offset"],
-                world_size=self.final_config_dict["world_size"],
-                init_method="tcp://"
-                + self.final_config_dict["ip"]
-                + ":"
-                + str(self.final_config_dict["port"]),
-            )
+            # Only initialize process group if not already initialized
+            if not torch.distributed.is_initialized():
+                torch.distributed.init_process_group(
+                    backend="nccl",
+                    rank=self.final_config_dict["local_rank"]
+                    + self.final_config_dict["offset"],
+                    world_size=self.final_config_dict["world_size"],
+                    init_method="tcp://"
+                    + self.final_config_dict["ip"]
+                    + ":"
+                    + str(self.final_config_dict["port"]),
+                )
             self.final_config_dict["device"] = torch.device(
                 "cuda", self.final_config_dict["local_rank"]
             )
