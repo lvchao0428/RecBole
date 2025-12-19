@@ -5,6 +5,8 @@ Two-phase training orchestrator for RecBole models (e.g., SASRec_Align).
 
 Phase-A: warmup for text alignment/fusion with backbone frozen
 Phase-B: joint fine-tuning with backbone unfrozen and grouped learning rates
+
+Supports multi-GPU distributed training via --nproc flag.
 """
 import argparse
 import atexit
@@ -14,6 +16,7 @@ import json
 import os
 import subprocess
 import threading
+from collections.abc import MutableMapping
 from datetime import datetime
 from logging import getLogger
 
@@ -21,6 +24,8 @@ import csv
 
 import psutil
 import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
@@ -39,6 +44,15 @@ from recbole.utils import (
 
 def _split_config_files(config_files: str | None):
     return config_files.strip().split(" ") if config_files else None
+
+
+def _merge_config_dicts(*dicts):
+    """Merge multiple config dicts, later dicts override earlier ones."""
+    result = {}
+    for d in dicts:
+        if d:
+            result.update(d)
+    return result
 
 
 def _build_and_prepare(config: Config):
@@ -604,11 +618,26 @@ def _train_and_eval_phase(
     return result
 
 
-def main():
+def main(local_rank=None, queue=None, dist_config=None):
+    """
+    Main training function.
+    
+    Args:
+        local_rank: Process rank for distributed training (None for single process)
+        queue: Multiprocessing queue for returning results (distributed mode)
+        dist_config: Distributed config dict with nproc, world_size, ip, port, offset
+    """
     parser = argparse.ArgumentParser(description="Two-phase training orchestrator")
     parser.add_argument("--model", "-m", type=str, required=True, help="model name, e.g., SASRec_Align")
     parser.add_argument("--dataset", "-d", type=str, required=True, help="dataset name")
     parser.add_argument("--config_files", type=str, default=None, help="space-separated config yaml files")
+    
+    # Distributed training arguments
+    parser.add_argument("--nproc", type=int, default=1, help="number of processes (GPUs) for distributed training")
+    parser.add_argument("--ip", type=str, default="localhost", help="master node IP for distributed training")
+    parser.add_argument("--port", type=str, default="5678", help="master node port for distributed training")
+    parser.add_argument("--world_size", type=int, default=-1, help="total number of processes (default: same as nproc)")
+    parser.add_argument("--group_offset", type=int, default=0, help="global rank offset for this process group")
 
     # Phase controls
     parser.add_argument("--phase_a_epochs", type=int, default=8, help="epochs for Phase-A")
@@ -655,6 +684,32 @@ def main():
     parser.add_argument("--watchdog_disable", action="store_true", help="disable resource watchdog regardless of other settings")
     args, _ = parser.parse_known_args()
     args.variant_label = _build_variant_label_from_args(args)
+
+    # Handle distributed training configuration
+    # If called from spawn wrapper, use the passed local_rank and dist_config
+    if local_rank is not None and dist_config is not None:
+        args.local_rank = local_rank
+        args.nproc = dist_config.get("nproc", 1)
+        args.world_size = dist_config.get("world_size", args.nproc)
+        args.ip = dist_config.get("ip", "localhost")
+        args.port = dist_config.get("port", "5678")
+        args.group_offset = dist_config.get("offset", 0)
+    else:
+        args.local_rank = None
+        if args.world_size == -1:
+            args.world_size = args.nproc
+
+    # Build base distributed config dict to inject into all Config objects
+    dist_config_dict = {}
+    if args.local_rank is not None:
+        dist_config_dict = {
+            "local_rank": args.local_rank,
+            "world_size": args.world_size,
+            "nproc": args.nproc,
+            "ip": args.ip,
+            "port": args.port,
+            "offset": args.group_offset,
+        }
 
     watchdog = None
     if (not args.watchdog_disable) and args.watchdog_interval and args.watchdog_interval > 0:
@@ -710,7 +765,7 @@ def main():
             model=args.model,
             dataset=args.dataset,
             config_file_list=_split_config_files(args.config_files),
-            config_dict=burnin_dict,
+            config_dict=_merge_config_dicts(burnin_dict, dist_config_dict),
         )
         logger_burn, dataset_burn, train_burn, valid_burn, test_burn, model_burn, trainer_burn = _build_and_prepare(config_burn)
         logger_burn.info(set_color("[Burn-in] ID-only warmup", "cyan") + f": epochs={burnin_dict['epochs']}, eval_step={burnin_dict['eval_step']}")
@@ -766,7 +821,7 @@ def main():
                         model=args.model,
                         dataset=args.dataset,
                         config_file_list=_split_config_files(args.config_files),
-                        config_dict=phase_a_dict,
+                        config_dict=_merge_config_dicts(phase_a_dict, dist_config_dict),
                     )
                     logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
                     logger_a.info(set_color("[Phase-A:grid] setting", "cyan") + f": alignment_weight={aw}, temperature={tau}")
@@ -949,7 +1004,7 @@ def main():
                 model=args.model,
                 dataset=args.dataset,
                 config_file_list=_split_config_files(args.config_files),
-                config_dict=phase_a_dict,
+                config_dict=_merge_config_dicts(phase_a_dict, dist_config_dict),
             )
             logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
             logger_a.info(set_color("[Phase-A] freeze_backbone", "cyan") + f": {config_a['freeze_backbone']}")
@@ -1111,7 +1166,7 @@ def main():
             model=args.model,
             dataset=args.dataset,
             config_file_list=_split_config_files(args.config_files),
-            config_dict=phase_b_dict,
+            config_dict=_merge_config_dicts(phase_b_dict, dist_config_dict),
         )
         logger_b, dataset_b, train_b, valid_b, test_b, model_b, trainer_b = _build_and_prepare(config_b)
         logger_b.info(
@@ -1148,8 +1203,99 @@ def main():
         _log_grouped_two_phase_summary(res_a, res_b, variant_label=args.variant_label)
         _release_phase_resources("Phase-B", model_b, trainer_b, dataset_b, train_b, valid_b, test_b)
 
+    # Clean up distributed process group if used
+    if args.local_rank is not None:
+        if dist.is_initialized():
+            dist.destroy_process_group()
+
+
+def _run_distributed_worker(rank, queue, dist_config):
+    """
+    Worker function for distributed training via mp.spawn.
+    
+    Args:
+        rank: Process rank (0 to nproc-1)
+        queue: Multiprocessing queue for result passing
+        dist_config: Dict with nproc, world_size, ip, port, offset
+    """
+    main(local_rank=rank, queue=queue, dist_config=dist_config)
+
+
+def run_distributed(nproc, world_size=-1, ip="localhost", port="5678", group_offset=0):
+    """
+    Launch distributed training with multiple GPUs.
+    
+    Args:
+        nproc: Number of processes (GPUs) to use
+        world_size: Total world size (default: same as nproc)
+        ip: Master node IP
+        port: Master node port
+        group_offset: Global rank offset
+    """
+    if world_size == -1:
+        world_size = nproc
+    
+    # Use spawn context for CUDA compatibility
+    queue = mp.get_context("spawn").SimpleQueue()
+    
+    dist_config = {
+        "nproc": nproc,
+        "world_size": world_size,
+        "ip": ip,
+        "port": port,
+        "offset": group_offset,
+    }
+    
+    print(f"[Distributed] Launching {nproc} processes (world_size={world_size})")
+    mp.spawn(
+        _run_distributed_worker,
+        args=(queue, dist_config),
+        nprocs=nproc,
+        join=True,
+    )
+    
+    # Collect result from rank 0 if available
+    result = None if queue.empty() else queue.get()
+    return result
+
 
 if __name__ == "__main__":
-    main()
+    # Parse just the nproc argument to decide single vs distributed mode
+    import sys
+    
+    # Quick check for --nproc argument
+    nproc = 1
+    world_size = -1
+    ip = "localhost"
+    port = "5678"
+    group_offset = 0
+    
+    for i, arg in enumerate(sys.argv):
+        if arg == "--nproc" and i + 1 < len(sys.argv):
+            try:
+                nproc = int(sys.argv[i + 1])
+            except ValueError:
+                pass
+        elif arg == "--world_size" and i + 1 < len(sys.argv):
+            try:
+                world_size = int(sys.argv[i + 1])
+            except ValueError:
+                pass
+        elif arg == "--ip" and i + 1 < len(sys.argv):
+            ip = sys.argv[i + 1]
+        elif arg == "--port" and i + 1 < len(sys.argv):
+            port = sys.argv[i + 1]
+        elif arg == "--group_offset" and i + 1 < len(sys.argv):
+            try:
+                group_offset = int(sys.argv[i + 1])
+            except ValueError:
+                pass
+    
+    if nproc > 1:
+        # Distributed training mode
+        run_distributed(nproc, world_size, ip, port, group_offset)
+    else:
+        # Single process mode
+        main()
 
 
