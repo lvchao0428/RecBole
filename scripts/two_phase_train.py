@@ -573,6 +573,11 @@ def _train_and_eval_phase(
         raise
 
     _log_gpu_snapshot("before-eval", device)
+    
+    # Synchronize all ranks before evaluate to ensure rank 0 has finished saving checkpoint
+    if not trainer.config["single_spec"] and dist.is_initialized():
+        dist.barrier()
+    
     try:
         test_result = trainer.evaluate(
             test_data, load_best_model=saved, show_progress=trainer.config["show_progress"]
@@ -912,6 +917,10 @@ def main(local_rank=None, queue=None, dist_config=None):
                             if args.save and not os.path.exists(trainer_a.saved_model_file):
                                  trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
 
+                        # Synchronize before evaluate to ensure checkpoint is saved
+                        if not config_a["single_spec"] and dist.is_initialized():
+                            dist.barrier()
+                        
                         # Evaluate on test (load best)
                         test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
                         res = {
@@ -1099,7 +1108,11 @@ def main(local_rank=None, queue=None, dist_config=None):
                 # CRITICAL FIX: Ensure checkpoint exists if early stopped
                 if args.save and not os.path.exists(trainer_a.saved_model_file):
                      trainer_a._save_checkpoint(trainer_a.start_epoch + trainer_a.cur_step * trainer_a.eval_step)
-                     
+
+            # Synchronize before evaluate to ensure checkpoint is saved
+            if not config_a["single_spec"] and dist.is_initialized():
+                dist.barrier()
+            
             test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
             res_a = {
                 "best_valid_score": best_valid_score,
