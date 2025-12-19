@@ -25,7 +25,8 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_qwen3_stratified.yaml" \
+  --config_files "sasrec_align_qwen3_stratified_4gpu.yaml" \
+  --nproc 4 \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
