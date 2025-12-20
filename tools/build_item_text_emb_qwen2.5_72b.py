@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Build item text embeddings using Qwen2.5-72B-Instruct-GPTQ-Int8 model.
+Build item text embeddings using Qwen2.5-72B-Instruct-GPTQ-Int8 model with vLLM.
 
-该脚本专为 Qwen2.5-72B GPTQ-Int8 量化模型优化，支持多GPU推理。
+该脚本使用 vLLM 加载 Qwen2.5-72B GPTQ-Int8 量化模型，支持多GPU tensor parallel。
 基于 build_item_text_emb_qwen3_hf.py 改写，保持相同的 project 维度和接口。
 
 主要特性：
-- 支持 GPTQ-Int8 量化模型
+- 使用 vLLM 加载模型，支持 GPTQ-Int8 量化
 - 支持多GPU tensor parallel (8x4090)
 - 支持多视图 prompt 生成
 - 支持 SVD 降维和白化
+- 生成模式：先生成回答，再提取 embedding
 
 Input: mapping CSV exported by tools/export_internal_item_mapping.py
 Output: item_text_emb.qwen2.5_72b.npy
@@ -21,9 +22,10 @@ Example:
     --mapping dataset/Amazon_Beauty/item_index_mapping.csv \
     --model_name_or_path /data/model/Qwen2.5-72B-Instruct-GPTQ-Int8 \
     --output dataset/Amazon_Beauty/item_text_emb.qwen2.5_72b.npy \
+    --tensor_parallel_size 8 \
     --prompt_preset multiview \
     --output_mode concat \
-    --batch_size 4 \
+    --batch_size 32 \
     --dtype float16
 
 Output Modes:
@@ -36,15 +38,16 @@ import argparse
 import os
 import sys
 import json
-from typing import List, Union, Optional
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from tqdm import tqdm
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import normalize as l2_normalize
+
+# vLLM imports
+from vllm import LLM, SamplingParams
 
 # Make local project importable when running from repo root
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -94,29 +97,43 @@ PROMPT_PRESETS = {
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Build Qwen2.5-72B item text embeddings (GPTQ-Int8)")
+    p = argparse.ArgumentParser(description="Build Qwen2.5-72B item text embeddings using vLLM (GPTQ-Int8)")
     p.add_argument("--mapping", required=True, help="CSV from export_internal_item_mapping.py")
     p.add_argument("--model_name_or_path", required=True, help="HF model id or local path (e.g., /data/model/Qwen2.5-72B-Instruct-GPTQ-Int8)")
     p.add_argument("--output", required=True, help="Output .npy path for embeddings")
-    p.add_argument("--batch_size", type=int, default=4, help="Batch size (smaller for large models)")
+    p.add_argument("--batch_size", type=int, default=32, help="Batch size for vLLM generation")
     p.add_argument(
-        "--max_length",
+        "--max_model_len",
         type=int,
-        default=0,
-        help="Max sequence length; 0 means no truncation.",
+        default=4096,
+        help="Maximum model context length (default: 4096).",
     )
     p.add_argument("--dtype", choices=["float16", "bfloat16", "float32"], default="float16")
-    p.add_argument("--device", default=None, help="cuda device or cpu (ignored when device_map=auto)")
-    p.add_argument("--device_map", default="auto", help="HF accelerate device_map (default: 'auto' for multi-GPU)")
+    
+    # --- vLLM 配置参数 ---
     p.add_argument(
-        "--flash_attn",
-        action="store_true",
-        help="Enable Flash Attention 2 for faster inference (requires flash-attn package).",
+        "--tensor_parallel_size",
+        type=int,
+        default=8,
+        help="Number of GPUs for tensor parallelism (default: 8 for 8x4090).",
     )
     p.add_argument(
-        "--max_memory",
-        default=None,
-        help="Max memory per GPU in GB (e.g., '20' for 20GB). Auto-detected if not set.",
+        "--gpu_memory_utilization",
+        type=float,
+        default=0.9,
+        help="GPU memory utilization ratio (default: 0.9).",
+    )
+    p.add_argument(
+        "--swap_space",
+        type=int,
+        default=4,
+        help="Swap space in GB (default: 4).",
+    )
+    p.add_argument(
+        "--enforce_eager",
+        action="store_true",
+        default=True,
+        help="Enforce eager mode (required for consumer GPUs like 4090).",
     )
     
     # --- Prompting Arguments ---
@@ -140,61 +157,39 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--use_chat_template",
         action="store_true",
-        help="Wrap prompt using tokenizer.apply_chat_template.",
-    )
-    p.add_argument(
-        "--no_chat_template",
-        action="store_true",
-        help="Disable chat template even if available.",
+        help="Wrap prompt using chat template format.",
     )
     
-    # --- Generative Mode Arguments ---
-    p.add_argument(
-        "--generative",
-        action="store_true",
-        help="Enable generative mode: generate answer first, then extract embedding from the answer.",
-    )
+    # --- 生成参数 ---
     p.add_argument(
         "--gen_max_new_tokens",
         type=int,
         default=128,
-        help="Max new tokens to generate in generative mode (default: 128).",
+        help="Max new tokens to generate (default: 128).",
     )
     p.add_argument(
         "--gen_temperature",
         type=float,
-        default=0.0,
-        help="Temperature for generation. 0 = deterministic greedy decoding (default: 0).",
+        default=0.7,
+        help="Temperature for generation (default: 0.7).",
     )
     p.add_argument(
         "--gen_top_p",
         type=float,
-        default=1.0,
-        help="Top-p (nucleus) sampling parameter (default: 1.0, no filtering).",
-    )
-    p.add_argument(
-        "--gen_top_k",
-        type=int,
-        default=0,
-        help="Top-k sampling parameter. 0 = disabled (default: 0).",
-    )
-    p.add_argument(
-        "--gen_repetition_penalty",
-        type=float,
-        default=1.0,
-        help="Repetition penalty for generation (default: 1.0, no penalty).",
+        default=0.95,
+        help="Top-p (nucleus) sampling parameter (default: 0.95).",
     )
     p.add_argument(
         "--save_generated_texts",
         default=None,
-        help="Path to save generated texts as JSON (e.g., generated_texts.json). Only used in generative mode.",
+        help="Path to save generated texts as JSON.",
     )
     p.add_argument("--placeholder_text", default="N/A", help="Fallback text.")
     p.add_argument("--pad_placeholder_text", default="[PAD]", help="Placeholder for PAD row.")
     p.add_argument(
         "--split_output_dir",
         default=None,
-        help="If set, dumps per-view embeddings (view_{i}.npy) and views.json metadata for multi-view downstream.",
+        help="If set, dumps per-view embeddings (view_{i}.npy) and views.json metadata.",
     )
     
     # --- Output & Projection Arguments ---
@@ -208,13 +203,13 @@ def parse_args() -> argparse.Namespace:
         "--project_dim",
         type=int,
         default=None,
-        help="Reduce embedding dim via TruncatedSVD. Applied AFTER concatenation/mean. Default: None (keep original).",
+        help="Reduce embedding dim via TruncatedSVD. Applied AFTER concatenation/mean. Default: None.",
     )
     p.add_argument(
         "--view_project_dim",
         type=int,
         default=None,
-        help="Apply TruncatedSVD per prompt view before concat/stack (e.g., 64). Requires --split_output_dir.",
+        help="Apply TruncatedSVD per prompt view before concat/stack (e.g., 64).",
     )
     p.add_argument(
         "--svd_random_state",
@@ -235,187 +230,76 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--whiten",
         action="store_true",
-        help="Enable whitening transformation (disabled by default).",
+        help="Enable whitening transformation.",
     )
     p.add_argument(
         "--center",
         action="store_true",
-        help="Enable centering (mean subtraction). If not set, skip center+whiten and only L2 normalize.",
+        help="Enable centering (mean subtraction).",
     )
+    
+    # --- Embedding 模型配置 ---
+    p.add_argument(
+        "--embed_model_name_or_path",
+        default=None,
+        help="Separate embedding model for extracting embeddings from generated text. If not set, uses sentence-transformers.",
+    )
+    p.add_argument(
+        "--embed_model_dim",
+        type=int,
+        default=1024,
+        help="Embedding dimension (default: 1024 for bge-large).",
+    )
+    
     return p.parse_args()
 
 
-def _select_device(dev: str | None) -> torch.device:
-    if dev is not None:
-        return torch.device(dev)
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def build_chat_prompt(text: str, use_chat_template: bool = True) -> str:
+    """构建 Qwen 格式的 chat prompt"""
+    if use_chat_template:
+        # Qwen chat template format
+        return f"<|im_start|>user\n{text}<|im_end|>\n<|im_start|>assistant\n"
+    return text
 
 
-def _get_max_memory_dict(max_memory_gb: Optional[str] = None) -> Optional[dict]:
-    """获取多GPU显存分配配置"""
-    if not torch.cuda.is_available():
-        return None
-    
-    num_gpus = torch.cuda.device_count()
-    if num_gpus == 0:
-        return None
-    
-    if max_memory_gb is not None:
-        # 用户指定的显存限制
-        max_mem = f"{max_memory_gb}GB"
-    else:
-        # 自动检测：使用90%的可用显存
-        max_mem_dict = {}
-        for i in range(num_gpus):
-            total_mem = torch.cuda.get_device_properties(i).total_memory
-            max_mem_dict[i] = int(total_mem * 0.9)
-        max_mem_dict["cpu"] = "32GB"
-        return max_mem_dict
-    
-    return {i: max_mem for i in range(num_gpus)}
-
-
-@torch.no_grad()
-def encode_batch(
-    model,
-    tokenizer: AutoTokenizer,
+def extract_embeddings_from_texts(
     texts: List[str],
-    max_length: int,
-    device: torch.device,
-    torch_dtype: torch.dtype,
+    embed_model_name_or_path: Optional[str] = None,
+    batch_size: int = 32,
 ) -> np.ndarray:
-    """编码文本批次，提取隐藏状态作为embedding"""
-    do_trunc = isinstance(max_length, int) and max_length > 0
-    
-    # 确保有pad_token
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-    
-    # 批量编码
-    enc = tokenizer(
-        texts,
-        padding=True,
-        truncation=do_trunc,
-        max_length=(max_length if do_trunc else None),
-        return_tensors="pt",
-    )
-    
-    # 移动到正确的设备（对于multi-GPU，模型会自动处理）
-    if hasattr(model, 'hf_device_map'):
-        # Multi-GPU模式，输入会自动分配
-        first_device = next(iter(model.hf_device_map.values()))
-        if isinstance(first_device, str):
-            first_device = torch.device(first_device)
-        elif isinstance(first_device, int):
-            first_device = torch.device(f"cuda:{first_device}")
-        enc = {k: v.to(first_device) for k, v in enc.items()}
-    else:
-        enc = {k: v.to(device) for k, v in enc.items()}
-    
-    if enc["input_ids"].shape[1] == 0:
-        hidden_size = model.config.hidden_size
-        return np.zeros((len(texts), hidden_size), dtype=np.float32)
-
-    outputs = model(**enc, output_hidden_states=True, return_dict=True)
-    last_hidden = getattr(outputs, "last_hidden_state", None)
-    if last_hidden is None:
-        last_hidden = outputs.hidden_states[-1]
+    """
+    从文本中提取 embeddings。
+    使用 sentence-transformers 或其他 embedding 模型。
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
         
-    attn_mask = enc.get("attention_mask", torch.ones_like(last_hidden[:, :, 0]))
-    mask = attn_mask.unsqueeze(-1).type_as(last_hidden)
-    summed = (last_hidden * mask).sum(dim=1)
-    counts = mask.sum(dim=1).clamp(min=1e-6)
-    emb = summed / counts
-    emb = torch.nn.functional.normalize(emb, dim=1)
-    return emb.to(torch.float32).detach().cpu().numpy()
-
-
-@torch.no_grad()
-def encode_batch_generative(
-    model,
-    tokenizer: AutoTokenizer,
-    texts: List[str],
-    max_length: int,
-    device: torch.device,
-    torch_dtype: torch.dtype,
-    gen_max_new_tokens: int = 128,
-    gen_temperature: float = 0.0,
-    gen_top_p: float = 1.0,
-    gen_top_k: int = 0,
-    gen_repetition_penalty: float = 1.0,
-    return_generated_texts: bool = False,
-) -> Union[np.ndarray, tuple]:
-    """生成模式：先生成回答，再从回答中提取embedding"""
-    do_trunc = isinstance(max_length, int) and max_length > 0
-    do_sample = gen_temperature > 0
-    
-    # 确保有pad_token
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-    
-    # 生成配置
-    gen_kwargs = {
-        "max_new_tokens": gen_max_new_tokens,
-        "do_sample": do_sample,
-        "pad_token_id": tokenizer.pad_token_id,
-        "eos_token_id": tokenizer.eos_token_id,
-    }
-    
-    if do_sample:
-        gen_kwargs["temperature"] = gen_temperature
-        gen_kwargs["top_p"] = gen_top_p
-        gen_kwargs["repetition_penalty"] = gen_repetition_penalty
-        if gen_top_k > 0:
-            gen_kwargs["top_k"] = gen_top_k
-    
-    generated_texts = []
-    
-    # 批量生成
-    original_padding_side = tokenizer.padding_side
-    tokenizer.padding_side = "left"
-    
-    enc = tokenizer(
-        texts,
-        padding=True,
-        truncation=do_trunc,
-        max_length=(max_length if do_trunc else None),
-        return_tensors="pt",
-    )
-    
-    # 移动到正确的设备
-    if hasattr(model, 'hf_device_map'):
-        first_device = next(iter(model.hf_device_map.values()))
-        if isinstance(first_device, str):
-            first_device = torch.device(first_device)
-        elif isinstance(first_device, int):
-            first_device = torch.device(f"cuda:{first_device}")
-        enc = {k: v.to(first_device) for k, v in enc.items()}
-    else:
-        enc = {k: v.to(device) for k, v in enc.items()}
-    
-    tokenizer.padding_side = original_padding_side
-    
-    # 批量生成
-    output_ids = model.generate(**enc, **gen_kwargs)
-    seq_len = enc["input_ids"].shape[1]
-    
-    for i in range(output_ids.shape[0]):
-        new_tokens = output_ids[i, seq_len:]
-        generated_text = tokenizer.decode(new_tokens, skip_special_tokens=True)
+        if embed_model_name_or_path is None:
+            # 默认使用 bge-large-zh-v1.5 或 bge-large-en-v1.5
+            embed_model_name_or_path = "BAAI/bge-large-en-v1.5"
         
-        if len(generated_text.strip()) == 0:
-            generated_text = texts[i]
+        print(f"[Embedding] 加载 embedding 模型: {embed_model_name_or_path}")
+        embed_model = SentenceTransformer(embed_model_name_or_path)
         
-        generated_texts.append(generated_text)
-    
-    # 从生成的文本中提取embedding
-    emb_result = encode_batch(model, tokenizer, generated_texts, max_length, device, torch_dtype)
-    
-    if return_generated_texts:
-        return emb_result, generated_texts
-    return emb_result
+        print(f"[Embedding] 编码 {len(texts)} 个文本...")
+        embeddings = embed_model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=True,
+            normalize_embeddings=True,
+        )
+        
+        return embeddings.astype(np.float32)
+        
+    except ImportError:
+        print("[WARNING] sentence-transformers not installed. Using TF-IDF fallback.")
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        
+        vectorizer = TfidfVectorizer(max_features=1024, ngram_range=(1, 2))
+        embeddings = vectorizer.fit_transform(texts).toarray()
+        embeddings = l2_normalize(embeddings, axis=1)
+        
+        return embeddings.astype(np.float32)
 
 
 def _load_train_item_ids(args, max_row: int):
@@ -444,12 +328,12 @@ def _center_whiten_and_normalize(
     enable_whiten: bool = False,
     enable_center: bool = False,
 ) -> np.ndarray:
-    """Center + Whiten + L2 normalize，使用训练集统计量"""
+    """Center + Whiten + L2 normalize"""
     if emb is None or emb.size == 0:
         return emb
     
     if emb.ndim == 3:
-        print("[WARN] Skipping center/whiten for 3D tensor (mode=stack). Apply per-view instead.")
+        print("[WARN] Skipping center/whiten for 3D tensor (mode=stack).")
         return emb
     
     if not enable_center:
@@ -471,26 +355,22 @@ def _center_whiten_and_normalize(
         print("[WARN] No training embeddings found; skipping center/whiten.")
         return emb
     
-    # Step 1: Center
     mean = train_emb.mean(axis=0, keepdims=True).astype(np.float64)
     emb_centered = (emb - mean).astype(np.float64)
     emb_centered[0, :] = 0.0
     
     whiten_matrix = None
     if enable_whiten:
-        # Step 2: Whitening
         train_centered = (train_emb - mean).astype(np.float64)
         cov = (train_centered.T @ train_centered) / len(train_centered)
         U, S, _ = np.linalg.svd(cov)
         
-        print(f"[Whiten] Eigenvalue stats: min={S.min():.6f}, max={S.max():.6f}, mean={S.mean():.6f}")
-        print(f"[Whiten] Condition number: {S.max() / (S.min() + 1e-10):.2f}")
+        print(f"[Whiten] Eigenvalue stats: min={S.min():.6f}, max={S.max():.6f}")
         
         whiten_matrix = U @ np.diag(1.0 / np.sqrt(S + 1e-5))
         emb_whitened = emb_centered @ whiten_matrix
         emb_whitened[0, :] = 0.0
         emb_processed = emb_whitened.astype(np.float32)
-        
     else:
         emb_processed = emb_centered
         norms = np.linalg.norm(emb_processed[1:], axis=1, keepdims=True)
@@ -499,18 +379,11 @@ def _center_whiten_and_normalize(
     if output_stats_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_stats_path)), exist_ok=True)
         if enable_whiten and whiten_matrix is not None:
-            np.savez(
-                output_stats_path,
-                mean=mean.astype(np.float32),
-                whiten_matrix=whiten_matrix.astype(np.float32),
-            )
-            print(f"[Whiten] Saved center+whiten stats to: {output_stats_path}")
+            np.savez(output_stats_path, mean=mean.astype(np.float32), whiten_matrix=whiten_matrix.astype(np.float32))
+            print(f"[Whiten] Saved stats to: {output_stats_path}")
         else:
-            np.savez(
-                output_stats_path,
-                mean=mean.astype(np.float32),
-            )
-            print(f"[Center] Saved center stats to: {output_stats_path}")
+            np.savez(output_stats_path, mean=mean.astype(np.float32))
+            print(f"[Center] Saved stats to: {output_stats_path}")
     
     return emb_processed.astype(np.float32)
 
@@ -523,7 +396,7 @@ def _apply_truncated_svd(
     label: str,
     normalize: bool = True
 ):
-    """应用 TruncatedSVD 降维"""
+    """Apply TruncatedSVD dimensionality reduction"""
     if mat.ndim != 2:
         raise ValueError("SVD can only be applied to 2D matrices.")
     orig_dim = mat.shape[1]
@@ -539,6 +412,7 @@ def _apply_truncated_svd(
         subset = mat[1:, :].astype(np.float32, copy=False)
     else:
         subset = mat[train_ids, :].astype(np.float32, copy=False)
+    
     svd_k = max(1, min(target_dim, subset.shape[1] - 1 if subset.shape[1] > 1 else 1))
     print(f"[SVD:{label}] fitting TruncatedSVD from {orig_dim} -> {target_dim} (k={svd_k})...")
     svd = TruncatedSVD(n_components=svd_k, random_state=random_state)
@@ -565,8 +439,6 @@ def main():
     if args.prompt_list:
         with open(args.prompt_list, "r") as f:
             prompts = json.load(f)
-            if not isinstance(prompts, list):
-                raise ValueError("prompt_list JSON must be a list of strings.")
     elif args.prompt_template:
         prompts = [args.prompt_template]
     else:
@@ -594,184 +466,148 @@ def main():
                 raw = args.placeholder_text
         item_raw_texts.append(raw.strip())
 
-    # --- 3. 加载模型 ---
-    device = _select_device(args.device)
-    if args.dtype == "float16":
-        torch_dtype = torch.float16
-    elif args.dtype == "bfloat16":
-        torch_dtype = torch.bfloat16
-    else:
-        torch_dtype = torch.float32
-
-    print(f"\n===== 加载 Qwen2.5-72B 模型 =====")
+    # --- 3. 初始化 vLLM 模型 ---
+    print("\n" + "=" * 60)
+    print("初始化 vLLM 模型 (Qwen2.5-72B-Instruct-GPTQ-Int8)")
+    print("=" * 60)
     print(f"模型路径: {args.model_name_or_path}")
-    print(f"device_map: {args.device_map}")
+    print(f"Tensor Parallel Size: {args.tensor_parallel_size}")
+    print(f"量化类型: GPTQ (Int8)")
+    print(f"GPU Memory Utilization: {args.gpu_memory_utilization}")
+    print(f"Max Model Length: {args.max_model_len}")
     print(f"dtype: {args.dtype}")
+    print("")
     
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_name_or_path, trust_remote_code=True, padding_side="left"
+    # vLLM 配置 - 与 test_qwen2.5_72b_gptq_int8_transformers.py 一致
+    llm = LLM(
+        model=args.model_name_or_path,
+        tensor_parallel_size=args.tensor_parallel_size,
+        quantization="gptq",  # 关键：指定 GPTQ 量化
+        gpu_memory_utilization=args.gpu_memory_utilization,
+        max_model_len=args.max_model_len,
+        enforce_eager=args.enforce_eager,
+        trust_remote_code=True,
+        dtype=args.dtype,
+        swap_space=args.swap_space,
     )
     
-    # 确保有 pad_token
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.pad_token_id = tokenizer.eos_token_id
+    print("✅ vLLM 模型加载成功！")
     
-    print(f"[Tokenizer] pad_token='{tokenizer.pad_token}', eos_token='{tokenizer.eos_token}'")
-    
-    # 加载模型配置
-    model_kwargs = {
-        "trust_remote_code": True,
-        "torch_dtype": torch_dtype,
-        "low_cpu_mem_usage": True,
-    }
-    
-    # 设置 device_map
-    if args.device_map:
-        model_kwargs["device_map"] = args.device_map
-        if args.max_memory:
-            model_kwargs["max_memory"] = _get_max_memory_dict(args.max_memory)
-    
-    # Flash Attention 2 支持
-    if args.flash_attn:
-        try:
-            model_kwargs["attn_implementation"] = "flash_attention_2"
-            print("[Flash Attention 2] 尝试启用...")
-        except Exception as e:
-            print(f"[Flash Attention 2] 警告: {e}")
-    
-    # 加载模型（自动检测 GPTQ 量化）
-    print(f"正在加载模型... (这可能需要几分钟)")
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_name_or_path,
-        **model_kwargs
+    # 生成参数
+    sampling_params = SamplingParams(
+        temperature=args.gen_temperature,
+        top_p=args.gen_top_p,
+        max_tokens=args.gen_max_new_tokens,
+        stop_token_ids=[151645],  # Qwen EOS token ID
+        skip_special_tokens=True,
     )
-    model.eval()
-    
-    # 打印模型分布信息
-    if hasattr(model, 'hf_device_map'):
-        print(f"[Multi-GPU] 模型已分布到设备: {set(model.hf_device_map.values())}")
-    
-    use_chat = hasattr(tokenizer, "apply_chat_template") and (not args.no_chat_template)
-    if use_chat:
-        print("[Chat Template] 已启用")
 
-    # --- 4. 编码循环 ---
+    # --- 4. 生成循环 ---
+    n_items = len(item_raw_texts)
+    print(f"\n处理 {n_items} 个 items, {len(prompts)} prompts, batch_size={args.batch_size}")
+    
     needs_view_concat = args.output_mode == "concat" and args.view_project_dim is not None
     if needs_view_concat and not args.split_output_dir:
-        raise ValueError("--view_project_dim requires --split_output_dir to store per-view tensors.")
+        raise ValueError("--view_project_dim requires --split_output_dir")
 
-    final_embs = [] if not needs_view_concat else None
+    # 存储每个视图的生成文本
+    all_view_generated_texts = [[] for _ in range(len(prompts))]
+    save_gen_texts = args.save_generated_texts is not None
+    all_generated_records = [] if save_gen_texts else None
+
+    # 对每个 prompt 视图进行生成
+    for prompt_idx, prompt_tmpl in enumerate(prompts):
+        print(f"\n--- 处理视图 {prompt_idx + 1}/{len(prompts)}: {prompt_tmpl[:50]}... ---")
+        
+        # 准备所有文本
+        all_prompts_for_view = []
+        for raw in item_raw_texts:
+            base_prompt = prompt_tmpl.replace("{text}", raw)
+            if args.use_chat_template:
+                chat_prompt = build_chat_prompt(base_prompt, use_chat_template=True)
+            else:
+                chat_prompt = base_prompt
+            all_prompts_for_view.append(chat_prompt)
+        
+        # 批量生成
+        view_generated_texts = []
+        for i in tqdm(range(0, n_items, args.batch_size), desc=f"View {prompt_idx + 1}"):
+            batch_prompts = all_prompts_for_view[i:i + args.batch_size]
+            outputs = llm.generate(batch_prompts, sampling_params)
+            
+            for output in outputs:
+                generated_text = output.outputs[0].text.strip()
+                if len(generated_text) == 0:
+                    generated_text = item_raw_texts[i]  # fallback
+                view_generated_texts.append(generated_text)
+        
+        all_view_generated_texts[prompt_idx] = view_generated_texts
+        print(f"✅ 视图 {prompt_idx + 1} 生成完成: {len(view_generated_texts)} 条文本")
     
-    n_items = len(item_raw_texts)
+    # 保存生成的文本（如果需要）
+    if save_gen_texts:
+        for item_idx in range(n_items):
+            record = {
+                "internal_item_id": item_idx,
+                "raw_text": item_raw_texts[item_idx],
+                "views": []
+            }
+            for view_idx, prompt_tmpl in enumerate(prompts):
+                record["views"].append({
+                    "view_index": view_idx,
+                    "prompt": prompt_tmpl,
+                    "generated_text": all_view_generated_texts[view_idx][item_idx]
+                })
+            all_generated_records.append(record)
     
-    mode_str = "generative" if args.generative else "embedding-only"
-    if args.generative:
-        print(f"[Generative Mode] temperature={args.gen_temperature}, max_new_tokens={args.gen_max_new_tokens}")
-    print(f"\n编码 {n_items} 个 items, batch_size={args.batch_size}, {len(prompts)} prompts, mode={args.output_mode}, encode_mode={mode_str}...")
+    # --- 5. 提取 Embeddings ---
+    print("\n" + "=" * 60)
+    print("提取 Embeddings")
+    print("=" * 60)
     
+    view_embeddings = []
+    for view_idx in range(len(prompts)):
+        print(f"\n提取视图 {view_idx + 1} embeddings...")
+        view_texts = all_view_generated_texts[view_idx]
+        
+        # 使用 embedding 模型提取特征
+        emb = extract_embeddings_from_texts(
+            view_texts,
+            embed_model_name_or_path=args.embed_model_name_or_path,
+            batch_size=args.batch_size,
+        )
+        
+        print(f"  视图 {view_idx + 1} embedding shape: {emb.shape}")
+        view_embeddings.append(emb)
+    
+    # --- 6. 合并视图 ---
+    # Stack: [N, K, D]
+    stacked = np.stack(view_embeddings, axis=1)
+    print(f"\n合并后 shape: {stacked.shape}")
+    
+    # 确保 PAD 为零
+    stacked[0, :, :] = 0.0
+    
+    # 处理分视图输出
     split_chunks = None
     if args.split_output_dir:
-        split_chunks = [[] for _ in range(len(prompts))]
+        split_chunks = [view_embeddings[i] for i in range(len(prompts))]
+    
     view_mats_for_concat = [] if needs_view_concat else None
     
-    save_gen_texts = args.generative and args.save_generated_texts is not None
-    all_generated_texts = [] if save_gen_texts else None
+    # 根据 output_mode 处理
+    if args.output_mode == "mean":
+        mat = np.mean(stacked, axis=1)
+        mat = l2_normalize(mat, axis=1)
+    elif args.output_mode == "concat":
+        B, K, D = stacked.shape
+        mat = stacked.reshape(B, K * D)
+    else:  # stack
+        mat = stacked
+    
+    mat[0] = 0.0  # PAD
 
-    with tqdm(total=n_items, unit="items") as pbar:
-        for i in range(0, n_items, args.batch_size):
-            batch_raw = item_raw_texts[i : i + args.batch_size]
-            batch_start_idx = i
-            
-            batch_prompt_embs = []
-            batch_gen_texts_per_view = [] if save_gen_texts else None
-            
-            for prompt_idx, prompt_tmpl in enumerate(prompts):
-                batch_texts = []
-                for raw in batch_raw:
-                    base_prompt = prompt_tmpl.replace("{text}", raw)
-                    if use_chat:
-                        messages = [{"role": "user", "content": base_prompt}]
-                        chat_text = tokenizer.apply_chat_template(
-                            messages, tokenize=False, add_generation_prompt=args.generative
-                        )
-                        batch_texts.append(chat_text)
-                    else:
-                        batch_texts.append(base_prompt)
-
-                if args.generative:
-                    if save_gen_texts:
-                        emb, gen_texts = encode_batch_generative(
-                            model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
-                            gen_max_new_tokens=args.gen_max_new_tokens,
-                            gen_temperature=args.gen_temperature,
-                            gen_top_p=args.gen_top_p,
-                            gen_top_k=args.gen_top_k,
-                            gen_repetition_penalty=args.gen_repetition_penalty,
-                            return_generated_texts=True,
-                        )
-                        batch_gen_texts_per_view.append(gen_texts)
-                    else:
-                        emb = encode_batch_generative(
-                            model, tokenizer, batch_texts, args.max_length, device, torch_dtype,
-                            gen_max_new_tokens=args.gen_max_new_tokens,
-                            gen_temperature=args.gen_temperature,
-                            gen_top_p=args.gen_top_p,
-                            gen_top_k=args.gen_top_k,
-                            gen_repetition_penalty=args.gen_repetition_penalty,
-                        )
-                else:
-                    emb = encode_batch(model, tokenizer, batch_texts, args.max_length, device, torch_dtype)
-                batch_prompt_embs.append(emb)
-            
-            if save_gen_texts and batch_gen_texts_per_view:
-                for batch_offset, raw_text in enumerate(batch_raw):
-                    item_idx = batch_start_idx + batch_offset
-                    item_record = {
-                        "internal_item_id": item_idx,
-                        "raw_text": raw_text,
-                        "views": []
-                    }
-                    for view_idx, prompt_tmpl in enumerate(prompts):
-                        item_record["views"].append({
-                            "view_index": view_idx,
-                            "prompt": prompt_tmpl,
-                            "generated_text": batch_gen_texts_per_view[view_idx][batch_offset]
-                        })
-                    all_generated_texts.append(item_record)
-            
-            stacked = np.stack(batch_prompt_embs, axis=1)
-
-            if split_chunks is not None:
-                for view_idx in range(len(prompts)):
-                    split_chunks[view_idx].append(stacked[:, view_idx, :].astype(np.float32, copy=False))
-            
-            if args.output_mode == "mean":
-                final_batch = np.mean(stacked, axis=1)
-                final_batch = l2_normalize(final_batch, axis=1)
-            elif args.output_mode == "concat":
-                B, K, D = stacked.shape
-                final_batch = stacked.reshape(B, K * D)
-            else:
-                final_batch = stacked
-            
-            if final_embs is not None:
-                final_embs.append(final_batch)
-            pbar.update(len(batch_raw))
-            
-    mat = None
-    if final_embs is not None:
-        if len(final_embs) == 0:
-            mat = np.zeros((n_items, 0), dtype=np.float32)
-        else:
-            mat = np.concatenate(final_embs, axis=0)
-
-    if mat is not None and mat.shape[0] > 0:
-        if mat.ndim == 2:
-            mat[0, :] = 0.0
-        elif mat.ndim == 3:
-            mat[0, :, :] = 0.0
-
+    # --- 7. SVD 和后处理 ---
     train_ids_cache = None
     if (args.view_project_dim is not None or args.project_dim is not None) and args.dataset:
         train_ids_cache = _load_train_item_ids(args, n_items - 1)
@@ -779,6 +615,7 @@ def main():
     enable_whiten = args.whiten
     enable_center = args.center
 
+    # 分视图保存
     if split_chunks is not None:
         os.makedirs(args.split_output_dir, exist_ok=True)
         split_meta = {
@@ -788,12 +625,10 @@ def main():
             "model": args.model_name_or_path,
             "prompts": [],
         }
-        for view_idx, view_parts in enumerate(split_chunks):
-            if len(view_parts) == 0:
-                continue
-            view_mat = np.concatenate(view_parts, axis=0).astype(np.float32, copy=False)
-            if view_mat.shape[0] > 0:
-                view_mat[0, :] = 0.0
+        for view_idx, view_mat in enumerate(split_chunks):
+            view_mat = view_mat.copy()
+            view_mat[0, :] = 0.0
+            
             if args.view_project_dim is not None:
                 view_mat = _apply_truncated_svd(
                     view_mat,
@@ -805,10 +640,7 @@ def main():
                 )
             
             if enable_center or enable_whiten:
-                view_stats_path = os.path.join(
-                    args.split_output_dir, 
-                    f"view_{view_idx}_whiten_stats.npz"
-                ) if enable_center else None
+                view_stats_path = os.path.join(args.split_output_dir, f"view_{view_idx}_whiten_stats.npz")
                 view_mat = _center_whiten_and_normalize(
                     view_mat,
                     train_ids_cache,
@@ -817,58 +649,43 @@ def main():
                     enable_center=enable_center,
                 )
             
-            save_mat = view_mat
-            if args.dtype == "float16":
-                save_mat = save_mat.astype(np.float16)
-            elif args.dtype == "bfloat16":
-                save_mat = save_mat.astype(np.float32)
+            save_mat = view_mat.astype(np.float16 if args.dtype == "float16" else np.float32)
             view_path = os.path.join(args.split_output_dir, f"view_{view_idx}.npy")
             np.save(view_path, save_mat)
-            split_meta["prompts"].append(
-                {
-                    "index": view_idx,
-                    "prompt": prompts[view_idx],
-                    "file": os.path.basename(view_path),
-                    "vector_dim": int(view_mat.shape[1]),
-                }
-            )
+            split_meta["prompts"].append({
+                "index": view_idx,
+                "prompt": prompts[view_idx],
+                "file": os.path.basename(view_path),
+                "vector_dim": int(view_mat.shape[1]),
+            })
             if view_mats_for_concat is not None:
-                view_mats_for_concat.append(view_mat.astype(np.float32, copy=False))
+                view_mats_for_concat.append(view_mat.astype(np.float32))
+        
         meta_path = os.path.join(args.split_output_dir, "views.json")
         with open(meta_path, "w") as mf:
             json.dump(split_meta, mf, ensure_ascii=False, indent=2)
-        print(f"[Split] 保存分视图 embeddings 到 {args.split_output_dir} (metadata: {meta_path})")
+        print(f"[Split] 保存分视图到 {args.split_output_dir}")
 
-    if mat is None:
-        if view_mats_for_concat is None or len(view_mats_for_concat) == 0:
-            raise ValueError("No embeddings collected for final output; ensure output_mode supports view-based concat.")
+    # 如果需要从分视图重新拼接
+    if view_mats_for_concat is not None and len(view_mats_for_concat) > 0:
         if args.output_mode == "concat":
             mat = np.concatenate(view_mats_for_concat, axis=1)
-        else:
-            raise ValueError("--view_project_dim currently only supports output_mode=concat.")
-    if mat is not None and mat.shape[0] > 0:
-        if mat.ndim == 2:
             mat[0, :] = 0.0
-        elif mat.ndim == 3:
-            mat[0, :, :] = 0.0
 
-    # --- 5. SVD 降维 ---
-    if args.project_dim is not None:
-        if mat.ndim != 2:
-            print("Warning: SVD projection skipped because output is not 2D (mode=stack?).")
-        else:
-            mat = _apply_truncated_svd(
-                mat,
-                target_dim=args.project_dim,
-                train_ids=train_ids_cache,
-                random_state=args.svd_random_state,
-                label="final",
-                normalize=False,
-            )
+    # 最终 SVD
+    if args.project_dim is not None and mat.ndim == 2:
+        mat = _apply_truncated_svd(
+            mat,
+            target_dim=args.project_dim,
+            train_ids=train_ids_cache,
+            random_state=args.svd_random_state,
+            label="final",
+            normalize=False,
+        )
 
-    # --- 6. Center + Whiten 归一化 ---
+    # Center + Whiten
     if (enable_center or enable_whiten) and mat is not None and mat.ndim == 2:
-        stats_path = args.output.replace('.npy', '_whiten_stats.npz') if enable_center else None
+        stats_path = args.output.replace('.npy', '_whiten_stats.npz')
         mat = _center_whiten_and_normalize(
             mat,
             train_ids_cache,
@@ -877,36 +694,30 @@ def main():
             enable_center=enable_center,
         )
 
-    # --- 7. 保存 ---
+    # --- 8. 保存 ---
     if args.dtype == "float16":
         mat = mat.astype(np.float16)
-    elif args.dtype == "bfloat16":
-        mat = mat.astype(np.float32)
     else:
         mat = mat.astype(np.float32)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     np.save(args.output, mat)
-    print(
-        f"\n✅ 保存 Qwen2.5-72B embeddings 到: {os.path.abspath(args.output)}  "
-        f"shape={mat.shape}  dtype={mat.dtype}  (prompts={len(prompts)}, mode={args.output_mode})"
-    )
+    print(f"\n✅ 保存 embeddings 到: {os.path.abspath(args.output)}")
+    print(f"   shape={mat.shape}, dtype={mat.dtype}, prompts={len(prompts)}, mode={args.output_mode}")
     
-    # --- 8. 保存生成的文本 ---
-    if all_generated_texts is not None and len(all_generated_texts) > 0:
-        gen_texts_output = {
-            "num_items": len(all_generated_texts),
+    # 保存生成文本
+    if all_generated_records is not None:
+        gen_output = {
+            "num_items": len(all_generated_records),
             "num_views": len(prompts),
             "prompts": prompts,
-            "items": all_generated_texts,
+            "items": all_generated_records,
         }
-        gen_texts_path = args.save_generated_texts
-        os.makedirs(os.path.dirname(os.path.abspath(gen_texts_path)), exist_ok=True)
-        with open(gen_texts_path, "w", encoding="utf-8") as f:
-            json.dump(gen_texts_output, f, ensure_ascii=False, indent=2)
-        print(f"[Generative] 保存生成文本到: {os.path.abspath(gen_texts_path)} ({len(all_generated_texts)} items)")
+        os.makedirs(os.path.dirname(os.path.abspath(args.save_generated_texts)), exist_ok=True)
+        with open(args.save_generated_texts, "w", encoding="utf-8") as f:
+            json.dump(gen_output, f, ensure_ascii=False, indent=2)
+        print(f"[Generative] 保存生成文本到: {args.save_generated_texts}")
 
 
 if __name__ == "__main__":
     main()
-
