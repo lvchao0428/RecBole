@@ -63,7 +63,8 @@ train_neg_sample_args: null
 #item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 #item_text_emb_path_llm: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
-item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
+#item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
+item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
 use_llm: true
 use_align: true
 use_cross: true
