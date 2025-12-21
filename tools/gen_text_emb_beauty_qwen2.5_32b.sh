@@ -9,7 +9,8 @@
 # ==============================================
 
 # 项目根目录（根据实际情况修改）
-PROJECT_ROOT="/home/charlie/project/RecBole"
+#PROJECT_ROOT="/home/charlie/project/RecBole"
+PROJECT_ROOT="/home/ubuntu/own/RecBole"
 cd "$PROJECT_ROOT"
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
