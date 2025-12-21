@@ -4,7 +4,8 @@
 # ==============================================
 # 使用 Qwen2.5-32B-Instruct 生成文本特征
 # 非量化版本，使用 HuggingFace Transformers
-# 建议使用 device_map=auto 进行多GPU推理
+# 支持多GPU推理 (device_map=auto)
+# 启用 center + whiten 归一化
 # ==============================================
 
 # 项目根目录（根据实际情况修改）
@@ -20,6 +21,11 @@ MODEL_PATH="/data/model/Qwen2.5-32B-Instruct"
 MODEL_NAME="qwen2.5_32b"
 
 # ==========================================
+# GPU 配置 - 使用多张GPU (根据实际情况修改)
+# ==========================================
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+
+# ==========================================
 # 性能优化环境变量
 # ==========================================
 export OMP_NUM_THREADS=$(nproc)
@@ -32,16 +38,17 @@ export NUMEXPR_NUM_THREADS=$(nproc)
 export TF_CPP_MIN_LOG_LEVEL=2
 export TF_ENABLE_ONEDNN_OPTS=0
 
-# 使用所有可用GPU
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+# HuggingFace 缓存
+export HF_HUB_CACHE="/tmp/hf_hub_cache"
 
 echo "========================================"
-echo "Qwen2.5-32B-Instruct 文本特征生成"
+echo "Qwen2.5-32B-Instruct 文本特征生成 (多GPU)"
 echo "========================================"
 echo "项目路径: $PROJECT_ROOT"
 echo "模型路径: $MODEL_PATH"
 echo "CPU cores: $(nproc)"
 echo "GPU count: $(nvidia-smi -L 2>/dev/null | wc -l || echo 'N/A')"
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 echo ""
 
 # ==========================================
@@ -61,10 +68,14 @@ python tools/build_item_text_emb_base.py \
   --ngram_min 1 \
   --ngram_max 2 \
   --min_df 2 \
-  --dtype float16
+  --dtype float16 \
+  --center \
+  --whiten
 
 echo ""
 echo "✅ TF-IDF特征生成完成"
+echo "   - 特征文件: dataset/Amazon_Beauty/item_text_emb.base.npy"
+echo "   - 统计文件: dataset/Amazon_Beauty/item_text_emb.base_whiten_stats.npz"
 echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -85,10 +96,9 @@ fi
 echo ""
 
 # ==========================================
-# 3. Qwen2.5-32B 单视图特征
-# 注意：32B模型需要使用device_map=auto进行多GPU推理
+# 3. Qwen2.5-32B 单视图特征 (多GPU, center+whiten)
 # ==========================================
-echo "[3/4] Generating ${MODEL_NAME} single-view embeddings with center+whiten..."
+echo "[3/4] Generating ${MODEL_NAME} single-view embeddings (Multi-GPU, center+whiten)..."
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -101,23 +111,26 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --project_dim 256 \
   --dataset Amazon_Beauty \
   --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
-  --batch_size 4 \
+  --batch_size 16 \
   --max_length 0 \
   --dtype float16 \
   --device_map auto \
   --svd_random_state 42 \
-  --use_chat_template
+  --use_chat_template \
+  --center \
+  --whiten
 
 echo ""
 echo "✅ ${MODEL_NAME} 单视图特征生成完成"
 echo "   - 特征文件: dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.base.npy"
+echo "   - 统计文件: dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.base_whiten_stats.npz"
 echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
 # ==========================================
-# 4. Qwen2.5-32B 多视图特征（4个视图）
+# 4. Qwen2.5-32B 多视图特征（4个视图, center+whiten）
 # ==========================================
-echo "[4/4] Generating ${MODEL_NAME} multi-view embeddings (4 views) with per-view projection..."
+echo "[4/4] Generating ${MODEL_NAME} multi-view embeddings (4 views, Multi-GPU, center+whiten)..."
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -131,16 +144,19 @@ python tools/build_item_text_emb_qwen3_hf.py \
   --view_project_dim 64 \
   --dataset Amazon_Beauty \
   --config sasrec_base_plain.yaml recbole/properties/overall.yaml \
-  --batch_size 4 \
+  --batch_size 16 \
   --max_length 0 \
   --dtype float16 \
   --device_map auto \
   --svd_random_state 42 \
-  --use_chat_template
+  --use_chat_template \
+  --center \
+  --whiten
 
 echo ""
 echo "✅ ${MODEL_NAME} 多视图特征生成完成"
 echo "   - 拼接特征: dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.multiview.npy (shape: [N, 256])"
+echo "   - 统计文件: dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.multiview_whiten_stats.npz"
 echo "   - 视图0 (Identity):  dataset/Amazon_Beauty/${MODEL_NAME}_4views/view_0.npy"
 echo "   - 视图1 (Function):  dataset/Amazon_Beauty/${MODEL_NAME}_4views/view_1.npy"
 echo "   - 视图2 (Audience):  dataset/Amazon_Beauty/${MODEL_NAME}_4views/view_2.npy"
@@ -165,7 +181,7 @@ echo "    - dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.multiview.npy"
 echo "    - dataset/Amazon_Beauty/${MODEL_NAME}_4views/ (分视图)"
 echo ""
 echo "下一步："
-echo "  1. 验证特征: bash tools/verify_all_embeddings.sh"
+echo "  1. 验证特征维度:"
+echo "     python -c \"import numpy as np; x=np.load('dataset/Amazon_Beauty/item_text_emb.${MODEL_NAME}.base.npy'); print(f'shape={x.shape}, dtype={x.dtype}')\""
 echo "  2. 运行实验"
 echo ""
-
