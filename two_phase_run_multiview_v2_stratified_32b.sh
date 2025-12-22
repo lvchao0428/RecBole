@@ -35,7 +35,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_multi_view_v2_stratified.yaml" \
+  --config_files "sasrec_align_multi_view_v2_stratified_32b.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
@@ -49,7 +49,7 @@ python scripts/two_phase_train.py \
   --lr_text_head 1e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
-  --phase_b_alignment_weight 0.15 \
+  --phase_b_alignment_weight 0.05 \
   --phase_b_text_gate_reg_l2 0.05 \
   --phase_b_text_weight 0.8 \
   --phase_a_auto_to_b \
