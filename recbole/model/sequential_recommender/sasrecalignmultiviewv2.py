@@ -32,11 +32,22 @@ SASRecAlignMultiView V2 - Enhanced Multi-View Text Features
     - 配置项: per_view_l2_norm (默认 True)
     - 搜索标记: # [CHANGE-5]
 
+【改动6】冷启动对齐权重增强 (Cold-Start Alignment Boost)
+    - 位置: __init__() 和 calculate_loss() 方法
+    - 原因: 解决对齐损失被高频商品主导的问题，给冷启动商品更高的对齐损失权重
+    - 配置项: 
+        cold_start_align_boost (默认 0.0 关闭，建议设为 2.0-5.0)
+        cold_start_align_threshold (默认 10，低于此阈值的商品获得额外权重)
+    - 权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
+    - 搜索标记: # [CHANGE-6]
+
 配置示例 (yaml):
 ===============
 multiview_align_scale: 2.0      # Multi-View专属对齐损失放大
 text_view_senet_ratio: 2        # SENet压缩比（原默认4）
 per_view_l2_norm: true          # 每个view独立L2归一化
+cold_start_align_boost: 3.0     # 冷启动对齐权重增强（0=关闭）
+cold_start_align_threshold: 10  # 冷启动阈值（popularity低于此值获得额外权重）
 """
 
 import json
@@ -92,6 +103,12 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         
         # [CHANGE-5] 每个view独立L2归一化开关
         self.per_view_l2_norm = bool(config["per_view_l2_norm"]) if "per_view_l2_norm" in config else True
+
+        # [CHANGE-6] 冷启动对齐权重增强
+        # cold_start_align_boost: 增强系数，0.0表示关闭，建议2.0-5.0
+        # cold_start_align_threshold: 低于此popularity的商品获得额外权重
+        self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
+        self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
 
         self.text_view_buffer_names = []
         self.text_view_proj = nn.ModuleList()
@@ -231,6 +248,14 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                 "enabled" if has_text_cross else "disabled",
                 fusion_input_dim, fusion_input_dim, self.text_cross_layer_num
             )
+            # [CHANGE-6] 记录冷启动对齐权重配置
+            if self.cold_start_align_boost > 0:
+                self.logger.info(
+                    "Cold-start alignment boost: enabled (boost=%.2f, threshold=%d)",
+                    self.cold_start_align_boost, self.cold_start_align_threshold
+                )
+            else:
+                self.logger.info("Cold-start alignment boost: disabled (boost=0)")
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
         """Get the embedding buffer for a specific view."""
@@ -437,15 +462,77 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         return fused_emb
 
 
+    def _info_nce_align_weighted(self, a: torch.Tensor, b: torch.Tensor, sample_weights: torch.Tensor) -> torch.Tensor:
+        """
+        [CHANGE-6] 加权版本的 InfoNCE 对齐损失
+        
+        Args:
+            a: ID embeddings [B, hidden_size]
+            b: Text embeddings [B, hidden_size]
+            sample_weights: Per-sample weights [B], 冷启动商品权重更高
+            
+        Returns:
+            Weighted alignment loss (scalar)
+        """
+        if a.size(0) == 0 or b.size(0) == 0:
+            return torch.zeros(1, device=a.device)
+        
+        a = F.normalize(a, dim=1)
+        b = F.normalize(b, dim=1)
+        sim = torch.matmul(a, b.t())  # [B, B]
+        
+        # InfoNCE: -log(exp(sim_ii/tau) / sum_j(exp(sim_ij/tau)))
+        # Per-sample loss: loss_i = -sim_ii/tau + log(sum_j(exp(sim_ij/tau)))
+        sim_scaled = sim / self.temperature
+        labels = torch.arange(a.size(0), device=a.device)
+        
+        # 计算每个样本的 cross-entropy loss
+        per_sample_loss = F.cross_entropy(sim_scaled, labels, reduction='none')  # [B]
+        
+        # 应用权重并求平均
+        weighted_loss = (per_sample_loss * sample_weights).sum() / sample_weights.sum().clamp_min(1e-6)
+        
+        return weighted_loss
+
+    def _compute_cold_start_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
+        """
+        [CHANGE-6] 计算冷启动商品的对齐权重
+        
+        Args:
+            item_ids: Item IDs [B]
+            
+        Returns:
+            weights: Per-item weights [B], 冷启动商品权重更高
+            
+        权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
+        - popularity >= threshold: weight = 1.0 (无额外权重)
+        - popularity = 0: weight = 1.0 + boost (最大权重)
+        - popularity 介于两者之间: 线性插值
+        """
+        if self.cold_start_align_boost <= 0:
+            # 关闭冷启动权重，返回全1
+            return torch.ones(item_ids.size(0), device=item_ids.device)
+        
+        # 获取 item popularity
+        item_pop = self.item_popularity[item_ids].float()  # [B]
+        threshold = float(self.cold_start_align_threshold)
+        
+        # 计算权重: 1.0 + boost * max(0, threshold - pop) / threshold
+        cold_factor = torch.clamp(threshold - item_pop, min=0) / threshold  # [0, 1]
+        weights = 1.0 + self.cold_start_align_boost * cold_factor  # [1.0, 1.0 + boost]
+        
+        return weights
+
     def calculate_loss(self, interaction):
         """
         Calculate loss with per-view alignment losses.
         
         [CHANGE-3] 增加 multiview_align_scale 参数，放大multi-view对齐损失
+        [CHANGE-6] 增加冷启动对齐权重，让低频商品获得更高的对齐损失权重
         
         In addition to the base CE/BPR loss, this method adds alignment losses
         for each view separately, weighted by learnable parameters and scaled
-        by multiview_align_scale.
+        by multiview_align_scale. Cold-start items receive higher alignment weights.
         """
         # Call parent's loss calculation (CE/BPR loss)
         loss = super().calculate_loss(interaction)
@@ -469,13 +556,20 @@ class SASRecAlignMultiViewV2(SASRecAlign):
             if self.detach_text_emb:
                 view_stack = view_stack.detach()
             
+            # [CHANGE-6] 计算冷启动权重
+            cold_start_weights = self._compute_cold_start_weights(pos_items)  # [B]
+            use_weighted_align = self.cold_start_align_boost > 0
+            
             # Calculate alignment loss for each view separately
             per_view_align_losses = []
             for idx in range(self.num_text_views):
                 view_feat = view_stack[:, idx, :]  # [B, hidden_size]
                 
-                # Use parent's InfoNCE alignment loss
-                align_loss_i = self._info_nce_align(id_item_emb, view_feat)
+                # [CHANGE-6] 使用加权或普通 InfoNCE 对齐损失
+                if use_weighted_align:
+                    align_loss_i = self._info_nce_align_weighted(id_item_emb, view_feat, cold_start_weights)
+                else:
+                    align_loss_i = self._info_nce_align(id_item_emb, view_feat)
                 per_view_align_losses.append(align_loss_i)
             
             # Apply learnable per-view alignment weights
@@ -512,6 +606,19 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                         "  view_gates (no normalization)=[%s]",
                         view_gate_str
                     )
+                    # [CHANGE-6] 记录冷启动权重信息
+                    if use_weighted_align:
+                        min_w = cold_start_weights.min().item()
+                        max_w = cold_start_weights.max().item()
+                        mean_w = cold_start_weights.mean().item()
+                        cold_count = (cold_start_weights > 1.01).sum().item()
+                        self.logger.info(
+                            "  cold_start_align: boost=%.2f, threshold=%d, weights=[min=%.2f, max=%.2f, mean=%.2f], cold_items=%d/%d",
+                            self.cold_start_align_boost, self.cold_start_align_threshold,
+                            min_w, max_w, mean_w, cold_count, cold_start_weights.size(0)
+                        )
+                    else:
+                        self.logger.info("  cold_start_align: disabled (boost=0)")
                 except Exception:
                     pass
                 self._multiview_align_debug_logged = True
