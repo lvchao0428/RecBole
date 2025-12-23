@@ -755,27 +755,28 @@ class SASRecAlign(SequentialRecommender):
             a: ID embeddings [B, D]
             b: Text embeddings [B, D]
             weights: 每个样本的损失权重 [B]
+            
+        Note: 
+            与 MultiViewV2 实现保持一致，使用 sum(loss*w)/sum(w) 而非 mean(loss*w)
+            以确保权重和为正确的归一化因子
         """
         if a.size(0) == 0 or b.size(0) == 0:
             return torch.zeros(1, device=a.device)
+        
         a = F.normalize(a, dim=1)
         b = F.normalize(b, dim=1)
-        sim = torch.matmul(a, b.t())
-        # optional exclusion of Top-K nearest neighbors (except diagonal)
-        if getattr(self, "align_exclude_topk", 0) and self.align_exclude_topk > 0:
-            with torch.no_grad():
-                sim_for_topk = sim.clone()
-                sim_for_topk.fill_diagonal_(-1e9)
-                _, topk_idx = torch.topk(sim_for_topk, k=min(self.align_exclude_topk, sim_for_topk.size(1) - 1), dim=1, largest=True)
-                exclude_mask = torch.zeros_like(sim, dtype=torch.bool)
-                exclude_mask.scatter_(1, topk_idx, True)
-                exclude_mask.fill_diagonal_(False)
-            sim = sim.masked_fill(exclude_mask, -1e9)
-        logits = sim / self.temperature
+        sim = torch.matmul(a, b.t())  # [B, B]
+        
+        # InfoNCE: 计算缩放后的相似度矩阵
+        sim_scaled = sim / self.temperature
         labels = torch.arange(a.size(0), device=a.device)
-        # 使用reduction='none'获取每个样本的损失，然后应用权重
-        per_sample_loss = F.cross_entropy(logits, labels, reduction='none')
-        weighted_loss = (per_sample_loss * weights).mean()
+        
+        # 计算每个样本的 cross-entropy loss
+        per_sample_loss = F.cross_entropy(sim_scaled, labels, reduction='none')  # [B]
+        
+        # 应用权重并按权重和归一化（与 MultiViewV2 保持一致）
+        weighted_loss = (per_sample_loss * weights).sum() / weights.sum().clamp_min(1e-6)
+        
         return weighted_loss
 
     def _info_nce_align(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
