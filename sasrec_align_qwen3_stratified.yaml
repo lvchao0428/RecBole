@@ -6,6 +6,7 @@ model: SASRecAlign
 
 # Model parameters - unified to 256
 hidden_size: 256
+fusion_chunk_size: 16384  # 分块处理防止 CUDA timeout
 n_layers: 2
 n_heads: 2
 inner_size: 256

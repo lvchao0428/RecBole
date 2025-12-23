@@ -809,9 +809,19 @@ class SASRecAlign(SequentialRecommender):
         Returns:
             Fused item embeddings of shape [n_items, hidden_size] or [batch_size, hidden_size]
         """
+        # Handle chunking for large item sets to prevent CUDA timeout
         if item_ids is None:
-            # Get all item embeddings (chunked fusion disabled due to instability)
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
+            if (
+                isinstance(self.fusion_chunk_size, int)
+                and self.fusion_chunk_size > 0
+                and self.fusion_chunk_size < all_ids.numel()
+            ):
+                # Chunked processing: recursively call with smaller batches
+                chunks = []
+                for chunk_ids in torch.split(all_ids, self.fusion_chunk_size):
+                    chunks.append(self._get_fused_item_embeddings(chunk_ids))
+                return torch.cat(chunks, dim=0)
             item_emb = self.item_embedding.weight  # [n_items, hidden_size]
         else:
             all_ids = item_ids
