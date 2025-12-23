@@ -92,7 +92,7 @@ cosine_scale: 10.0
 text_proj_norm: true
 fused_item_norm: true
 text_weight: 0.8
-text_tail_threshold: 5
+text_tail_threshold: 0
 use_seq_text_cross: false
 seq_text_cross_dropout: 0.1
 
