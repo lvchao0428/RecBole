@@ -1,16 +1,26 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Two-phase TF-IDF+LLM with Stratified Evaluation
+# Two-phase TF-IDF+LLM with Stratified Evaluation + Cold-Start Alignment Boost
 # 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
+#
+# 改动点汇总（相比基础版本）：
+# ============================================================
+# 1. cold_start_align_boost: 3.0 (冷启动商品对齐权重增强)
+# 2. cold_start_align_threshold: 10 (popularity < 10 获得额外权重)
+# ============================================================
 
 #cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "========================================="
-echo "TF-IDF+LLM with Stratified Metrics"
+echo "TF-IDF+LLM with Stratified Metrics + Cold-Start Boost"
 echo "========================================="
+echo "Cold-Start Alignment Boost:"
+echo "  - boost: 3.0 (cold items get up to 4x align weight)"
+echo "  - threshold: 10 (items with popularity < 10)"
+echo ""
 echo "Item Stratification:"
 echo "  - new:      [1, 3)   interactions"
 echo "  - few:      [3, 10)  interactions"
@@ -47,7 +57,7 @@ python scripts/two_phase_train.py \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_stratified \
   --seed 2025 \
-  --variant_features "sasrec,tfidf,llm,beauty,stratified" \
+  --variant_features "sasrec,tfidf,llm,beauty,stratified,cold_start_align_boost" \
   --watchdog_disable \
   --save
 
@@ -55,6 +65,10 @@ echo ""
 echo "========================================="
 echo "✅ Training Done!"
 echo "========================================="
+echo "Cold-Start Alignment Boost applied:"
+echo "  - cold_start_align_boost=3.0 (cold items get up to 4x weight)"
+echo "  - cold_start_align_threshold=10 (popularity < 10 = cold)"
+echo ""
 echo "Stratified metrics in results:"
 echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"
 echo "  - NDCG_new@10, NDCG_few@10, NDCG_frequent@10"

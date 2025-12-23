@@ -132,6 +132,15 @@ class SASRecAlign(SequentialRecommender):
         self.freeze_backbone = bool(config["freeze_backbone"]) if "freeze_backbone" in config else False
         # Exclude Top-K nearest neighbors in InfoNCE negatives to mitigate false negatives
         self.align_exclude_topk = int(config["align_exclude_topk"]) if "align_exclude_topk" in config else 0
+        
+        # [Cold-Start Alignment Boost] 冷启动对齐权重增强
+        # 问题: 对齐损失被高频商品主导，冷启动商品的对齐信号弱
+        # 解决: 给低频商品更高的对齐损失权重
+        # 权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
+        # - cold_start_align_boost: 增强系数，0.0表示关闭，建议2.0-5.0
+        # - cold_start_align_threshold: 低于此popularity的商品获得额外权重
+        self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
+        self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
         # New: simple non-cross enhancements
         self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
         self.text_tail_threshold = int(config["text_tail_threshold"]) if "text_tail_threshold" in config else 0
@@ -717,6 +726,58 @@ class SASRecAlign(SequentialRecommender):
             proj = self.text_proj_norm(proj)
         return proj
 
+    def _compute_cold_start_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
+        """计算冷启动商品的对齐损失权重。
+        
+        权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
+        - popularity >= threshold: weight = 1.0 (正常权重)
+        - popularity = 0: weight = 1.0 + boost (最大权重)
+        - popularity 介于两者之间: 线性插值
+        """
+        if self.cold_start_align_boost <= 0:
+            # 关闭冷启动权重，返回全1
+            return torch.ones(item_ids.size(0), device=item_ids.device)
+        
+        # 获取 item popularity
+        item_pop = self.item_popularity[item_ids].float()  # [B]
+        threshold = float(self.cold_start_align_threshold)
+        
+        # 计算权重: 1.0 + boost * max(0, threshold - pop) / threshold
+        cold_factor = torch.clamp(threshold - item_pop, min=0) / threshold  # [0, 1]
+        weights = 1.0 + self.cold_start_align_boost * cold_factor  # [1.0, 1.0 + boost]
+        
+        return weights
+
+    def _info_nce_align_weighted(self, a: torch.Tensor, b: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+        """带权重的InfoNCE对齐损失，用于冷启动增强。
+        
+        Args:
+            a: ID embeddings [B, D]
+            b: Text embeddings [B, D]
+            weights: 每个样本的损失权重 [B]
+        """
+        if a.size(0) == 0 or b.size(0) == 0:
+            return torch.zeros(1, device=a.device)
+        a = F.normalize(a, dim=1)
+        b = F.normalize(b, dim=1)
+        sim = torch.matmul(a, b.t())
+        # optional exclusion of Top-K nearest neighbors (except diagonal)
+        if getattr(self, "align_exclude_topk", 0) and self.align_exclude_topk > 0:
+            with torch.no_grad():
+                sim_for_topk = sim.clone()
+                sim_for_topk.fill_diagonal_(-1e9)
+                _, topk_idx = torch.topk(sim_for_topk, k=min(self.align_exclude_topk, sim_for_topk.size(1) - 1), dim=1, largest=True)
+                exclude_mask = torch.zeros_like(sim, dtype=torch.bool)
+                exclude_mask.scatter_(1, topk_idx, True)
+                exclude_mask.fill_diagonal_(False)
+            sim = sim.masked_fill(exclude_mask, -1e9)
+        logits = sim / self.temperature
+        labels = torch.arange(a.size(0), device=a.device)
+        # 使用reduction='none'获取每个样本的损失，然后应用权重
+        per_sample_loss = F.cross_entropy(logits, labels, reduction='none')
+        weighted_loss = (per_sample_loss * weights).mean()
+        return weighted_loss
+
     def _info_nce_align(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         if a.size(0) == 0 or b.size(0) == 0:
             return torch.zeros(1, device=a.device)
@@ -948,7 +1009,15 @@ class SASRecAlign(SequentialRecommender):
             if self.detach_text_emb:
                 txt_raw = txt_raw.detach()
             txt_item_e = self._project_text(txt_raw)
-            align_loss = self._info_nce_align(id_item_e, txt_item_e)
+            
+            # [Cold-Start Alignment Boost] 计算冷启动权重并使用带权重的对齐损失
+            cold_start_weights = self._compute_cold_start_weights(pos_ids_flat)
+            use_weighted_align = self.cold_start_align_boost > 0
+            
+            if use_weighted_align:
+                align_loss = self._info_nce_align_weighted(id_item_e, txt_item_e, cold_start_weights)
+            else:
+                align_loss = self._info_nce_align(id_item_e, txt_item_e)
             loss = loss + self.alignment_weight * align_loss
 
             if not self._align_debug_logged:
@@ -959,6 +1028,19 @@ class SASRecAlign(SequentialRecommender):
                             (self.text_predictor.weight if (self.use_cross and self.text_predictor is not None) else self.item_text_proj.weight).norm().item()
                         ),
                     )
+                    # [Cold-Start Alignment Boost] 记录冷启动权重信息
+                    if use_weighted_align:
+                        min_w = cold_start_weights.min().item()
+                        max_w = cold_start_weights.max().item()
+                        mean_w = cold_start_weights.mean().item()
+                        cold_count = (cold_start_weights > 1.01).sum().item()
+                        self.logger.info(
+                            "  cold_start_align: boost=%.2f, threshold=%d, weights=[min=%.2f, max=%.2f, mean=%.2f], cold_items=%d/%d",
+                            self.cold_start_align_boost, self.cold_start_align_threshold,
+                            min_w, max_w, mean_w, cold_count, cold_start_weights.size(0)
+                        )
+                    else:
+                        self.logger.info("  cold_start_align: disabled (boost=0)")
                 except Exception:
                     pass
                 self._align_debug_logged = True
