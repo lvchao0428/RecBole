@@ -28,14 +28,16 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Movies_and_TV \
   --config_files "sasrec_align_movies_base_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.01" \
-  --tau_grid "0.05" \
+  #--align_grid "0.01,0.03,0.05" \
+  --align_grid "0.03" \
+  #--tau_grid "0.05,0.07,0.1" \
+  --tau_grid "0.1" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
   --phase_a_epochs 15 \
   --phase_a_eval_step 1 \
-  --phase_a_valid_metric "Recall@10" \
-  --metric_baseline 0.03 \
+  --phase_a_valid_metric "MRR@10" \
+  --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
   --lr_text_head 1e-3 \
   --lr_dnn_cross 5e-4 \
