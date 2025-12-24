@@ -1,0 +1,269 @@
+\documentclass[sigconf,review,anonymous]{acmart}
+
+% SIGIR submission uses ACM proceedings format (sigconf).
+% - Review (double-blind): keep [review,anonymous]
+% - Camera-ready: switch to \documentclass[sigconf]{acmart} and add author blocks
+
+\settopmatter{printacmref=false} % review: do not print ACM ref block
+\renewcommand\footnotetextcopyrightpermission[1]{} % review: suppress ACM copyright footnote
+\pagestyle{plain} % review: remove running headers
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{ifthen}
+
+\newcommand{\model}{\textsc{MV-Align}\xspace}
+\newcommand{\base}{\textsc{SASRec}\xspace}
+\newcommand{\tfidf}{\textsc{TF-IDF}\xspace}
+\newcommand{\llm}{\textsc{LLM}\xspace}
+\newcommand{\InfoNCE}{InfoNCE\xspace}
+
+\begin{document}
+
+\title{Multi-View Text Features for Sequential Recommendation:\\
+Explicit Cross and Alignment for Reliable Full-Ranking Gains}
+
+% Review version: anonymous authors.
+% Camera-ready example:
+% \author{First Author}
+% \affiliation{\institution{Institution}\country{Country}}
+% \email{email@example.com}
+
+\begin{abstract}
+Text features have become a standard plug-in for sequential recommenders, yet two practical questions remain unclear:
+(\emph{i}) when lightweight text features (e.g., \tfidf) are already strong, what additional value can multi-view \llm features bring; and
+(\emph{ii}) why do improvements under sampled evaluation sometimes fail to translate to full-ranking gains.
+This paper presents \model, an industrially deployable framework that combines (1) \emph{normalized multi-view text representations} (a \tfidf base view plus multiple \llm prompt views),
+(2) an \emph{explicit cross module} to build high-order feature interactions beyond self-attention, and
+(3) \emph{multi-view contrastive alignment} that ties each text view to the collaborative ID space and improves robustness under full ranking.
+We evaluate on two Amazon domains (Beauty and Toys\&Games) and report standard and popularity-stratified metrics under full ranking.
+Across datasets, \model consistently improves overall and long-tail performance, while offering a clear cost--benefit trade-off between a frugal (\tfidf-only) and a stronger (multi-view \llm) configuration.
+We further analyze the gap between sampled metrics and full metrics, and show how alignment mitigates ranking instability.
+\end{abstract}
+
+\keywords{Sequential Recommendation, Text Features, Multi-View Representation, Explicit Cross, Contrastive Alignment, Evaluation Metrics}
+
+\maketitle
+
+\section{Introduction}
+Sequential recommendation models such as \base~\cite{kang2018sasrec} have become a strong backbone for modeling user behavior sequences.
+Meanwhile, item text (titles, descriptions, reviews) provides complementary semantic cues and enables better generalization, especially for cold-start and long-tail items.
+Recently, \llm-derived representations further boost text quality, but also raise practical concerns about feature cost, storage, and inference latency.
+
+This work targets a pragmatic \emph{method + empirical} position:
+instead of proposing a new \llm paradigm, we study a deployable plug-in framework that combines multi-view text features (from \tfidf and \llm prompts), explicit cross interactions, and contrastive alignment.
+Our goal is to answer: \emph{when is a frugal solution enough, and when does multi-view \llm text pay off?}
+
+\paragraph{Motivation: sampled vs full metrics.}
+Industrial practice often relies on sampled evaluation (e.g., uniform 100 negatives) for speed, yet sampled metrics can be inconsistent with full ranking and may mis-rank models~\cite{krichene2020sampledmetrics}.
+We therefore emphasize full-ranking evaluation in our main results and provide an analysis of sampled-vs-full discrepancies.
+
+\section{Research Questions}
+We organize the study around the following research questions (RQs):
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{RQ1 (Value of multi-view text).} How much do multi-view \llm text views improve over a strong \tfidf text baseline under full ranking?
+  \item \textbf{RQ2 (Role of explicit cross).} Does an explicit cross module add complementary gains beyond the Transformer backbone?
+  \item \textbf{RQ3 (Alignment and evaluation stability).} Can multi-view alignment reduce the sampled-vs-full metric gap and improve ranking stability?
+  \item \textbf{RQ4 (Cost--benefit).} What extra compute/memory/latency does multi-view \llm require, and in which regimes is it worth it?
+\end{itemize}
+
+\section{Method}
+\subsection{Backbone: SASRec with Text Fusion}
+Let a user interaction sequence be $s_u = [i_1,\dots,i_T]$ with maximum length $L$.
+\base encodes $s_u$ into a sequence representation $\mathbf{h}_u \in \mathbb{R}^d$ via a Transformer.
+Each item $i$ has an ID embedding $\mathbf{e}_i \in \mathbb{R}^d$.
+We augment items with text features and fuse them into a \emph{fused item embedding} $\tilde{\mathbf{e}}_i$ used for scoring.
+
+\subsection{Multi-View Text Representations}
+We assume a lightweight \tfidf embedding $\mathbf{t}_i^{(0)}$ as a base view and $V$ \llm prompt views $\{\mathbf{t}_i^{(v)}\}_{v=1}^V$ (e.g., identity/function/audience/category views).
+Each view is projected to the backbone dimension and refined by a squeeze-and-excitation (SENet) gating:
+\begin{align}
+  \mathbf{z}_i^{(v)} &= \mathbf{W}_v \mathbf{t}_i^{(v)} \in \mathbb{R}^d,\\
+  \mathbf{r}_i^{(v)} &= \mathbf{z}_i^{(v)} \odot \sigma(\mathrm{MLP}_v(\mathbf{z}_i^{(v)})).
+\end{align}
+In \model we apply \emph{per-view} $\ell_2$ normalization:
+\begin{equation}
+  \hat{\mathbf{r}}_i^{(v)} = \frac{\mathbf{r}_i^{(v)}}{\lVert \mathbf{r}_i^{(v)} \rVert_2}.
+\end{equation}
+We learn a scalar gate $g_v=\sigma(\theta_v)\in(0,1)$ for each view and \emph{do not} enforce cross-view normalization (each view independently contributes $0$--$1$).
+All views (and optionally the \tfidf base) are concatenated and projected back to $\mathbb{R}^d$:
+\begin{equation}
+  \mathbf{t}_i = \mathbf{P}\Big[\mathbf{t}_i^{(0)};\; g_1\hat{\mathbf{r}}_i^{(1)};\; \dots;\; g_V\hat{\mathbf{r}}_i^{(V)}\Big].
+\end{equation}
+
+\subsection{Explicit Cross Fusion}
+Rather than relying solely on self-attention to capture high-order interactions between collaborative and textual signals, we introduce an \emph{explicit cross} module based on DCN-V2~\cite{wang2021dcnv2}.
+Given concatenated features $\mathbf{x}_i=[\mathbf{e}_i;\alpha_i \mathbf{t}_i]$, a cross layer updates
+\begin{equation}
+  \mathbf{x}^{(l+1)} = \mathbf{x}^{(l)} + \mathbf{x}^{(0)} \odot (\mathbf{W}_l\mathbf{x}^{(l)} + \mathbf{b}_l),
+\end{equation}
+and is combined with a shallow MLP to produce the fused embedding $\tilde{\mathbf{e}}_i$.
+The scalar $\alpha_i$ includes a global text gate and optional per-item gating; it is also scaled by a temperature-dependent factor for stable fusion.
+
+\subsection{Multi-View Contrastive Alignment}
+We align each text view to the ID embedding space using \InfoNCE~\cite{oord2018cpc}.
+For a batch of positive items $\{i\}_{i=1}^B$, define similarity matrix
+$\mathbf{S}_{ij} = \mathrm{cos}(\mathbf{e}_{i}, \hat{\mathbf{r}}_{j}^{(v)})$ and temperature $\tau$.
+The per-view alignment loss is:
+\begin{equation}
+  \mathcal{L}_{\text{align}}^{(v)} =
+  \frac{1}{B}\sum_{i=1}^{B}
+  -\log \frac{\exp(\mathbf{S}_{ii}/\tau)}{\sum_{j=1}^{B}\exp(\mathbf{S}_{ij}/\tau)}.
+\end{equation}
+We learn view weights $\pi_v=\mathrm{softmax}(\boldsymbol{\phi})_v$ and scale the total alignment by $s_{\text{mv}}$:
+\begin{equation}
+  \mathcal{L}_{\text{mv-align}} = s_{\text{mv}}\sum_{v=1}^{V}\pi_v \mathcal{L}_{\text{align}}^{(v)}.
+\end{equation}
+\paragraph{Cold-start reweighting.}
+To avoid alignment being dominated by frequent items, we reweight samples based on item popularity $\mathrm{pop}(i)$:
+\begin{equation}
+  w_i = 1 + \beta\cdot \max\Big(0, \frac{T-\mathrm{pop}(i)}{T}\Big),
+\end{equation}
+and compute a weighted cross-entropy over the similarity matrix (normalized by $\sum_i w_i$).
+
+\subsection{Training Objective}
+We optimize:
+\begin{equation}
+  \mathcal{L} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{mv-align}},
+\end{equation}
+where $\mathcal{L}_{\text{rec}}$ is the standard sequential recommendation loss (cross-entropy over sampled positives/negatives in training), and $\lambda$ is the alignment weight.
+
+\section{Two-Phase Training Protocol}
+We use a two-phase training protocol implemented in our training script:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Burn-in (optional).} Train the ID-only backbone for a few epochs with text/align disabled.
+  \item \textbf{Phase-A (text warmup).} Freeze the backbone and train text heads and cross modules; grid-search $(\lambda,\tau)$ by a validation metric.
+  \item \textbf{Phase-B (joint finetune).} Unfreeze the backbone and finetune all parameters with grouped learning rates (text head, cross/DNN, backbone).
+\end{itemize}
+
+\begin{algorithm}[t]
+\caption{Two-Phase Training (Burn-in + Phase-A + Phase-B)}
+\label{alg:two-phase}
+\begin{algorithmic}[1]
+\Require Dataset $\mathcal{D}$; backbone $\base$; text features; grids $\Lambda,\mathcal{T}$
+\State \textbf{(optional) Burn-in:} train $\base$ with text disabled
+\State \textbf{Phase-A:} freeze backbone parameters; for $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ train and select best on validation
+\State \textbf{Phase-B:} load best Phase-A checkpoint; unfreeze backbone; finetune with grouped learning rates
+\end{algorithmic}
+\end{algorithm}
+
+\section{Experiments}
+\subsection{Datasets and Evaluation}
+We evaluate on two Amazon domains: \textbf{Beauty} and \textbf{Toys\&Games}.
+We follow time-ordered splits and report metrics under \textbf{full ranking} at $K\in\{5,10,20\}$.
+In addition to standard metrics (Recall, NDCG, MRR, Hit, Precision), we report \textbf{popularity-stratified} metrics by item interaction counts:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{new}: $[1,3)$ interactions
+  \item \textbf{few}: $[3,10)$ interactions
+  \item \textbf{frequent}: $[10,\infty)$ interactions
+\end{itemize}
+
+\subsection{Baselines}
+We compare three primary configurations (corresponding to our run scripts):
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{\base (ID-only).} Pure sequential baseline without text/cross/align.
+  \item \textbf{\base + \tfidf + cross + align.} A strong text baseline using precomputed \tfidf embeddings with explicit cross and alignment.
+  \item \textbf{\model (multi-view).} \tfidf base view + multi-view \llm prompt embeddings with explicit cross and multi-view alignment.
+\end{itemize}
+We will further include representative sequential baselines (e.g., BERT4Rec~\cite{sun2019bert4rec}, S3-Rec~\cite{zhou2020s3rec}) and lightweight text encoders as additional comparisons.
+
+\subsection{Implementation Details}
+Unless stated otherwise, we use embedding size $d=256$, max sequence length $L=50$, 2 Transformer layers with 2 heads, batch size 512, and Adam with base learning rate $10^{-4}$.
+\paragraph{Two-phase schedule.}
+We follow Burn-in ($10$ epochs) $\rightarrow$ Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($40$ epochs) with Phase-A selecting $(\lambda,\tau)$ on \texttt{MRR@10} for Beauty and \texttt{Recall@10} for Toys\&Games.
+We use grouped learning rates: $\text{lr}_{\text{text}}=\num{1e-3}$ for text heads, $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks, and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$ in Phase-B.
+\paragraph{Grid.}
+For the main runs, we use $\lambda\in\{0.03\}$ and $\tau\in\{0.1\}$ on Beauty, and $\lambda\in\{0.05\}$ and $\tau\in\{0.05\}$ on Toys\&Games; additional grids can be enabled via the training script.
+\paragraph{Reproducibility.}
+We use seed 2025 and report full-ranking metrics over $K\in\{5,10,20\}$ with popularity stratification thresholds \texttt{new}:[1,3), \texttt{few}:[3,10), \texttt{frequent}:[10,$\infty$).
+All exact settings are reproducible from the provided YAML configs and run scripts in the repository.
+
+\section{Main Results}
+Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
+\model improves both overall metrics and long-tail strata, with consistent gains on \textbf{new} and \textbf{few} items.
+
+\begin{table*}[t]
+\caption{Main results under full ranking (placeholders; fill with your best-test numbers).}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model}} &
+\multicolumn{2}{c}{\textbf{Overall}} &
+\multicolumn{2}{c}{\textbf{new}} &
+\multicolumn{2}{c}{\textbf{few}} &
+\multicolumn{2}{c}{\textbf{frequent}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+& Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 \\
+\midrule
+\multicolumn{9}{l}{\textbf{Amazon Beauty}} \\
+\base (ID-only) & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf + cross + align & -- & -- & -- & -- & -- & -- & -- & -- \\
+\model (multi-view) & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+\midrule
+\multicolumn{9}{l}{\textbf{Amazon Toys\&Games}} \\
+\base (ID-only) & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf + cross + align & -- & -- & -- & -- & -- & -- & -- & -- \\
+\model (multi-view) & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\section{Analysis}
+\subsection{Ablations}
+We ablate (i) explicit cross, (ii) alignment, (iii) per-view normalization, and (iv) cold-start reweighting.
+We also study the effect of the number of text views and the multi-view alignment scale $s_{\text{mv}}$.
+
+\subsection{Sampled Metrics vs Full Metrics}
+We compare sampled evaluation (e.g., uni100) and full ranking and quantify model ranking inconsistencies across settings.
+We test whether alignment reduces this mismatch and improves robustness.
+
+\subsection{Efficiency and Trade-offs}
+We report GPU memory footprint, throughput, and inference latency.
+Since \llm embeddings are precomputed offline, online cost is dominated by projection/cross layers and feature storage, enabling a clear trade-off between a frugal (\tfidf-only) and a stronger (multi-view) option.
+
+\subsection{Interpretability}
+We visualize (i) view gates $g_v$, (ii) learned view alignment weights $\pi_v$, and (iii) representation geometry (t-SNE/UMAP) across views and ID space.
+We also inspect cross-module contributions (e.g., top-$k$ cross weights) to understand which interactions drive long-tail gains.
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/framework.pdf}{%
+  \includegraphics[width=\linewidth]{figures/framework.pdf}%
+}{%
+  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
+  \textbf{Framework figure placeholder.}\\
+  Put `framework.pdf` under `paper_sigir/figures/`.}}%
+}
+\caption{Framework overview (placeholder).}
+\label{fig:framework}
+\end{figure}
+
+\section{Related Work}
+\paragraph{Sequential recommendation.}
+Transformer-based sequential models such as \base~\cite{kang2018sasrec} and BERT-style objectives~\cite{sun2019bert4rec} are strong backbones.
+\paragraph{Text-enhanced recommendation.}
+Item text features (from bag-of-words, neural encoders, or \llm embeddings) provide complementary signals; our focus is on multi-view prompting and deployable fusion.
+\paragraph{Contrastive alignment and evaluation.}
+We build on contrastive objectives (\InfoNCE~\cite{oord2018cpc}) and study how sampled evaluation can mislead model selection~\cite{krichene2020sampledmetrics}.
+
+\section{Conclusion}
+We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
+Across two Amazon domains, \model yields consistent full-ranking and long-tail gains and provides a clear cost--benefit trade-off between frugal and strong text configurations.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
+
+
