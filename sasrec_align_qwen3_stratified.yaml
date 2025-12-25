@@ -3,8 +3,6 @@
 # 继承 sasrec_align_qwen3.yaml，添加分档评估指标
 
 model: SASRecAlign
-
-# Model parameters - unified to 256
 hidden_size: 256
 n_layers: 2
 n_heads: 2

@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Two-phase TF-IDF+LLM with Stratified Evaluation (Amazon_Movies_and_TV Dataset)
+# Two-phase TF-IDF+LLM with Stratified Evaluation
 # 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
 
-cd /home/charlie/project/RecBole
+#cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "========================================="
-echo "TF-IDF+LLM with Stratified Metrics (Movies)"
+echo "TF-IDF+LLM with Stratified Metrics"
 echo "========================================="
-echo "Dataset: Amazon_Movies_and_TV"
 echo "Item Stratification:"
 echo "  - new:      [1, 3)   interactions"
 echo "  - few:      [3, 10)  interactions"
@@ -26,7 +25,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Movies_and_TV \
-  --config_files "sasrec_align_movies_qwen3_stratified.yaml" \
+  --config_files "sasrec_align_qwen3_movie_stratified_14b.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
@@ -46,13 +45,19 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_movies_stratified \
+  --checkpoint_dir ./saved/phase_runs_stratified \
   --seed 2025 \
-  --variant_features "sasrec,tfidf,llm,movies,stratified" \
+  --variant_features "sasrec,tfidf,llm,beauty,stratified" \
   --watchdog_disable \
   --save
 
 echo ""
-echo "✅ Training Done! Stratified metrics available in results."
+echo "========================================="
+echo "✅ Training Done!"
+echo "========================================="
+echo "Stratified metrics in results:"
+echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"
+echo "  - NDCG_new@10, NDCG_few@10, NDCG_frequent@10"
+echo "  - Coverage_new@10, Coverage_few@10, Coverage_frequent@10"
 echo ""
 

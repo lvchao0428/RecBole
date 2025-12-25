@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Two-phase TF-IDF+LLM with Stratified Evaluation (Amazon_Movies_and_TV Dataset)
+# Multi-View Split Training with Stratified Evaluation (Amazon_Movies_and_TV Dataset)
 # 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
 
-cd /home/charlie/project/RecBole
+cd /Users/lvchao0428/project/ownRecBole/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "========================================="
-echo "TF-IDF+LLM with Stratified Metrics (Movies)"
+echo "Multi-View Split with Stratified Metrics (Movies)"
 echo "========================================="
 echo "Dataset: Amazon_Movies_and_TV"
 echo "Item Stratification:"
@@ -17,16 +17,11 @@ echo "  - new:      [1, 3)   interactions"
 echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
 echo ""
-echo "Metrics:"
-echo "  - Standard: Recall, NDCG, MRR, etc."
-echo "  - Stratified: Recall_new@K, NDCG_few@K, etc."
-echo "  - Coverage: Coverage_new@K, Coverage_frequent@K, etc."
-echo ""
 
 python scripts/two_phase_train.py \
-  --model SASRec_Align \
+  --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Movies_and_TV \
-  --config_files "sasrec_align_movies_qwen3_stratified.yaml" \
+  --config_files "sasrec_align_multi_view_v2_movies_stratified.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
@@ -46,9 +41,9 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_movies_stratified \
+  --checkpoint_dir ./saved/phase_runs_multiview_4views_movies_v2_stratified \
   --seed 2025 \
-  --variant_features "sasrec,tfidf,llm,movies,stratified" \
+  --variant_features "sasrec,multiview_v2,4views,per_view_align,qwen3,movies,stratified" \
   --watchdog_disable \
   --save
 
