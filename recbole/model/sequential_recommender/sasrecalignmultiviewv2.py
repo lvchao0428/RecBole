@@ -93,6 +93,10 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         # [CHANGE-4] SENet ratio 默认值从4改为2，减少信息压缩
         self.text_view_senet_ratio = int(config["text_view_senet_ratio"]) if "text_view_senet_ratio" in config else 2
         
+        # [CHANGE-7] SENet 开关，默认打开，允许关闭
+        # use_text_view_senet: 是否启用 SENet 特征增强，设为 false 则直接使用投影后的特征
+        self.use_text_view_senet = bool(config["use_text_view_senet"]) if "use_text_view_senet" in config else True
+        
         self.text_view_half_precision = (
             bool(config["text_view_half_precision"]) if "text_view_half_precision" in config else True
         )
@@ -229,8 +233,11 @@ class SASRecAlignMultiViewV2(SASRecAlign):
             has_text_cross = self.multiview_text_cross is not None
             
             self.logger.info(
-                "SASRecAlignMultiViewV2 initialized: %d views, SENet ratio=%d, per-view L2 norm=%s",
-                self.num_text_views, self.text_view_senet_ratio, self.per_view_l2_norm
+                "SASRecAlignMultiViewV2 initialized: %d views, SENet=%s (ratio=%d), per-view L2 norm=%s",
+                self.num_text_views, 
+                "enabled" if self.use_text_view_senet else "disabled",
+                self.text_view_senet_ratio, 
+                self.per_view_l2_norm
             )
             # [CHANGE-3] 记录multiview_align_scale
             self.logger.info(
@@ -290,9 +297,12 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                 gathered = gathered.to(proj.weight.dtype)
             projected = proj(gathered)  # [B, hidden_size]
             
-            # 3. SENet enhancement
-            excitation = self.text_view_senet[idx](projected)  # [B, hidden_size]
-            refined = projected * excitation  # [B, hidden_size]
+            # 3. SENet enhancement (optional, controlled by use_text_view_senet)
+            if self.use_text_view_senet:
+                excitation = self.text_view_senet[idx](projected)  # [B, hidden_size]
+                refined = projected * excitation  # [B, hidden_size]
+            else:
+                refined = projected  # 直接使用投影后的特征，跳过 SENet
             
             # [CHANGE-1] 每个view独立做L2归一化
             # 原因: 让每个view的特征在自己的空间内归一化，保持各view的相对重要性
