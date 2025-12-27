@@ -23,9 +23,9 @@ load_col:
   item: [item_id]
 
 # Training / Evaluation
-epochs: 200
-train_batch_size: 512
-eval_batch_size: 512
+epochs: 50
+train_batch_size: 512 
+eval_batch_size: 512 
 learning_rate: 0.0001
 eval_step: 5
 stopping_step: 20
@@ -40,9 +40,9 @@ topk: [5, 10, 20]
 
 # 评估指标：标准指标 + 分档指标
 metrics: [
-  Recall, MRR, NDCG, Hit, Precision,
-  StratifiedRecall, StratifiedNDCG,
-  ItemPopularityStats
+  Recall, MRR, NDCG, Hit, Precision,           # 标准指标
+  StratifiedRecall, StratifiedNDCG, StratifiedMRR, StratifiedHit,  # 分档指标
+  ItemPopularityStats                            # Item 分布统计
 ]
 
 valid_metric: MRR@10
@@ -50,12 +50,12 @@ loss_type: CE
 train_neg_sample_args: null
 
 # Text features (TF-IDF + Qwen3) with SENet
-item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
-item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.qwen3.base.npy
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
+item_text_emb_path_llm: dataset/Amazon_Toys_and_Games/item_text_emb.qwen2.5_7b.base.npy
 use_llm: true
 use_align: true
 use_cross: true
-text_cross_layer_num: 2
+text_cross_layer_num: 1
 alignment_weight: 0.05
 temperature: 0.07
 detach_text_emb: true
@@ -79,7 +79,7 @@ cosine_scale: 10.0
 text_proj_norm: true
 fused_item_norm: true
 text_weight: 0.8
-text_tail_threshold: 5
+text_tail_threshold: 0
 use_seq_text_cross: false
 seq_text_cross_dropout: 0.1
 
@@ -93,4 +93,14 @@ text_gate_reg_entropy: 0.0
 text_mlp_bn: false
 freeze_backbone: false
 align_exclude_topk: 0
+
+# ========== 冷启动对齐权重增强 ==========
+# 问题: 对齐损失被高频商品主导，冷启动商品的对齐信号弱
+# 解决: 给低频商品更高的对齐损失权重
+# 权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
+# - cold_start_align_boost: 增强系数 (0=关闭，建议2.0-5.0)
+# - cold_start_align_threshold: 低于此popularity的商品获得额外权重
+cold_start_align_boost: 3.0       # 冷启动商品最高获得 1+3=4倍 对齐权重
+cold_start_align_threshold: 10    # popularity < 10 的商品获得额外权重
+# ================================
 
