@@ -186,6 +186,9 @@ class SASRecAlignMultiViewV2(SASRecAlign):
             self.multiview_text_predictor = None
             self.multiview_text_cross_dropout = None
             
+            # Define fusion_input_dim for logging (even when use_cross=False)
+            fusion_input_dim = self.hidden_size + self.hidden_size  # 256 + 256 = 512
+            
             # Reinitialize item fusion networks with correct dimensions
             if self.use_cross:
                 from recbole.model.sequential_recommender.sasrec_align import DCNV2Cross
@@ -204,8 +207,6 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                         self.multiview_text_cross_dropout = nn.Dropout(self.cross_dropout_prob)
                 
                 # DCN-V2 #2: item fusion cross (always enabled when use_cross=True)
-                fusion_input_dim = self.hidden_size + self.hidden_size  # 256 + 256 = 512
-                
                 self.item_fusion_cross = DCNV2Cross(fusion_input_dim, num_layers=self.text_cross_layer_num)
                 self.item_fusion_deep = MLPLayers(
                     [fusion_input_dim, self.hidden_size], 
@@ -250,11 +251,16 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                 "enabled" if has_base else "disabled",
                 fusion_input_dim
             )
-            self.logger.info(
-                "DCN-V2 layers: multiview_text_cross=%s | item_fusion_cross (W: %dx%d × %d layers)",
-                "enabled" if has_text_cross else "disabled",
-                fusion_input_dim, fusion_input_dim, self.text_cross_layer_num
-            )
+            if self.use_cross:
+                self.logger.info(
+                    "DCN-V2 layers: multiview_text_cross=%s | item_fusion_cross (W: %dx%d × %d layers)",
+                    "enabled" if has_text_cross else "disabled",
+                    fusion_input_dim, fusion_input_dim, self.text_cross_layer_num
+                )
+            else:
+                self.logger.info(
+                    "DCN-V2 layers: disabled (use_cross=False)"
+                )
             # [CHANGE-6] 记录冷启动对齐权重配置
             if self.cold_start_align_boost > 0:
                 self.logger.info(
