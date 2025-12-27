@@ -36,7 +36,7 @@ echo ""
 python ${base_dir}/scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_stratified_no_senet.yaml" \
+  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_stratified_no_cross_and_senet.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \

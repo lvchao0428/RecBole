@@ -14,6 +14,7 @@
 # ============================================================
 
 base_dir='/home/charlie/project/RecBole'
+cd ${base_dir}
 yaml_dir='/home/charlie/project/RecBole/beauty_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
