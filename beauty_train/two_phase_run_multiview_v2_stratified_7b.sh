@@ -13,7 +13,11 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-#cd /home/charlie/project/RecBole
+#base_dir='/home/charlie/project/RecBole'
+base_dir='/home/ubuntu/own/RecBole/'
+cd ${base_dir}
+#yaml_dir='/home/charlie/project/RecBole/beauty_train'
+yaml_dir='/home/ubuntu/own/RecBole/beauty_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
@@ -35,10 +39,10 @@ echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
 echo ""
 
-python scripts/two_phase_train.py \
+python ${base_dir}/scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "beauty_train/sasrec_align_multi_view_v2_stratified_7b.yaml" \
+  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_stratified_7b.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
