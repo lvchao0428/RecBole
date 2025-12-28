@@ -13,9 +13,7 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-base_dir='/home/charlie/project/RecBole'
-cd ${base_dir}
-yaml_dir='/home/charlie/project/RecBole/beauty_train'
+#cd /home/charlie/project/RecBole
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
@@ -40,21 +38,21 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_stratified_7b.yaml" \
+  --config_files "beauty_train/sasrec_align_multi_view_v2_stratified_7b.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
-  --phase_a_epochs 25 \
+  --phase_a_epochs 15 \
   --phase_a_eval_step 1 \
   --phase_a_valid_metric "MRR@10" \
   --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
-  --lr_text_head 1e-3 \
-  --lr_dnn_cross 5e-4 \
+  --lr_text_head 2e-3 \
+  --lr_dnn_cross 1e-3 \
   --phase_a_text_gate_reg_l2 0.05 \
-  --phase_b_alignment_weight 0.05 \
+  --phase_b_alignment_weight 0.10 \
   --phase_b_text_gate_reg_l2 0.05 \
   --phase_b_text_weight 0.8 \
   --phase_a_auto_to_b \
@@ -82,4 +80,3 @@ echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"
 echo "  - NDCG_new@10, NDCG_few@10, NDCG_frequent@10"
 echo "  - Coverage_new@10, Coverage_few@10, Coverage_frequent@10"
 echo ""
-
