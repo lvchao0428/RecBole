@@ -16,10 +16,16 @@ echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
 echo ""
 
+#base_dir='/home/charlie/project/RecBole'
+base_dir='/home/ubuntu/own/RecBole/'
+cd ${base_dir}
+#yaml_dir='/home/charlie/project/RecBole/beauty_train'
+yaml_dir='/home/ubuntu/own/RecBole/bert4rec_train'
+
 python run_recbole.py \
   --model BERT4RecAlign \
   --dataset Amazon_Beauty \
-  --config_files "bert4rec_baseline_50ep_stratified.yaml"
+  --config_files "${yaml_dir}/bert4rec_baseline_50ep_stratified.yaml"
 
 echo ""
 echo "✅ Training Done! Check results for stratified metrics."
