@@ -22,10 +22,17 @@ echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
 echo ""
 
+
+#base_dir='/home/charlie/project/RecBole'
+base_dir='/home/ubuntu/own/RecBole/'
+cd ${base_dir}
+#yaml_dir='/home/charlie/project/RecBole/beauty_train'
+yaml_dir='/home/ubuntu/own/RecBole/bert4rec_train'
+
 python scripts/two_phase_train.py \
   --model BERT4RecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "bert4rec_align_multi_view_v2_stratified.yaml" \
+  --config_files "${yaml_dir}/bert4rec_align_multi_view_v2_stratified.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
