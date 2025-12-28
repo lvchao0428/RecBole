@@ -1,5 +1,5 @@
 from recbole.model.sequential_recommender.bert4rec import BERT4Rec
-from recbole.model.sequential_recommender.bert4rec_align import BERT4RecAlign, BERT4Rec_Align
+from recbole.model.sequential_recommender.bert4recalign import BERT4RecAlign, BERT4Rec_Align
 from recbole.model.sequential_recommender.bert4recalignmultiview import (
     BERT4RecAlignMultiView, BERT4RecAlignMultiViewV2,
     BERT4Rec_Align_MultiView, BERT4Rec_Align_MultiView_V2

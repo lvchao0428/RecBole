@@ -10,7 +10,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from recbole.model.sequential_recommender.bert4rec_align import BERT4RecAlign, DCNV2Cross
+from recbole.model.sequential_recommender.bert4recalign import BERT4RecAlign, DCNV2Cross
 from recbole.model.layers import MLPLayers
 
 
