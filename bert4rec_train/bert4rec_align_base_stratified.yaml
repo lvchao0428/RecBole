@@ -15,9 +15,8 @@ initializer_range: 0.02
 mask_ratio: 0.2
 gpu_id: "1"
 
-# BERT4Rec specific fields
-MASK_ITEM_SEQ: mask_item_seq
-POS_ITEMS: pos_items
+# Enable BERT4Rec masking transform (required for training)
+transform: mask_itemseq
 NEG_ITEMS: neg_items
 MASK_INDEX: mask_index
 
