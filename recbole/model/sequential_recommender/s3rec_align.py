@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-# Align-only variant of BERT4Rec with optional text embedding alignment
+# Align-only variant of S3Rec with optional text embedding alignment
 # Enhanced version with full TF-IDF + LLM + DCN-V2 support (similar to SASRecAlign)
 
 import random
 import os
-import json
 
 import torch
 from torch import nn
@@ -17,22 +16,16 @@ from recbole.model.loss import BPRLoss
 
 
 class DCNV2Cross(nn.Module):
-    """DCN-V2 cross network (non-mix) over dense features.
-
-    Follows the original implementation in recbole.model.context_aware_recommender.dcnv2
-    with the update rule: x_{l+1} = x_l + x_0 ⊙ (W_l x_l + b_l).
-    """
+    """DCN-V2 cross network (non-mix) over dense features."""
 
     def __init__(self, input_dim: int, num_layers: int = 3):
         super().__init__()
         self.input_dim = int(input_dim)
         self.num_layers = int(max(0, num_layers))
-        # W: (in_feature_num, in_feature_num) per layer
         self.cross_layer_w = nn.ParameterList(
             nn.Parameter(torch.randn(self.input_dim, self.input_dim))
             for _ in range(self.num_layers)
         )
-        # b: (in_feature_num, 1) per layer
         self.bias = nn.ParameterList(
             nn.Parameter(torch.zeros(self.input_dim, 1))
             for _ in range(self.num_layers)
@@ -41,58 +34,67 @@ class DCNV2Cross(nn.Module):
     def forward(self, x0: torch.Tensor) -> torch.Tensor:
         if self.num_layers == 0:
             return x0
-        # x0: [batch, in_feature_num]
-        x0_u = x0.unsqueeze(dim=2)  # [B, D, 1]
+        x0_u = x0.unsqueeze(dim=2)
         xl = x0_u
         for i in range(self.num_layers):
-            xl_w = torch.matmul(self.cross_layer_w[i], xl)  # [B, D, 1]
+            xl_w = torch.matmul(self.cross_layer_w[i], xl)
             xl_w = xl_w + self.bias[i]
             xl_dot = torch.mul(x0_u, xl_w)
             xl = xl_dot + xl
-        xl = xl.squeeze(dim=2)  # [B, D]
+        xl = xl.squeeze(dim=2)
         return xl
 
 
-class BERT4RecAlign(SequentialRecommender):
+class S3RecAlign(SequentialRecommender):
+    """
+    S3RecAlign - Enhanced S3Rec with text alignment support.
+    
+    NOTE: S3Rec has two stages: pretrain and finetune.
+    Text alignment is only applied during the finetune stage.
+    """
+
     def __init__(self, config, dataset):
-        super(BERT4RecAlign, self).__init__(config, dataset)
+        super(S3RecAlign, self).__init__(config, dataset)
 
         # load parameters info
         self.n_layers = config["n_layers"]
         self.n_heads = config["n_heads"]
-        self.hidden_size = config["hidden_size"]  # same as embedding_size
-        self.inner_size = config["inner_size"]  # the dimensionality in feed-forward layer
+        self.hidden_size = config["hidden_size"]
+        self.inner_size = config["inner_size"]
         self.hidden_dropout_prob = config["hidden_dropout_prob"]
         self.attn_dropout_prob = config["attn_dropout_prob"]
         self.hidden_act = config["hidden_act"]
         self.layer_norm_eps = config["layer_norm_eps"]
 
+        self.FEATURE_FIELD = config["item_attribute"]
+        self.FEATURE_LIST = self.FEATURE_FIELD + config["LIST_SUFFIX"]
+        self.train_stage = config["train_stage"]  # pretrain or finetune
+        self.pre_model_path = config["pre_model_path"]
         self.mask_ratio = config["mask_ratio"]
+        self.aap_weight = config["aap_weight"]
+        self.mip_weight = config["mip_weight"]
+        self.map_weight = config["map_weight"]
+        self.sp_weight = config["sp_weight"]
 
-        self.MASK_ITEM_SEQ = config["MASK_ITEM_SEQ"]
-        self.POS_ITEMS = config["POS_ITEMS"]
-        self.NEG_ITEMS = config["NEG_ITEMS"]
-        self.MASK_INDEX = config["MASK_INDEX"]
-
-        self.loss_type = config["loss_type"]
         self.initializer_range = config["initializer_range"]
+        self.loss_type = config["loss_type"]
 
         # load dataset info
-        self.mask_token = self.n_items
-        self.mask_item_length = int(self.mask_ratio * self.max_seq_length)
+        self.n_items = dataset.item_num + 1  # for mask token
+        self.mask_token = self.n_items - 1
+        self.n_features = dataset.num(self.FEATURE_FIELD) - 1
+        self.item_feat = dataset.get_item_feature()
 
-        # additional regularization / scoring configs
+        # Additional regularization / scoring configs
         self.label_smoothing = float(config["label_smoothing"]) if "label_smoothing" in config else 0.0
         self.cosine_score = bool(config["cosine_score"]) if "cosine_score" in config else False
         self.cosine_scale = float(config["cosine_scale"]) if "cosine_scale" in config else 10.0
 
-        # define layers and loss
-        self.item_embedding = nn.Embedding(
-            self.n_items + 1, self.hidden_size, padding_idx=0
-        )  # mask token add 1
-        self.position_embedding = nn.Embedding(
-            self.max_seq_length, self.hidden_size
-        )  # add mask_token at the last
+        # define layers
+        self.item_embedding = nn.Embedding(self.n_items, self.hidden_size, padding_idx=0)
+        self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
+        self.feature_embedding = nn.Embedding(self.n_features, self.hidden_size, padding_idx=0)
+
         self.trm_encoder = TransformerEncoder(
             n_layers=self.n_layers,
             n_heads=self.n_heads,
@@ -106,12 +108,15 @@ class BERT4RecAlign(SequentialRecommender):
 
         self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
         self.dropout = nn.Dropout(self.hidden_dropout_prob)
-        self.output_ffn = nn.Linear(self.hidden_size, self.hidden_size)
-        self.output_gelu = nn.GELU()
-        self.output_ln = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
-        self.output_bias = nn.Parameter(torch.zeros(self.n_items))
 
-        # --- text-alignment settings & feature fusion ---
+        # modules for pretrain
+        self.aap_norm = nn.Linear(self.hidden_size, self.hidden_size)
+        self.mip_norm = nn.Linear(self.hidden_size, self.hidden_size)
+        self.map_norm = nn.Linear(self.hidden_size, self.hidden_size)
+        self.sp_norm = nn.Linear(self.hidden_size, self.hidden_size)
+        self.pretrain_loss_fct = nn.BCEWithLogitsLoss(reduction="none")
+
+        # --- text-alignment settings & feature fusion (finetune only) ---
         self.alignment_weight = config["alignment_weight"] if "alignment_weight" in config else 0.0
         self.temperature = config["temperature"] if "temperature" in config else 0.07
         self.normalize_text = config["normalize_text"] if "normalize_text" in config else True
@@ -121,47 +126,40 @@ class BERT4RecAlign(SequentialRecommender):
         self.use_align = config["use_align"] if "use_align" in config else True
         self.text_cross_layer_num = config["text_cross_layer_num"] if "text_cross_layer_num" in config else 3
         
-        # Cross-output dropout and learnable text gate configs
         self.cross_dropout_prob = float(config["cross_dropout_prob"]) if "cross_dropout_prob" in config else 0.0
         self.text_gate_init = float(config["text_gate_init"]) if "text_gate_init" in config else 0.5
         self.text_gate_reg_l2 = float(config["text_gate_reg_l2"]) if "text_gate_reg_l2" in config else 0.0
         self.text_gate_reg_entropy = float(config["text_gate_reg_entropy"]) if "text_gate_reg_entropy" in config else 0.0
-        # learnable global gate alpha in [0,1] via sigmoid
         self.text_gate_param = nn.Parameter(torch.tensor(self.text_gate_init, dtype=torch.float32))
         
-        # Explicit switch to fully disable text features and mimic pure BERT4Rec
         self.disable_text_feature = bool(config["disable_text_feature"]) if "disable_text_feature" in config else False
-        # Training utilities
         self.freeze_backbone = bool(config["freeze_backbone"]) if "freeze_backbone" in config else False
         
-        # [Cold-Start Alignment Boost] 冷启动对齐权重增强
         self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
         self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
         
-        # New: simple non-cross enhancements
         self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
         self.text_tail_threshold = int(config["text_tail_threshold"]) if "text_tail_threshold" in config else 0
-        # Control whether text features participate in item embedding fusion
         self.fuse_text_feature = bool(config["fuse_text_feature"]) if "fuse_text_feature" in config else True
-        # Text MLP normalization
         self.text_mlp_bn = bool(config["text_mlp_bn"]) if "text_mlp_bn" in config else False
-        # Normalization toggles for projections and fused item embeddings
         self.text_proj_norm_flag = bool(config["text_proj_norm"]) if "text_proj_norm" in config else True
         self.fused_item_norm_flag = bool(config["fused_item_norm"]) if "fused_item_norm" in config else True
 
-        # For backward compatibility: accept single path as base
+        # Load text embeddings (for finetune stage)
         item_text_emb_path_base = config["item_text_emb_path_base"] if "item_text_emb_path_base" in config else None
         item_text_emb_path_llm = config["item_text_emb_path_llm"] if "item_text_emb_path_llm" in config else None
         if item_text_emb_path_base is None and item_text_emb_path_llm is None:
-            # Fallback to legacy key
             item_text_emb_path_base = config["item_text_emb_path"] if "item_text_emb_path" in config else None
 
-        if self.disable_text_feature:
+        # Note: n_items includes mask token, but text embeddings don't have mask token
+        actual_n_items = self.n_items - 1
+        
+        if self.disable_text_feature or self.train_stage == "pretrain":
             emb_base = None
             emb_llm = None
         else:
-            emb_base = self._load_text_embeddings(item_text_emb_path_base, self.n_items)
-            emb_llm = self._load_text_embeddings(item_text_emb_path_llm, self.n_items)
+            emb_base = self._load_text_embeddings(item_text_emb_path_base, actual_n_items)
+            emb_llm = self._load_text_embeddings(item_text_emb_path_llm, actual_n_items)
 
         if self.normalize_text:
             with torch.no_grad():
@@ -174,24 +172,13 @@ class BERT4RecAlign(SequentialRecommender):
                     emb_llm = emb_llm / norms.clamp_min(1e-8)
                     emb_llm[torch.isnan(emb_llm)] = 0.0
 
-        self.register_buffer("item_text_emb_base", emb_base if emb_base is not None else None)
-        self.register_buffer("item_text_emb_llm", emb_llm if emb_llm is not None else None)
+        self.register_buffer("item_text_emb_base", emb_base)
+        self.register_buffer("item_text_emb_llm", emb_llm)
 
-        if self.disable_text_feature:
+        if self.disable_text_feature or self.train_stage == "pretrain":
             self.fuse_text_feature = False
-        else:
-            if self.use_llm:
-                if self.item_text_emb_llm is None:
-                    raise ValueError(
-                        "BERT4RecAlign: use_llm=True but item_text_emb_path_llm is missing."
-                    )
-            else:
-                if self.item_text_emb_base is None:
-                    raise ValueError(
-                        "BERT4RecAlign: text features are enabled but item_text_emb_path_base is missing."
-                    )
 
-        # Precompute item popularity for optional tail gating
+        # Precompute item popularity
         pop_counts = None
         try:
             inter_iids = dataset.inter_feat[dataset.iid_field].numpy()
@@ -230,15 +217,14 @@ class BERT4RecAlign(SequentialRecommender):
 
         self._text_input_dim = text_in_dim
 
-        # --- Text Amplifier / SENet configuration ---
+        # SENet configuration
         self.num_text_views = int(config["num_text_views"]) if "num_text_views" in config else 1
         self.text_use_senet = bool(config["text_use_senet"]) if "text_use_senet" in config else False
         self.text_amplifier = None
         
-        if text_in_dim > 0 and self.text_use_senet:
+        if text_in_dim > 0 and self.text_use_senet and self.train_stage == "finetune":
             try:
                 from recbole.model.sequential_recommender.text_amplifier import TextFeatureAmplifier
-                self.logger.info(f"BERT4RecAlign: initializing TextFeatureAmplifier with {self.num_text_views} views, SENet=True.")
                 self.text_amplifier = TextFeatureAmplifier(
                     input_dim=text_in_dim,
                     output_dim=self.hidden_size,
@@ -246,10 +232,9 @@ class BERT4RecAlign(SequentialRecommender):
                     apply_senet=True
                 )
             except ImportError:
-                self.logger.warning("BERT4RecAlign: TextFeatureAmplifier not found. SENet disabled.")
                 self.text_use_senet = False
 
-        # Build text projection/fusion modules
+        # Build text projection/fusion modules (finetune only)
         self.text_cross = None
         self.text_deep = None
         self.text_predictor = None
@@ -259,14 +244,12 @@ class BERT4RecAlign(SequentialRecommender):
         self.fused_item_norm = None
         self.text_cross_dropout = None
         self.item_fusion_cross_dropout = None
-        
-        # Item-side fusion modules
         self.item_fusion_cross = None
         self.item_fusion_deep = None
         self.item_fusion_predictor = None
         self.item_emb_norm = None
         
-        if text_in_dim > 0:
+        if text_in_dim > 0 and self.train_stage == "finetune":
             if self.fused_item_norm_flag:
                 self.item_emb_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
@@ -303,40 +286,45 @@ class BERT4RecAlign(SequentialRecommender):
         self._align_debug_logged = False
         self._gate_debug_logged = False
 
-        # we only need compute the loss at the masked position
-        try:
-            assert self.loss_type in ["BPR", "CE"]
-        except AssertionError:
-            raise AssertionError("Make sure 'loss_type' in ['BPR', 'CE']!")
+        # Loss function for finetune
+        if self.loss_type == "BPR" and self.train_stage == "finetune":
+            self.loss_fct = BPRLoss()
+        elif self.loss_type == "CE" and self.train_stage == "finetune":
+            try:
+                self.loss_fct = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing)
+            except TypeError:
+                self.loss_fct = nn.CrossEntropyLoss()
+        elif self.train_stage == "finetune":
+            raise NotImplementedError("Make sure 'loss_type' in ['BPR', 'CE']!")
 
         # parameters initialization
-        self.apply(self._init_weights)
-        self.set_freeze(self.freeze_backbone)
+        assert self.train_stage in ["pretrain", "finetune"]
+        if self.train_stage == "pretrain":
+            self.apply(self._init_weights)
+        else:
+            # load pretrained model for finetune
+            pretrained = torch.load(self.pre_model_path)
+            self.logger.info(f"Load pretrained model from {self.pre_model_path}")
+            self.load_state_dict(pretrained["state_dict"], strict=False)
+            self.set_freeze(self.freeze_backbone)
 
     def set_freeze(self, freeze: bool) -> None:
-        """Freeze or unfreeze backbone (ID/position embeddings + transformer encoder + layer norms)."""
+        """Freeze or unfreeze backbone."""
         self.item_embedding.weight.requires_grad_(not freeze)
         self.position_embedding.weight.requires_grad_(not freeze)
+        self.feature_embedding.weight.requires_grad_(not freeze)
         for p in self.trm_encoder.parameters():
             p.requires_grad_(not freeze)
         for p in self.LayerNorm.parameters():
             p.requires_grad_(not freeze)
-        for p in self.output_ffn.parameters():
-            p.requires_grad_(not freeze)
-        for p in self.output_ln.parameters():
-            p.requires_grad_(not freeze)
-        self.output_bias.requires_grad_(not freeze)
 
     def get_optimizer_grouped_parameters(self, config):
-        """Build optimizer param groups for lightweight, per-module learning rates."""
+        """Build optimizer param groups for per-module learning rates."""
         base_lr = float(config["learning_rate"])
         base_wd = float(config["weight_decay"])
         lr_text_head = float(config["lr_text_head"]) if "lr_text_head" in config else base_lr
         lr_dnn_cross = float(config["lr_dnn_cross"]) if "lr_dnn_cross" in config else base_lr
         lr_backbone = float(config["lr_backbone"]) if "lr_backbone" in config else base_lr
-        wd_text_head = float(config["wd_text_head"]) if "wd_text_head" in config else base_wd
-        wd_dnn_cross = float(config["wd_dnn_cross"]) if "wd_dnn_cross" in config else base_wd
-        wd_backbone = float(config["wd_backbone"]) if "wd_backbone" in config else base_wd
 
         def collect_params(modules, extra_params=None):
             params = []
@@ -355,7 +343,6 @@ class BERT4RecAlign(SequentialRecommender):
         text_head_modules = []
         if self.text_amplifier is not None:
             text_head_modules.append(self.text_amplifier)
-
         if self.use_cross:
             text_head_modules.extend([self.text_cross, self.text_deep, self.text_predictor])
         else:
@@ -371,28 +358,36 @@ class BERT4RecAlign(SequentialRecommender):
             dnn_cross_modules.append(self.item_concat_predictor)
         if self.fused_item_norm is not None:
             dnn_cross_modules.append(self.fused_item_norm)
-        dnn_extra_params = [self.text_gate_param]
 
-        backbone_modules = [self.item_embedding, self.position_embedding, self.trm_encoder, 
-                           self.LayerNorm, self.output_ffn, self.output_ln]
+        backbone_modules = [self.item_embedding, self.position_embedding, self.feature_embedding, 
+                           self.trm_encoder, self.LayerNorm]
 
         g_text = collect_params(text_head_modules)
-        g_dnn = collect_params(dnn_cross_modules, extra_params=dnn_extra_params)
-        g_backbone = collect_params(backbone_modules, extra_params=[self.output_bias])
+        g_dnn = collect_params(dnn_cross_modules, extra_params=[self.text_gate_param])
+        g_backbone = collect_params(backbone_modules)
 
         groups = []
         if len(g_text) > 0:
-            groups.append({"params": g_text, "lr": lr_text_head, "weight_decay": wd_text_head})
+            groups.append({"params": g_text, "lr": lr_text_head, "weight_decay": base_wd})
         if len(g_dnn) > 0:
-            groups.append({"params": g_dnn, "lr": lr_dnn_cross, "weight_decay": wd_dnn_cross})
+            groups.append({"params": g_dnn, "lr": lr_dnn_cross, "weight_decay": base_wd})
         if len(g_backbone) > 0:
-            groups.append({"params": g_backbone, "lr": lr_backbone, "weight_decay": wd_backbone})
+            groups.append({"params": g_backbone, "lr": lr_backbone, "weight_decay": base_wd})
 
         covered = {id(p) for g in groups for p in g["params"]}
         rest = [p for p in self.parameters() if p.requires_grad and id(p) not in covered]
         if len(rest) > 0:
             groups.append({"params": rest, "lr": base_lr, "weight_decay": base_wd})
         return groups
+
+    def _init_weights(self, module):
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            module.weight.data.normal_(mean=0.0, std=self.initializer_range)
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
 
     def _load_text_embeddings(self, path, expected_rows):
         if path is None or (isinstance(path, str) and path.strip() == ""):
@@ -428,11 +423,13 @@ class BERT4RecAlign(SequentialRecommender):
         )
 
     def _gather_text_raw(self, ids_flat: torch.Tensor) -> torch.Tensor:
+        # Clamp ids to valid range (exclude mask token)
+        ids_clamped = torch.clamp(ids_flat, 0, self.n_items - 2)
         parts = []
         if self._text_mode in ("base", "both") and self.item_text_emb_base is not None:
-            parts.append(self.item_text_emb_base[ids_flat])
+            parts.append(self.item_text_emb_base[ids_clamped])
         if self._text_mode in ("llm", "both") and self.item_text_emb_llm is not None:
-            parts.append(self.item_text_emb_llm[ids_flat])
+            parts.append(self.item_text_emb_llm[ids_clamped])
         if len(parts) == 0:
             return torch.zeros((ids_flat.size(0), 0), device=ids_flat.device)
         return torch.cat(parts, dim=1) if len(parts) > 1 else parts[0]
@@ -459,18 +456,17 @@ class BERT4RecAlign(SequentialRecommender):
         return proj
 
     def _compute_cold_start_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
-        """计算冷启动商品的对齐损失权重。"""
         if self.cold_start_align_boost <= 0:
             return torch.ones(item_ids.size(0), device=item_ids.device)
         
-        item_pop = self.item_popularity[item_ids].float()
+        ids_clamped = torch.clamp(item_ids, 0, self.n_items - 1)
+        item_pop = self.item_popularity[ids_clamped].float()
         threshold = float(self.cold_start_align_threshold)
         cold_factor = torch.clamp(threshold - item_pop, min=0) / threshold
         weights = 1.0 + self.cold_start_align_boost * cold_factor
         return weights
 
     def _info_nce_align_weighted(self, a: torch.Tensor, b: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
-        """带权重的InfoNCE对齐损失。"""
         if a.size(0) == 0 or b.size(0) == 0:
             return torch.zeros(1, device=a.device)
         
@@ -493,15 +489,15 @@ class BERT4RecAlign(SequentialRecommender):
         return nn.CrossEntropyLoss()(logits, labels)
 
     def _get_fused_item_embeddings(self, item_ids: torch.Tensor = None) -> torch.Tensor:
-        """Get item embeddings fused with text features."""
+        """Get item embeddings fused with text features (finetune only)."""
         if item_ids is None:
-            all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
-            item_emb = self.item_embedding.weight[:self.n_items]
+            all_ids = torch.arange(self.n_items - 1, device=self.item_embedding.weight.device)
+            item_emb = self.item_embedding.weight[:self.n_items - 1]
         else:
             all_ids = item_ids
             item_emb = self.item_embedding(item_ids)
         
-        if not self.fuse_text_feature:
+        if not self.fuse_text_feature or self.train_stage == "pretrain":
             return item_emb
 
         if (
@@ -524,11 +520,9 @@ class BERT4RecAlign(SequentialRecommender):
             if self.text_amplifier is not None:
                 text_raw = self.text_amplifier(text_raw)
 
+            ids_clamped = torch.clamp(all_ids, 0, self.item_popularity.size(0) - 1)
             if self.text_item_gate_all is not None:
-                if item_ids is None:
-                    gate = self.text_item_gate_all
-                else:
-                    gate = self.text_item_gate_all[all_ids]
+                gate = self.text_item_gate_all[ids_clamped]
                 gate = gate.to(item_emb.device).unsqueeze(1)
                 scaled_text = (effective_text_weight * gate) * text_raw
             else:
@@ -547,11 +541,9 @@ class BERT4RecAlign(SequentialRecommender):
             fused_emb = self.item_fusion_predictor(fused)
         else:
             text_proj = self._project_text(text_raw)
+            ids_clamped = torch.clamp(all_ids, 0, self.item_popularity.size(0) - 1)
             if self.text_item_gate_all is not None:
-                if item_ids is None:
-                    gate = self.text_item_gate_all
-                else:
-                    gate = self.text_item_gate_all[all_ids]
+                gate = self.text_item_gate_all[ids_clamped]
                 gate = gate.to(item_emb.device).unsqueeze(1)
                 scaled_text = (effective_text_weight * gate) * text_proj
             else:
@@ -568,107 +560,252 @@ class BERT4RecAlign(SequentialRecommender):
             fused_emb = self.fused_item_norm(fused_emb)
         return fused_emb
 
-    def _init_weights(self, module):
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            module.weight.data.normal_(mean=0.0, std=self.initializer_range)
-        elif isinstance(module, nn.LayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
-            module.bias.data.zero_()
+    # ========== S3Rec pretrain methods ==========
+    def _associated_attribute_prediction(self, sequence_output, feature_embedding):
+        sequence_output = self.aap_norm(sequence_output)
+        sequence_output = sequence_output.view([-1, sequence_output.size(-1), 1])
+        score = torch.matmul(feature_embedding, sequence_output)
+        return score.squeeze(-1)
 
-    def reconstruct_test_data(self, item_seq, item_seq_len):
-        padding = torch.zeros(
-            item_seq.size(0), dtype=torch.long, device=item_seq.device
-        )
-        item_seq = torch.cat((item_seq, padding.unsqueeze(-1)), dim=-1)
-        for batch_id, last_position in enumerate(item_seq_len):
-            item_seq[batch_id][last_position] = self.mask_token
-        item_seq = item_seq[:, 1:]
-        return item_seq
+    def _masked_item_prediction(self, sequence_output, target_item_emb):
+        sequence_output = self.mip_norm(sequence_output.view([-1, sequence_output.size(-1)]))
+        target_item_emb = target_item_emb.view([-1, sequence_output.size(-1)])
+        score = torch.mul(sequence_output, target_item_emb)
+        return torch.sigmoid(torch.sum(score, -1))
 
-    def forward(self, item_seq):
-        position_ids = torch.arange(
-            item_seq.size(1), dtype=torch.long, device=item_seq.device
-        )
+    def _masked_attribute_prediction(self, sequence_output, feature_embedding):
+        sequence_output = self.map_norm(sequence_output)
+        sequence_output = sequence_output.view([-1, sequence_output.size(-1), 1])
+        score = torch.matmul(feature_embedding, sequence_output)
+        return score.squeeze(-1)
+
+    def _segment_prediction(self, context, segment_emb):
+        context = self.sp_norm(context)
+        score = torch.mul(context, segment_emb)
+        return torch.sigmoid(torch.sum(score, dim=-1))
+
+    def forward(self, item_seq, bidirectional=True):
+        position_ids = torch.arange(item_seq.size(1), dtype=torch.long, device=item_seq.device)
         position_ids = position_ids.unsqueeze(0).expand_as(item_seq)
         position_embedding = self.position_embedding(position_ids)
+
         item_emb = self.item_embedding(item_seq)
         input_emb = item_emb + position_embedding
         input_emb = self.LayerNorm(input_emb)
         input_emb = self.dropout(input_emb)
-        extended_attention_mask = self.get_attention_mask(item_seq, bidirectional=True)
-        trm_output = self.trm_encoder(
-            input_emb, extended_attention_mask, output_all_encoded_layers=True
-        )
-        ffn_output = self.output_ffn(trm_output[-1])
-        ffn_output = self.output_gelu(ffn_output)
-        output = self.output_ln(ffn_output)
-        return output
+        attention_mask = self.get_attention_mask(item_seq, bidirectional=bidirectional)
+        trm_output = self.trm_encoder(input_emb, attention_mask, output_all_encoded_layers=True)
+        seq_output = trm_output[-1]
+        return seq_output
 
-    def multi_hot_embed(self, masked_index, max_length):
-        masked_index = masked_index.view(-1)
-        multi_hot = torch.zeros(
-            masked_index.size(0), max_length, device=masked_index.device
+    def pretrain(self, features, masked_item_sequence, pos_items, neg_items,
+                 masked_segment_sequence, pos_segment, neg_segment):
+        """Pretrain model using four pre-training tasks."""
+        sequence_output = self.forward(masked_item_sequence)
+        feature_embedding = self.feature_embedding.weight
+
+        # AAP
+        aap_score = self._associated_attribute_prediction(sequence_output, feature_embedding)
+        aap_loss = self.pretrain_loss_fct(aap_score, features.view(-1, self.n_features).float())
+        aap_mask = (masked_item_sequence != self.mask_token).float() * (masked_item_sequence != 0).float()
+        aap_loss = torch.sum(aap_loss * aap_mask.flatten().unsqueeze(-1))
+
+        # MIP
+        pos_item_embs = self.item_embedding(pos_items)
+        neg_item_embs = self.item_embedding(neg_items)
+        pos_score = self._masked_item_prediction(sequence_output, pos_item_embs)
+        neg_score = self._masked_item_prediction(sequence_output, neg_item_embs)
+        mip_distance = pos_score - neg_score
+        mip_loss = self.pretrain_loss_fct(mip_distance, torch.ones_like(mip_distance, dtype=torch.float32))
+        mip_mask = (masked_item_sequence == self.mask_token).float()
+        mip_loss = torch.sum(mip_loss * mip_mask.flatten())
+
+        # MAP
+        map_score = self._masked_attribute_prediction(sequence_output, feature_embedding)
+        map_loss = self.pretrain_loss_fct(map_score, features.view(-1, self.n_features).float())
+        map_mask = (masked_item_sequence == self.mask_token).float()
+        map_loss = torch.sum(map_loss * map_mask.flatten().unsqueeze(-1))
+
+        # SP
+        segment_context = self.forward(masked_segment_sequence)[:, -1, :]
+        pos_segment_emb = self.forward(pos_segment)[:, -1, :]
+        neg_segment_emb = self.forward(neg_segment)[:, -1, :]
+        pos_segment_score = self._segment_prediction(segment_context, pos_segment_emb)
+        neg_segment_score = self._segment_prediction(segment_context, neg_segment_emb)
+        sp_distance = pos_segment_score - neg_segment_score
+        sp_loss = torch.sum(self.pretrain_loss_fct(sp_distance, torch.ones_like(sp_distance, dtype=torch.float32)))
+
+        pretrain_loss = (
+            self.aap_weight * aap_loss
+            + self.mip_weight * mip_loss
+            + self.map_weight * map_loss
+            + self.sp_weight * sp_loss
         )
-        multi_hot[torch.arange(masked_index.size(0)), masked_index] = 1
-        return multi_hot
+        return pretrain_loss
+
+    def _neg_sample(self, item_set):
+        item = random.randint(1, self.n_items - 2)  # Exclude mask token
+        while item in item_set:
+            item = random.randint(1, self.n_items - 2)
+        return item
+
+    def _padding_zero_at_left(self, sequence):
+        pad_len = self.max_seq_length - len(sequence)
+        sequence = [0] * pad_len + sequence
+        return sequence
+
+    def reconstruct_pretrain_data(self, item_seq, item_seq_len):
+        """Generate pre-training data for the pre-training stage."""
+        device = item_seq.device
+        batch_size = item_seq.size(0)
+
+        item_feature_seq = self.item_feat[self.FEATURE_FIELD][item_seq.cpu()] - 1
+        end_index = item_seq_len.cpu().numpy().tolist()
+        item_seq = item_seq.cpu().numpy().tolist()
+        item_feature_seq = item_feature_seq.cpu().numpy().tolist()
+
+        sequence_instances = []
+        associated_features = []
+        long_sequence = []
+        for i, end_i in enumerate(end_index):
+            sequence_instances.append(item_seq[i][:end_i])
+            long_sequence.extend(item_seq[i][:end_i])
+            associated_features.extend([[0] * self.n_features] * (self.max_seq_length - end_i))
+            for indexes in item_feature_seq[i][:end_i]:
+                features = [0] * self.n_features
+                try:
+                    for index in indexes:
+                        if index >= 0:
+                            features[index] = 1
+                except:
+                    features[indexes] = 1
+                associated_features.append(features)
+
+        masked_item_sequence = []
+        pos_items = []
+        neg_items = []
+        for instance in sequence_instances:
+            masked_sequence = instance.copy()
+            pos_item = instance.copy()
+            neg_item = instance.copy()
+            for index_id, item in enumerate(instance):
+                prob = random.random()
+                if prob < self.mask_ratio:
+                    masked_sequence[index_id] = self.mask_token
+                    neg_item[index_id] = self._neg_sample(instance)
+            masked_item_sequence.append(self._padding_zero_at_left(masked_sequence))
+            pos_items.append(self._padding_zero_at_left(pos_item))
+            neg_items.append(self._padding_zero_at_left(neg_item))
+
+        masked_segment_list = []
+        pos_segment_list = []
+        neg_segment_list = []
+        for instance in sequence_instances:
+            if len(instance) < 2:
+                masked_segment = instance.copy()
+                pos_segment = instance.copy()
+                neg_segment = instance.copy()
+            else:
+                sample_length = random.randint(1, len(instance) // 2)
+                start_id = random.randint(0, len(instance) - sample_length)
+                neg_start_id = random.randint(0, len(long_sequence) - sample_length)
+                pos_segment = instance[start_id : start_id + sample_length]
+                neg_segment = long_sequence[neg_start_id : neg_start_id + sample_length]
+                masked_segment = (
+                    instance[:start_id]
+                    + [self.mask_token] * sample_length
+                    + instance[start_id + sample_length :]
+                )
+                pos_segment = (
+                    [self.mask_token] * start_id
+                    + pos_segment
+                    + [self.mask_token] * (len(instance) - (start_id + sample_length))
+                )
+                neg_segment = (
+                    [self.mask_token] * start_id
+                    + neg_segment
+                    + [self.mask_token] * (len(instance) - (start_id + sample_length))
+                )
+            masked_segment_list.append(self._padding_zero_at_left(masked_segment))
+            pos_segment_list.append(self._padding_zero_at_left(pos_segment))
+            neg_segment_list.append(self._padding_zero_at_left(neg_segment))
+
+        associated_features = torch.tensor(associated_features, dtype=torch.long, device=device)
+        associated_features = associated_features.view(-1, self.max_seq_length, self.n_features)
+
+        masked_item_sequence = torch.tensor(masked_item_sequence, dtype=torch.long, device=device).view(batch_size, -1)
+        pos_items = torch.tensor(pos_items, dtype=torch.long, device=device).view(batch_size, -1)
+        neg_items = torch.tensor(neg_items, dtype=torch.long, device=device).view(batch_size, -1)
+        masked_segment_list = torch.tensor(masked_segment_list, dtype=torch.long, device=device).view(batch_size, -1)
+        pos_segment_list = torch.tensor(pos_segment_list, dtype=torch.long, device=device).view(batch_size, -1)
+        neg_segment_list = torch.tensor(neg_segment_list, dtype=torch.long, device=device).view(batch_size, -1)
+
+        return (
+            associated_features,
+            masked_item_sequence,
+            pos_items,
+            neg_items,
+            masked_segment_list,
+            pos_segment_list,
+            neg_segment_list,
+        )
 
     def calculate_loss(self, interaction):
-        masked_item_seq = interaction[self.MASK_ITEM_SEQ]
-        pos_items = interaction[self.POS_ITEMS]
-        neg_items = interaction[self.NEG_ITEMS]
-        masked_index = interaction[self.MASK_INDEX]
+        item_seq = interaction[self.ITEM_SEQ]
+        item_seq_len = interaction[self.ITEM_SEQ_LEN]
+        
+        if self.train_stage == "pretrain":
+            (
+                features,
+                masked_item_sequence,
+                pos_items,
+                neg_items,
+                masked_segment_sequence,
+                pos_segment,
+                neg_segment,
+            ) = self.reconstruct_pretrain_data(item_seq, item_seq_len)
 
-        seq_output = self.forward(masked_item_seq)
-        pred_index_map = self.multi_hot_embed(
-            masked_index, masked_item_seq.size(-1)
-        )
-        pred_index_map = pred_index_map.view(
-            masked_index.size(0), masked_index.size(1), -1
-        )
-        seq_output = torch.bmm(pred_index_map, seq_output)
-
-        if self.loss_type == "BPR":
-            pos_items_emb = self._get_fused_item_embeddings(pos_items)
-            neg_items_emb = self._get_fused_item_embeddings(neg_items)
-            pos_score = (
-                torch.sum(seq_output * pos_items_emb, dim=-1) + self.output_bias[pos_items]
+            loss = self.pretrain(
+                features,
+                masked_item_sequence,
+                pos_items,
+                neg_items,
+                masked_segment_sequence,
+                pos_segment,
+                neg_segment,
             )
-            neg_score = (
-                torch.sum(seq_output * neg_items_emb, dim=-1) + self.output_bias[neg_items]
-            )
-            targets_mask = (masked_index > 0).float()
-            loss = -torch.sum(
-                torch.log(1e-14 + torch.sigmoid(pos_score - neg_score)) * targets_mask
-            ) / torch.sum(targets_mask)
-        elif self.loss_type == "CE":
-            loss_fct = nn.CrossEntropyLoss(reduction="none")
-            test_item_emb = self._get_fused_item_embeddings()
-            if self.cosine_score:
-                seq_n = F.normalize(seq_output, dim=-1)
-                item_n = F.normalize(test_item_emb, dim=-1)
-                logits = self.cosine_scale * torch.matmul(seq_n, item_n.transpose(0, 1)) + self.output_bias
-            else:
-                logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1)) + self.output_bias
-            targets_mask = (masked_index > 0).float().view(-1)
-            loss = torch.sum(
-                loss_fct(logits.view(-1, test_item_emb.size(0)), pos_items.view(-1))
-                * targets_mask
-            ) / torch.sum(targets_mask)
         else:
-            raise NotImplementedError("Make sure 'loss_type' in ['BPR', 'CE']!")
+            # Finetune stage with text alignment
+            pos_items = interaction[self.POS_ITEM_ID]
+            seq_output = self.forward(item_seq, bidirectional=False)
+            seq_output = self.gather_indexes(seq_output, item_seq_len - 1)
 
-        # Alignment loss
-        if (
-            self.use_align
-            and self.alignment_weight > 0.0
-            and self._has_item_text()
-            and ((self.use_cross and self.text_predictor is not None) or ((not self.use_cross) and self.item_text_proj is not None))
-        ):
-            valid_mask = (masked_index > 0).view(-1)
-            if valid_mask.any():
-                pos_ids_flat = pos_items.view(-1)[valid_mask]
+            if self.loss_type == "BPR":
+                neg_items = interaction[self.NEG_ITEM_ID]
+                pos_items_emb = self._get_fused_item_embeddings(pos_items)
+                neg_items_emb = self._get_fused_item_embeddings(neg_items)
+                pos_score = torch.sum(seq_output * pos_items_emb, dim=-1)
+                neg_score = torch.sum(seq_output * neg_items_emb, dim=-1)
+                loss = self.loss_fct(pos_score, neg_score)
+            else:  # CE
+                test_item_emb = self._get_fused_item_embeddings()
+                if self.cosine_score:
+                    seq_n = F.normalize(seq_output, dim=1)
+                    item_n = F.normalize(test_item_emb, dim=1)
+                    logits = self.cosine_scale * torch.matmul(seq_n, item_n.transpose(0, 1))
+                else:
+                    logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1))
+                loss = self.loss_fct(logits, pos_items)
+
+            # Alignment loss
+            if (
+                self.use_align
+                and self.alignment_weight > 0.0
+                and self._has_item_text()
+                and ((self.use_cross and self.text_predictor is not None) or 
+                     ((not self.use_cross) and self.item_text_proj is not None))
+            ):
+                pos_ids_flat = pos_items.view(-1)
                 id_item_e = self.item_embedding(pos_ids_flat)
                 txt_raw = self._gather_text_raw(pos_ids_flat)
                 if self.detach_text_emb:
@@ -687,36 +824,22 @@ class BERT4RecAlign(SequentialRecommender):
                 if not self._align_debug_logged:
                     try:
                         self.logger.info(
-                            "BERT4RecAlign: first-step align_loss=%.6f, masked_pos=%d, proj_norm=%.6f",
-                            align_loss.item(), int(pos_ids_flat.numel()), float(
-                                (self.text_predictor.weight if (self.use_cross and self.text_predictor is not None) else self.item_text_proj.weight).norm().item()
-                            ),
+                            "S3RecAlign: first-step align_loss=%.6f, batch_pos=%d",
+                            align_loss.item(), int(pos_ids_flat.numel())
                         )
                     except Exception:
                         pass
                     self._align_debug_logged = True
 
-        # Regularization on text gate alpha
-        if self.text_gate_reg_l2 > 0.0 or self.text_gate_reg_entropy > 0.0:
-            alpha = torch.sigmoid(self.text_gate_param)
-            if self.text_gate_reg_l2 > 0.0:
-                loss = loss + self.text_gate_reg_l2 * (alpha ** 2)
-            if self.text_gate_reg_entropy > 0.0:
-                eps = 1e-8
-                entropy = -(alpha * torch.log(alpha + eps) + (1.0 - alpha) * torch.log(1.0 - alpha + eps))
-                loss = loss + self.text_gate_reg_entropy * entropy
-
-        # Log gate alpha on first training step
-        if (not self._gate_debug_logged) and self.training:
-            try:
-                alpha_val = float(torch.sigmoid(self.text_gate_param).detach().cpu().item())
-                self.logger.info(
-                    "BERT4RecAlign: first-step text_gate_alpha=%.6f (use_llm=%s, use_cross=%s, use_align=%s, text_mode=%s)",
-                    alpha_val, str(self.use_llm), str(self.use_cross), str(self.use_align), getattr(self, "_text_mode", "unknown")
-                )
-            except Exception:
-                pass
-            self._gate_debug_logged = True
+            # Regularization on text gate
+            if self.text_gate_reg_l2 > 0.0 or self.text_gate_reg_entropy > 0.0:
+                alpha = torch.sigmoid(self.text_gate_param)
+                if self.text_gate_reg_l2 > 0.0:
+                    loss = loss + self.text_gate_reg_l2 * (alpha ** 2)
+                if self.text_gate_reg_entropy > 0.0:
+                    eps = 1e-8
+                    entropy = -(alpha * torch.log(alpha + eps) + (1.0 - alpha) * torch.log(1.0 - alpha + eps))
+                    loss = loss + self.text_gate_reg_entropy * entropy
 
         return loss
 
@@ -724,33 +847,32 @@ class BERT4RecAlign(SequentialRecommender):
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
         test_item = interaction[self.ITEM_ID]
-        item_seq = self.reconstruct_test_data(item_seq, item_seq_len)
-        seq_output = self.forward(item_seq)
+        seq_output = self.forward(item_seq, bidirectional=False)
         seq_output = self.gather_indexes(seq_output, item_seq_len - 1)
         test_item_emb = self._get_fused_item_embeddings(test_item)
         if self.cosine_score:
             seq_n = F.normalize(seq_output, dim=1)
             item_n = F.normalize(test_item_emb, dim=1)
-            scores = self.cosine_scale * torch.mul(seq_n, item_n).sum(dim=1) + self.output_bias[test_item]
+            scores = self.cosine_scale * torch.mul(seq_n, item_n).sum(dim=1)
         else:
-            scores = (torch.mul(seq_output, test_item_emb)).sum(dim=1) + self.output_bias[test_item]
+            scores = torch.mul(seq_output, test_item_emb).sum(dim=1)
         return scores
 
     def full_sort_predict(self, interaction):
         item_seq = interaction[self.ITEM_SEQ]
         item_seq_len = interaction[self.ITEM_SEQ_LEN]
-        item_seq = self.reconstruct_test_data(item_seq, item_seq_len)
-        seq_output = self.forward(item_seq)
+        seq_output = self.forward(item_seq, bidirectional=False)
         seq_output = self.gather_indexes(seq_output, item_seq_len - 1)
         test_items_emb = self._get_fused_item_embeddings()
         if self.cosine_score:
             seq_n = F.normalize(seq_output, dim=1)
             item_n = F.normalize(test_items_emb, dim=1)
-            scores = self.cosine_scale * torch.matmul(seq_n, item_n.transpose(0, 1)) + self.output_bias
+            scores = self.cosine_scale * torch.matmul(seq_n, item_n.transpose(0, 1))
         else:
-            scores = torch.matmul(seq_output, test_items_emb.transpose(0, 1)) + self.output_bias
+            scores = torch.matmul(seq_output, test_items_emb.transpose(0, 1))
         return scores
 
 
-# Alias to enable model name 'BERT4Rec_Align' to load this module
-BERT4Rec_Align = BERT4RecAlign
+# Alias
+S3Rec_Align = S3RecAlign
+

@@ -1,8 +1,17 @@
 from recbole.model.sequential_recommender.bert4rec import BERT4Rec
-from recbole.model.sequential_recommender.bert4rec_align import BERT4RecAlign
-from recbole.model.sequential_recommender.sasrec_align import SASRecAlign
+from recbole.model.sequential_recommender.bert4rec_align import BERT4RecAlign, BERT4Rec_Align
+from recbole.model.sequential_recommender.bert4recalignmultiview import (
+    BERT4RecAlignMultiView, BERT4RecAlignMultiViewV2,
+    BERT4Rec_Align_MultiView, BERT4Rec_Align_MultiView_V2
+)
+from recbole.model.sequential_recommender.sasrec_align import SASRecAlign, SASRec_Align
 from recbole.model.sequential_recommender.sasrecalignmultiview import SASRecAlignMultiView
 from recbole.model.sequential_recommender.sasrecalignmultiviewv2 import SASRecAlignMultiViewV2
+from recbole.model.sequential_recommender.s3rec_align import S3RecAlign, S3Rec_Align
+from recbole.model.sequential_recommender.s3recalignmultiview import (
+    S3RecAlignMultiView, S3RecAlignMultiViewV2,
+    S3Rec_Align_MultiView, S3Rec_Align_MultiView_V2
+)
 try:
     from recbole.model.sequential_recommender.sasrecalign import SASRecAlign as SASRecAlignCompat
 except ImportError:
