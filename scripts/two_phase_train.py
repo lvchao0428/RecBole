@@ -542,8 +542,13 @@ def _train_and_eval_phase(
     progress_metric: str | None = None,
     progress_fields: dict | None = None,
     callback_fn=None,
+    save_scores_path: str | None = None,
 ):
-    """Run one training phase and return results and saved model path."""
+    """Run one training phase and return results and saved model path.
+    
+    Args:
+        save_scores_path: If provided, saves test prediction scores to this path for visualization.
+    """
     device = _resolve_device(trainer.config)
     _log_gpu_snapshot("before-fit", device)
     metric_name = progress_metric or (trainer.config["valid_metric"] if "valid_metric" in trainer.config else None)
@@ -580,7 +585,8 @@ def _train_and_eval_phase(
     
     try:
         test_result = trainer.evaluate(
-            test_data, load_best_model=saved, show_progress=trainer.config["show_progress"]
+            test_data, load_best_model=saved, show_progress=trainer.config["show_progress"],
+            save_scores_path=save_scores_path
         )
     except RuntimeError as err:
         if "CUDA" in str(err) or "cuda" in str(err):
@@ -664,6 +670,9 @@ def main(local_rank=None, queue=None, dist_config=None):
     parser.add_argument("--save", action="store_true", help="save checkpoints")
     parser.add_argument("--variant_label", type=str, default=None, help="custom label printed in final metric table")
     parser.add_argument("--variant_features", type=str, default=None, help="comma/plus separated feature tokens to auto-build label (e.g., 'sasrec,tfidf,llm')")
+    # Score saving for visualization
+    parser.add_argument("--save_test_scores", action="store_true", help="save test prediction scores for visualization/analysis")
+    parser.add_argument("--scores_output_dir", type=str, default="ablation_study_doc/scores", help="directory to save test scores")
     # Manual switching
     parser.add_argument("--only_phase_a", action="store_true", help="run Phase-A only")
     parser.add_argument("--only_phase_b", action="store_true", help="run Phase-B only")
@@ -1113,7 +1122,17 @@ def main(local_rank=None, queue=None, dist_config=None):
             if not config_a["single_spec"] and dist.is_initialized():
                 dist.barrier()
             
-            test_result = trainer_a.evaluate(test_a, load_best_model=args.save, show_progress=trainer_a.config["show_progress"])
+            # Build score save path for Phase-A only mode
+            phase_a_scores_path = None
+            if args.save_test_scores and args.only_phase_a:
+                variant_name = (args.variant_features or args.variant_label or "model").replace(" ", "_").replace("+", "_").replace(",", "_")
+                phase_a_scores_path = os.path.join(args.scores_output_dir, f"{variant_name}_phase_a")
+            
+            test_result = trainer_a.evaluate(
+                test_a, load_best_model=args.save, 
+                show_progress=trainer_a.config["show_progress"],
+                save_scores_path=phase_a_scores_path
+            )
             res_a = {
                 "best_valid_score": best_valid_score,
                 "best_valid_result": best_valid_result,
@@ -1205,7 +1224,17 @@ def main(local_rank=None, queue=None, dist_config=None):
         else:
             logger_b.warning("[Phase-B] No valid checkpoint provided; training from scratch weights.")
 
-        res_b = _train_and_eval_phase(logger_b, trainer_b, train_b, valid_b, test_b, saved=args.save)
+        # Build score save path if requested
+        phase_b_scores_path = None
+        if args.save_test_scores:
+            variant_name = (args.variant_features or args.variant_label or "model").replace(" ", "_").replace("+", "_").replace(",", "_")
+            phase_b_scores_path = os.path.join(args.scores_output_dir, f"{variant_name}_phase_b")
+        
+        res_b = _train_and_eval_phase(
+            logger_b, trainer_b, train_b, valid_b, test_b, 
+            saved=args.save,
+            save_scores_path=phase_b_scores_path
+        )
 
         # Final summary
         payload = {

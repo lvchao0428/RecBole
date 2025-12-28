@@ -597,7 +597,8 @@ class Trainer(AbstractTrainer):
 
     @torch.no_grad()
     def evaluate(
-        self, eval_data, load_best_model=True, model_file=None, show_progress=False
+        self, eval_data, load_best_model=True, model_file=None, show_progress=False,
+        save_scores_path=None
     ):
         r"""Evaluate the model based on the eval data.
 
@@ -608,6 +609,8 @@ class Trainer(AbstractTrainer):
             model_file (str, optional): the saved model file, default: None. If users want to test the previously
                                         trained model file, they can set this parameter.
             show_progress (bool): Show the progress of evaluate epoch. Defaults to ``False``.
+            save_scores_path (str, optional): Path to save prediction scores for visualization/analysis.
+                                              If provided, saves scores as .npy file. Defaults to ``None``.
 
         Returns:
             collections.OrderedDict: eval result, key is the eval metric and value in the corresponding metric value.
@@ -647,6 +650,11 @@ class Trainer(AbstractTrainer):
             else eval_data
         )
 
+        # Collect scores for saving if path is provided
+        all_scores = [] if save_scores_path else None
+        all_positive_u = [] if save_scores_path else None
+        all_positive_i = [] if save_scores_path else None
+
         num_sample = 0
         for batch_idx, batched_data in enumerate(iter_data):
             num_sample += len(batched_data)
@@ -658,6 +666,17 @@ class Trainer(AbstractTrainer):
             self.eval_collector.eval_batch_collect(
                 scores, interaction, positive_u, positive_i
             )
+            
+            # Collect scores for saving
+            if save_scores_path is not None:
+                all_scores.append(scores.cpu())
+                all_positive_u.append(positive_u.cpu() if isinstance(positive_u, torch.Tensor) else torch.tensor(positive_u))
+                all_positive_i.append(positive_i.cpu() if isinstance(positive_i, torch.Tensor) else torch.tensor(positive_i))
+        
+        # Save scores if path is provided
+        if save_scores_path is not None:
+            self._save_eval_scores(save_scores_path, all_scores, all_positive_u, all_positive_i)
+        
         self.eval_collector.model_collect(self.model)
         struct = self.eval_collector.get_data_struct()
         result = self.evaluator.evaluate(struct)
@@ -665,6 +684,49 @@ class Trainer(AbstractTrainer):
             result = self._map_reduce(result, num_sample)
         self.wandblogger.log_eval_metrics(result, head="eval")
         return result
+    
+    def _save_eval_scores(self, save_path, all_scores, all_positive_u, all_positive_i):
+        """Save evaluation scores to numpy files for visualization and analysis.
+        
+        Args:
+            save_path (str): Base path for saving scores (without extension).
+            all_scores (list): List of score tensors from each batch.
+            all_positive_u (list): List of positive user indices.
+            all_positive_i (list): List of positive item indices.
+        """
+        import os
+        
+        # Ensure directory exists
+        save_dir = os.path.dirname(save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        
+        # Concatenate all batches
+        scores_tensor = torch.cat(all_scores, dim=0)
+        positive_u_tensor = torch.cat(all_positive_u, dim=0)
+        positive_i_tensor = torch.cat(all_positive_i, dim=0)
+        
+        # Convert to numpy
+        scores_np = scores_tensor.numpy()
+        positive_u_np = positive_u_tensor.numpy()
+        positive_i_np = positive_i_tensor.numpy()
+        
+        # Save files
+        base_path = save_path.replace('.npy', '')
+        np.save(f"{base_path}_scores.npy", scores_np)
+        np.save(f"{base_path}_positive_u.npy", positive_u_np)
+        np.save(f"{base_path}_positive_i.npy", positive_i_np)
+        
+        # Also save top-k scores for efficient visualization
+        topk = min(100, scores_np.shape[1])  # Save top-100 scores
+        topk_indices = np.argsort(scores_np, axis=1)[:, -topk:][:, ::-1]  # Descending
+        topk_scores = np.take_along_axis(scores_np, topk_indices, axis=1)
+        np.save(f"{base_path}_topk_scores.npy", topk_scores)
+        np.save(f"{base_path}_topk_indices.npy", topk_indices)
+        
+        self.logger.info(f"Saved evaluation scores to {base_path}_*.npy")
+        self.logger.info(f"  - scores shape: {scores_np.shape}")
+        self.logger.info(f"  - top-{topk} scores saved for visualization")
 
     def _map_reduce(self, result, num_sample):
         gather_result = {}

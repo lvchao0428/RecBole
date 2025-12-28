@@ -55,6 +55,7 @@ def run(
     ip="localhost",
     port="5678",
     group_offset=0,
+    save_scores_path=None,
 ):
     if nproc == 1 and world_size <= 0:
         res = run_recbole(
@@ -63,6 +64,7 @@ def run(
             config_file_list=config_file_list,
             config_dict=config_dict,
             saved=saved,
+            save_scores_path=save_scores_path,
         )
     else:
         if world_size == -1:
@@ -189,6 +191,7 @@ def run_recbole(
     config_dict=None,
     saved=True,
     queue=None,
+    save_scores_path=None,
 ):
     r"""A fast running api, which includes the complete process of
     training and testing a model on a specified dataset
@@ -200,6 +203,7 @@ def run_recbole(
         config_dict (dict, optional): Parameters dictionary used to modify experiment parameters. Defaults to ``None``.
         saved (bool, optional): Whether to save the model. Defaults to ``True``.
         queue (torch.multiprocessing.Queue, optional): The queue used to pass the result to the main process. Defaults to ``None``.
+        save_scores_path (str, optional): Path to save test prediction scores for visualization/analysis. Defaults to ``None``.
     """
     # configurations initialization
     config = Config(
@@ -241,7 +245,8 @@ def run_recbole(
 
     # model evaluation
     test_result = trainer.evaluate(
-        test_data, load_best_model=saved, show_progress=config["show_progress"]
+        test_data, load_best_model=saved, show_progress=config["show_progress"],
+        save_scores_path=save_scores_path
     )
 
     environment_tb = get_environment(config)

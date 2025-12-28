@@ -199,19 +199,90 @@ Linear(hidden_size → reduction) → ReLU → Linear(reduction → hidden_size)
 >
 > Notably, this effect is **more pronounced for cold-start items** (MRR_new drops by 37.11% vs. 22.87% overall), highlighting the critical role of feature interaction modules in scenarios where text features are the primary information source.
 
-### 5.2 可视化建议
+### 5.2 可视化图表
 
-1. **Score分布对比图**
-   - 展示有/无Cross+SENet时，Top-10商品得分的分布差异
-   - 预期：有Cross时分布更"尖锐"（峰值明显），无Cross时更"平坦"
+已生成以下可视化图表，可直接用于论文：
 
-2. **Recall vs MRR Trade-off曲线**
-   - 横轴：@K (5, 10, 20)
-   - 纵轴：指标变化百分比
-   - 两条线：Recall变化 (正) 和 MRR变化 (负)
+#### 图1: Recall vs MRR Trade-off 曲线
 
-3. **冷启动 vs 高频商品对比柱状图**
-   - 展示不同商品类型的MRR下降幅度差异
+![Trade-off曲线](recall_mrr_tradeoff.png)
+
+**说明**: 展示去掉Cross+SENet后，Recall上升（绿色柱）但MRR下降（红色柱）的trade-off关系。蓝色折线为NDCG变化。
+
+#### 图2: 冷启动 vs 高频商品对比图
+
+![冷启动对比](coldstart_comparison.png)
+
+**说明**: 对比MRR、Recall、NDCG在不同类型商品（冷启动、少样本、高频）上的变化幅度。冷启动商品的MRR下降最严重（-37%）。
+
+#### 图3: 模块贡献对比图
+
+![模块贡献](module_contribution.png)
+
+**说明**: 对比只去掉SENet vs 去掉Cross+SENet的效果差异，分析各模块的独立贡献。
+
+#### 图4: 分数分布对比图（演示）
+
+![分数分布](score_distribution_demo.png)
+
+**说明**: 使用合成数据演示有/无Cross+SENet时Top-10商品分数的分布差异。左图为分数分布，右图为分数方差分布。实际使用时需要保存模型预测分数。
+
+---
+
+### 5.3 生成真实分数分布图
+
+分数保存功能已集成到训练脚本中，只需添加命令行参数即可：
+
+#### 方法1: 使用 `run_recbole.py` (单阶段训练)
+
+```bash
+# Baseline 模型
+python run_recbole.py \
+  --model SASRecAlign \
+  --dataset Amazon_Beauty \
+  --config_files "sasrec_baseline_50ep_stratified.yaml" \
+  --save_test_scores \
+  --variant_name "sasrec_baseline"
+
+# 分数保存到: ablation_study_doc/scores/sasrec_baseline_*.npy
+```
+
+#### 方法2: 使用 `two_phase_train.py` (两阶段训练)
+
+```bash
+# Multi-View V2 模型 (Baseline)
+python scripts/two_phase_train.py \
+  --model SASRecAlignMultiViewV2 \
+  --dataset Amazon_Beauty \
+  --config_files "sasrec_align_multi_view_v2_stratified.yaml" \
+  --save_test_scores \
+  --variant_features "multiview_v2_baseline" \
+  ... # 其他参数
+
+# 分数保存到: ablation_study_doc/scores/multiview_v2_baseline_phase_b_*.npy
+```
+
+#### 保存的文件说明
+
+每次评估会保存以下文件：
+- `*_scores.npy` - 完整分数矩阵 [n_samples, n_items]
+- `*_topk_scores.npy` - Top-100 分数 [n_samples, 100] (用于可视化)
+- `*_topk_indices.npy` - Top-100 商品索引
+- `*_positive_u.npy` - 正样本用户索引
+- `*_positive_i.npy` - 正样本商品索引
+
+#### 生成可视化图表
+
+```bash
+# 使用真实分数文件生成分数分布对比图
+python ablation_study_doc/visualize_ablation.py --plot-score-dist \
+    --baseline-scores ablation_study_doc/scores/multiview_v2_baseline_phase_b_topk_scores.npy \
+    --ablation-scores ablation_study_doc/scores/multiview_v2_no_cross_senet_phase_b_topk_scores.npy \
+    --baseline-label "With Cross+SENet" \
+    --ablation-label "W/O Cross+SENet"
+```
+
+详见 `visualize_ablation.py` 中的使用说明。
 
 ---
 
