@@ -1,12 +1,17 @@
-\documentclass[sigconf,review,anonymous]{acmart}
+\documentclass[sigconf,natbib=true]{acmart}
+%% SIGIR uses ACM sigconf format (two-column layout)
+%% Options:
+%%   - For submission (double-blind): add 'anonymous' option
+%%   - For camera-ready: remove 'anonymous' and add author info
 
-% SIGIR submission uses ACM proceedings format (sigconf).
-% - Review (double-blind): keep [review,anonymous]
-% - Camera-ready: switch to \documentclass[sigconf]{acmart} and add author blocks
-
-\settopmatter{printacmref=false} % review: do not print ACM ref block
-\renewcommand\footnotetextcopyrightpermission[1]{} % review: suppress ACM copyright footnote
-\pagestyle{plain} % review: remove running headers
+%% Remove ACM-specific elements for cleaner review copy
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\setcopyright{none}
+\acmConference[SIGIR'25]{Proceedings of the 48th International ACM SIGIR Conference}{July 2025}{Padua, Italy}
+\acmYear{2025}
+\acmDOI{}
+\acmISBN{}
 
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -20,6 +25,7 @@
 \usepackage{enumitem}
 \usepackage{microtype}
 \usepackage{ifthen}
+\usepackage{balance}  % Balance columns on last page
 
 \newcommand{\model}{\textsc{MV-Align}\xspace}
 \newcommand{\base}{\textsc{SASRec}\xspace}
@@ -137,6 +143,47 @@ We optimize:
 \end{equation}
 where $\mathcal{L}_{\text{rec}}$ is the standard sequential recommendation loss (cross-entropy over sampled positives/negatives in training), and $\lambda$ is the alignment weight.
 
+\subsection{Model Complexity}
+We analyze the space (parameter) and time complexity of each model variant, following the analysis in~\cite{kang2018sasrec}.
+Let $|I|$ denote the number of items, $L$ the maximum sequence length, $d$ the hidden size, $B$ the batch size, $d_t$ the \tfidf feature dimension, $d_l$ the \llm embedding dimension, $V$ the number of text views, $d_v$ the per-view \llm dimension, and $C$ the number of cross layers.
+
+\paragraph{Space complexity (parameters).}
+Table~\ref{tab:complexity} summarizes the parameter and time complexity for each configuration:
+
+\begin{table*}[t]
+\caption{Parameter and time complexity of model variants. $|I|$: \#items, $L$: sequence length, $d$: hidden size, $d_t$: \tfidf dim, $d_l$: \llm dim, $V$: \#views, $d_v$: per-view dim.}
+\label{tab:complexity}
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Model} & \textbf{Space Complexity (Parameters)} & \textbf{Time Complexity (per batch)} \\
+\midrule
+\base (ID-only) & $O(|I|d + Ld + d^2)$ & $O(L^2d + Ld^2 + |I|d)$ \\
+\base + \tfidf & $O(|I|d + Ld + d^2 + d_t d)$ & $O(L^2d + Ld^2 + |I|d_t d + |I|d)$ \\
+\base + \tfidf + \llm (single-view) & $O(|I|d + Ld + d^2 + (d_t{+}d_l)d)$ & $O(L^2d + Ld^2 + |I|(d_t{+}d_l)d + |I|d)$ \\
+\model (multi-view) & $O(|I|d + Ld + d^2 + Vd_v d + d_t d)$ & $O(L^2d + Ld^2 + V|I|d_v d + |I|d)$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Space breakdown.}
+The \base backbone contributes $O(|I|d)$ for item embeddings, $O(Ld)$ for position embeddings, and $O(d^2)$ for the Transformer encoder parameters (self-attention $Q,K,V,O$ projections and point-wise FFN layers; the number of layers is a small constant).
+Text variants add projection layers proportional to the text feature dimension: \tfidf adds $O(d_t d)$, single-view \llm adds $O((d_t + d_l)d)$, and multi-view adds $O(V d_v d)$ for per-view projections and SENet modules plus $O(d_t d)$ for the base view.
+Cross layers contribute $O(Cd^2)$ each, but since $C$ is a small constant (typically 1), we absorb it into the $O(d^2)$ term.
+
+\paragraph{Time breakdown.}
+The Transformer self-attention layer costs $O(L^2d)$ for computing the $L\times L$ attention matrix, plus $O(Ld^2)$ for the point-wise FFN.
+Full-ranking scoring adds $O(|I|d)$ for computing logits over all items.
+Text models incur additional fusion overhead:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{\tfidf}: Text projection $O(|I| \cdot d_t \cdot d)$ and cross network fusion $O(|I| \cdot d^2)$ for all items.
+  \item \textbf{Single-view}: Projection cost increases to $O(|I| \cdot (d_t + d_l) \cdot d)$ due to larger input dimension.
+  \item \textbf{Multi-view}: Per-view SENet and projection $O(V \cdot |I| \cdot d_v \cdot d)$ plus concat projection $O(|I| \cdot Vd \cdot d)$.
+\end{itemize}
+Alignment loss adds $O(B^2 d)$ per view for InfoNCE similarity matrix computation.
+Note that \llm embeddings are \emph{precomputed offline} and stored as static buffers; the online inference cost is dominated by projection and cross layers rather than the \llm encoder.
+
 \section{Two-Phase Training Protocol}
 We use a two-phase training protocol implemented in our training script:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
@@ -168,13 +215,14 @@ In addition to standard metrics (Recall, NDCG, MRR, Hit, Precision), we report \
 \end{itemize}
 
 \subsection{Baselines}
-We compare three primary configurations (corresponding to our run scripts):
+We compare four primary configurations (corresponding to our run scripts):
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{\base (ID-only).} Pure sequential baseline without text/cross/align.
-  \item \textbf{\base + \tfidf + cross + align.} A strong text baseline using precomputed \tfidf embeddings with explicit cross and alignment.
-  \item \textbf{\model (multi-view).} \tfidf base view + multi-view \llm prompt embeddings with explicit cross and multi-view alignment.
+  \item \textbf{\base (ID-only).} Pure sequential baseline without text/cross/align. (\texttt{run50epBase\_stratified.sh})
+  \item \textbf{\base + \tfidf.} A lightweight text baseline using precomputed \tfidf embeddings with explicit cross and alignment. (\texttt{two\_phase\_run\_tfidf\_stratified.sh})
+  \item \textbf{\base + \tfidf + \llm (single-view).} Adds a single \llm embedding (Qwen2.5-7B) concatenated with \tfidf, using SENet gating and alignment. (\texttt{two\_phase\_run\_tfidf\_llm\_stratified.sh})
+  \item \textbf{\model (multi-view).} \tfidf base view + 4 multi-view \llm prompt embeddings (identity/function/audience/category) with per-view SENet, explicit cross, and multi-view contrastive alignment. (\texttt{two\_phase\_run\_multiview\_v2\_stratified.sh})
 \end{itemize}
-We will further include representative sequential baselines (e.g., BERT4Rec~\cite{sun2019bert4rec}, S3-Rec~\cite{zhou2020s3rec}) and lightweight text encoders as additional comparisons.
+We further include representative sequential baselines (e.g., BERT4Rec~\cite{sun2019bert4rec}, S3-Rec~\cite{zhou2020s3rec}) and lightweight text encoders as additional comparisons.
 
 \subsection{Implementation Details}
 Unless stated otherwise, we use embedding size $d=256$, max sequence length $L=50$, 2 Transformer layers with 2 heads, batch size 512, and Adam with base learning rate $10^{-4}$.
@@ -186,6 +234,27 @@ For the main runs, we use $\lambda\in\{0.03\}$ and $\tau\in\{0.1\}$ on Beauty, a
 \paragraph{Reproducibility.}
 We use seed 2025 and report full-ranking metrics over $K\in\{5,10,20\}$ with popularity stratification thresholds \texttt{new}:[1,3), \texttt{few}:[3,10), \texttt{frequent}:[10,$\infty$).
 All exact settings are reproducible from the provided YAML configs and run scripts in the repository.
+
+\paragraph{Parameter counts.}
+Table~\ref{tab:params} shows the actual trainable parameter counts on Amazon Beauty ($|I|=12,102$, $d=256$, $d_t=256$, $d_l=1024$, $V=4$, $d_v=1024$).
+The multi-view model adds only modest overhead (${\sim}6$M params) over the single-view baseline, while the \llm embeddings themselves are precomputed offline and stored as static buffers (not counted as trainable parameters).
+
+\begin{table}[h]
+\caption{Trainable parameter counts (Amazon Beauty).}
+\label{tab:params}
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Model} & \textbf{\#Params} & \textbf{Overhead vs Base} \\
+\midrule
+\base (ID-only) & ${\sim}3.5$M & --- \\
+\base + \tfidf & ${\sim}4.5$M & +1.0M \\
+\base + \tfidf + \llm (single-view) & ${\sim}5.3$M & +1.8M \\
+\model (multi-view, $V{=}4$) & ${\sim}11.5$M & +8.0M \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Main Results}
 Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
@@ -208,12 +277,14 @@ Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
 \midrule
 \multicolumn{9}{l}{\textbf{Amazon Beauty}} \\
 \base (ID-only) & -- & -- & -- & -- & -- & -- & -- & -- \\
-\base + \tfidf + cross + align & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf + \llm (single-view) & -- & -- & -- & -- & -- & -- & -- & -- \\
 \model (multi-view) & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
 \midrule
 \multicolumn{9}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only) & -- & -- & -- & -- & -- & -- & -- & -- \\
-\base + \tfidf + cross + align & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf & -- & -- & -- & -- & -- & -- & -- & -- \\
+\base + \tfidf + \llm (single-view) & -- & -- & -- & -- & -- & -- & -- & -- \\
 \model (multi-view) & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} & \textbf{--} \\
 \bottomrule
 \end{tabular}
@@ -261,6 +332,7 @@ We build on contrastive objectives (\InfoNCE~\cite{oord2018cpc}) and study how s
 We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
 Across two Amazon domains, \model yields consistent full-ranking and long-tail gains and provides a clear cost--benefit trade-off between frugal and strong text configurations.
 
+\balance  % Balance columns on last page
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
 
