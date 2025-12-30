@@ -4,6 +4,7 @@
 
 model: BERT4RecAlignMultiViewV2
 hidden_size: 256
+fusion_chunk_size: 16384  # 防止CUDA timeout，分块处理大规模item融合
 n_layers: 2
 n_heads: 2
 inner_size: 256

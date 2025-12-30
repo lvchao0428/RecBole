@@ -148,6 +148,10 @@ class BERT4RecAlign(SequentialRecommender):
         # Normalization toggles for projections and fused item embeddings
         self.text_proj_norm_flag = bool(config["text_proj_norm"]) if "text_proj_norm" in config else True
         self.fused_item_norm_flag = bool(config["fused_item_norm"]) if "fused_item_norm" in config else True
+        
+        # Chunk size for memory-friendly full item fusion (0 disables chunking)
+        # Prevents CUDA timeout when computing fused embeddings for all items
+        self.fusion_chunk_size = int(config["fusion_chunk_size"]) if "fusion_chunk_size" in config else 0
 
         # For backward compatibility: accept single path as base
         item_text_emb_path_base = config["item_text_emb_path_base"] if "item_text_emb_path_base" in config else None
@@ -493,9 +497,21 @@ class BERT4RecAlign(SequentialRecommender):
         return nn.CrossEntropyLoss()(logits, labels)
 
     def _get_fused_item_embeddings(self, item_ids: torch.Tensor = None) -> torch.Tensor:
-        """Get item embeddings fused with text features."""
+        """Get item embeddings fused with text features.
+        Supports chunking to prevent CUDA timeout for large item sets.
+        """
         if item_ids is None:
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
+            # Chunking support to prevent CUDA timeout
+            if (
+                isinstance(self.fusion_chunk_size, int)
+                and self.fusion_chunk_size > 0
+                and self.fusion_chunk_size < all_ids.numel()
+            ):
+                chunks = []
+                for chunk_ids in torch.split(all_ids, self.fusion_chunk_size):
+                    chunks.append(self._get_fused_item_embeddings(chunk_ids))
+                return torch.cat(chunks, dim=0)
             item_emb = self.item_embedding.weight[:self.n_items]
         else:
             all_ids = item_ids

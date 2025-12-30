@@ -1,5 +1,6 @@
 ---
 model: BERT4RecAlign
+fusion_chunk_size: 16384  # 防止CUDA timeout，分块处理大规模item融合
 
 # Dataset
 dataset: Amazon_Beauty

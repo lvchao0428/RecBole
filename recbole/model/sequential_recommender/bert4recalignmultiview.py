@@ -199,12 +199,23 @@ class BERT4RecAlignMultiView(BERT4RecAlign):
     def _get_fused_item_embeddings(self, item_ids: torch.Tensor = None) -> torch.Tensor:
         """
         Get fused item embeddings with multi-view text features.
+        Supports chunking to prevent CUDA timeout for large item sets.
         """
         if not self.use_text_view_split:
             return super()._get_fused_item_embeddings(item_ids)
 
+        # Handle chunking for large item sets to prevent CUDA timeout
         if item_ids is None:
             all_ids = torch.arange(self.n_items, device=self.item_embedding.weight.device)
+            if (
+                isinstance(self.fusion_chunk_size, int)
+                and self.fusion_chunk_size > 0
+                and self.fusion_chunk_size < all_ids.numel()
+            ):
+                chunks = []
+                for chunk_ids in torch.split(all_ids, self.fusion_chunk_size):
+                    chunks.append(self._get_fused_item_embeddings(chunk_ids))
+                return torch.cat(chunks, dim=0)
             item_emb = self.item_embedding.weight[:self.n_items]
         else:
             all_ids = item_ids
