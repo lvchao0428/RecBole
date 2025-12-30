@@ -47,10 +47,11 @@ echo "  - few:      [3, 10)  interactions"
 echo "  - frequent: [10, +∞) interactions"
 echo ""
 
-#base_dir='/home/charlie/project/RecBole'
-base_dir='/home/ubuntu/own/RecBole/'
+base_dir='/home/charlie/project/RecBole'
+#base_dir='/home/ubuntu/own/RecBole/'
 cd ${base_dir}
-yaml_dir='/home/ubuntu/own/RecBole/bert4rec_train'
+#yaml_dir='/home/ubuntu/own/RecBole/bert4rec_train'
+yaml_dir='/home/charlie/project/RecBole/bert4rec_train'
 
 python scripts/two_phase_train.py \
   --model BERT4RecAlignMultiViewV2 \

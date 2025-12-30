@@ -29,14 +29,14 @@ model: BERT4RecAlignMultiViewV2
 
 # === 增强的模型架构 ===
 hidden_size: 256
-n_layers: 3                  # 从2增加到3，增强表示能力
+n_layers: 2                  # 从2增加到3，增强表示能力
 n_heads: 2
 inner_size: 256
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-mask_ratio: 0.15             # 从0.2降低到0.15，保留更多上下文信息
-gpu_id: "4"
+mask_ratio: 0.02             # 从0.2降低到0.15，保留更多上下文信息
+  #gpu_id: "4"
 
 # Enable BERT4Rec masking transform (required for training)
 transform: mask_itemseq
@@ -87,9 +87,11 @@ loss_type: CE
 train_neg_sample_args: null
 
 # === Multi-View 特征配置（增强版） ===
-item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+#item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 item_text_emb_path_llm: ""
-item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_7b_4views
+#item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_7b_4views
+item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen2.5_7b_4views
 use_llm: false
 use_align: true
 use_cross: true
