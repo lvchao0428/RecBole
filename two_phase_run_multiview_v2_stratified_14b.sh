@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Multi-View V2 Training with Stratified Evaluation
-# 增强版Multi-View模型
+# Multi-View V2 Training with Stratified Evaluation (Amazon_Beauty Dataset)
+# 增强版Multi-View模型 - 使用 Qwen2.5-14B embeddings
 #
 # 改动点汇总（相比 two_phase_run_multiview_split_stratified.sh）：
 # ============================================================
@@ -18,8 +18,11 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "========================================="
-echo "Multi-View V2 with Stratified Metrics"
+echo "Multi-View V2 (14B) with Stratified Metrics (Beauty)"
 echo "========================================="
+echo "Dataset: Amazon_Beauty"
+echo "LLM Model: Qwen2.5-14B-Instruct"
+echo ""
 echo "V2 Enhancements:"
 echo "  - Per-view L2 normalization (no cross-view weight normalization)"
 echo "  - multiview_align_scale: 2.0 (alignment loss amplification)"
@@ -35,7 +38,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_multi_view_v2_stratified.yaml" \
+  --config_files "sasrec_align_multi_view_v2_stratified_14b.yaml" \
   --phase_a_grid \
   --align_grid "0.03" \
   --tau_grid "0.1" \
@@ -57,7 +60,7 @@ python scripts/two_phase_train.py \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_multiview_v2_stratified \
   --seed 2025 \
-  --variant_features "sasrec,multiview_v2,4views,per_view_l2_norm,align_scale_2x,stratified" \
+  --variant_features "sasrec,multiview_v2,14b,4views,per_view_l2_norm,align_scale_2x,beauty,stratified" \
   --watchdog_disable \
   --save
 
@@ -77,3 +80,4 @@ echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"
 echo "  - NDCG_new@10, NDCG_few@10, NDCG_frequent@10"
 echo "  - Coverage_new@10, Coverage_few@10, Coverage_frequent@10"
 echo ""
+
