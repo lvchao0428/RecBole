@@ -12,7 +12,7 @@ inner_size: 256
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-#gpu_id: "7"
+gpu_id: "0"
 
 # Dataset
 dataset: Amazon_Beauty
@@ -60,7 +60,8 @@ loss_type: CE
 train_neg_sample_args: null
 
 # Text features (TF-IDF baseline)
-item_text_emb_path_base: /home/ubuntu/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+#item_text_emb_path_base: /home/ubuntu/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 item_text_emb_path_llm: ""
 use_llm: false
 use_align: true
