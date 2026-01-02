@@ -28,21 +28,21 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_toys_base_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.03" \
-  --tau_grid "0.1" \
+  --align_grid "0.05" \
+  --tau_grid "0.07" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
-  --phase_a_epochs 15 \
+  --phase_a_epochs 20 \
   --phase_a_eval_step 1 \
   --phase_a_valid_metric "MRR@10" \
   --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
-  --lr_text_head 2e-3 \
-  --lr_dnn_cross 1e-3 \
+  --lr_text_head 1e-3 \
+  --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
-  --phase_b_alignment_weight 0.10 \
+  --phase_b_alignment_weight 0.05 \
   --phase_b_text_gate_reg_l2 0.05 \
-  --phase_b_text_weight 0.8 \
+  --phase_b_text_weight 1.0 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
