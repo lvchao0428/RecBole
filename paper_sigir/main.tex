@@ -295,6 +295,39 @@ Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
 We ablate (i) explicit cross, (ii) alignment, (iii) per-view normalization, and (iv) cold-start reweighting.
 We also study the effect of the number of text views and the multi-view alignment scale $s_{\text{mv}}$.
 
+\paragraph{What drives multi-view gains.}
+Since multi-view text is the centerpiece of \model, we ablate its two core ingredients: the explicit cross fusion and per-view SENet gating.
+Removing the cross module can slightly increase Recall@K, but it sharply degrades ranking quality (e.g., $\sim$20\% relative drop in MRR@10 and $\sim$10\% in NDCG@10 on Beauty), showing that cross interactions are essential for converting multi-view recall into top-ranked gains under full ranking.
+By contrast, SENet has a smaller impact on overall Recall/MRR/NDCG, yet materially changes exposure: disabling SENet substantially increases Coverage\_new, consistent with calibrated gating favoring head items at the expense of cold-start coverage.
+Together, these results indicate that the effectiveness of multi-view features is largely determined by \emph{how} the views are fused (cross) and calibrated (SENet), not merely by adding more textual signal.
+
+\paragraph{When to use multi-view vs single-view.}
+Our results suggest a simple rule of thumb.
+Multi-view prompting is most worthwhile when the target objective emphasizes Recall@K (especially at $K{=}10/20$) and performance on \textbf{few}/\textbf{frequent} strata, where complementary prompt views provide broader semantic coverage and can improve candidate recall.
+In contrast, when most gains already come from \tfidf{+}\llm (single-view)---as in Beauty under a fixed embedding budget---or when the primary goal is cold-start ranking and exposure (Coverage\_new and \textbf{new}-stratum MRR/NDCG), a single-view \llm baseline can be a more robust and cost-effective choice.
+
+\subsection{Empirical Takeaways: Text Weighting and Budgeted Scaling}
+We summarize three observations that are consistent across Beauty and Toys\&Games and help interpret the trade-offs of text-enhanced sequential recommenders.
+\textbf{(A) Text weighting improves ranking quality with minor recall changes:}
+increasing the effective contribution of the text branch (e.g., stronger text fusion weight and milder gate regularization) tends to yield only small fluctuations in Recall@K while consistently improving ranking-oriented metrics such as MRR and NDCG.
+\textbf{(B) LLM scaling is not reliably monotonic under deployment constraints:}
+larger \llm encoders do not necessarily translate into better ranking or cold-start metrics, suggesting that a naive ``scale law'' does not hold in this setting.
+\textbf{(C) Multi-view gains are data-dependent and can reduce cold/new coverage:}
+while multi-view prompting can improve overall or frequent-item performance, the net benefit varies by domain and we observe a tendency for lower coverage on \textbf{new} items, indicating a head--tail trade-off.
+
+\paragraph{Cross-domain synthesis.}
+Across both domains, the most robust improvement comes from enriching \tfidf with a single \llm view, whereas multi-view prompting does not consistently dominate the single-view baseline and can shift gains toward head (frequent) items at the expense of cold-start coverage (Coverage\_new) and \textbf{new}-stratum ranking metrics.
+Moreover, scaling up the \llm size yields, at best, stratum- and metric-specific gains (often most visible on the frequent stratum), and does not translate into uniformly better MRR/NDCG or cold-start performance.
+
+\paragraph{A note on embedding budgets and compression.}
+Importantly, our multi-view \llm features are generated under a fixed embedding budget for practicality: each view is compressed to a low-dimensional vector (e.g., 64-d) via TruncatedSVD before fusion.
+This compression acts as a representation bottleneck and is a key confounder when analyzing \llm scaling; a larger encoder may produce higher-rank representations that are more aggressively truncated under the same budget, potentially masking its advantage.
+Therefore, we interpret scaling behavior as \emph{budgeted scaling} under a given compression strength, and leave a systematic study of compression budgets (e.g., varying SVD dimensions and tracking explained variance retained) as future ablations.
+
+\subsubsection{Domain-wise observations under a fixed embedding budget}
+Under a fixed multi-view embedding budget (per-view TruncatedSVD to 64-d), Beauty is primarily driven by \tfidf$\rightarrow$\tfidf{+}\llm, while multi-view variants offer little additional overall improvement over the single-view \llm baseline and consistently underperform on cold-start (\textbf{new}) strata---including Recall\_new/NDCG\_new/MRR\_new and Coverage\_new---with the largest degradation at 32B (Table~\ref{tab:main}).
+In contrast, on Toys\&Games, multi-view prompting improves overall Recall@10/20 and few/frequent strata relative to the single-view \llm baseline, and shows a weak scaling trend on the frequent stratum from 7B$\rightarrow$14B$\rightarrow$32B; however, MRR/NDCG do not scale monotonically and Coverage\_new can drop at larger sizes, revealing a clear recall--ranking/coverage trade-off most evident at 32B.
+
 \subsection{Sampled Metrics vs Full Metrics}
 We compare sampled evaluation (e.g., uni100) and full ranking and quantify model ranking inconsistencies across settings.
 We test whether alignment reduces this mismatch and improves robustness.
@@ -330,7 +363,8 @@ We build on contrastive objectives (\InfoNCE~\cite{oord2018cpc}) and study how s
 
 \section{Conclusion}
 We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
-Across two Amazon domains, \model yields consistent full-ranking and long-tail gains and provides a clear cost--benefit trade-off between frugal and strong text configurations.
+Across two Amazon domains, we find that adding a single \llm view on top of a strong \tfidf baseline provides the most consistent gains, while multi-view prompting offers recall improvements that are domain- and stratum-dependent and may trade off cold-start coverage and ranking quality.
+Finally, under a fixed embedding budget, increasing \llm scale does not guarantee monotonic improvements, highlighting the need to evaluate \emph{budgeted scaling} under realistic compression constraints.
 
 \balance  % Balance columns on last page
 \bibliographystyle{ACM-Reference-Format}

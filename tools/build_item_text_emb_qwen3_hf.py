@@ -227,6 +227,16 @@ def parse_args() -> argparse.Namespace:
         default=42,
     )
     p.add_argument(
+        "--svd_report_evr",
+        action="store_true",
+        help="Print TruncatedSVD explained_variance_ratio_ (EVR) summary for each SVD fit. Default: off.",
+    )
+    p.add_argument(
+        "--svd_report_evr_path",
+        default=None,
+        help="If set, save SVD EVR records as JSON to this path. Default: None (do not save).",
+    )
+    p.add_argument(
         "--dataset",
         default=None,
         help="RecBole dataset name for SVD train-split fitting.",
@@ -677,7 +687,9 @@ def _apply_truncated_svd(
     train_ids, 
     random_state: int, 
     label: str,
-    normalize: bool = True
+    normalize: bool = True,
+    report_evr: bool = False,
+    evr_records: Optional[list] = None,
 ):
     """Apply TruncatedSVD dimensionality reduction.
     
@@ -710,6 +722,35 @@ def _apply_truncated_svd(
     svd = TruncatedSVD(n_components=svd_k, random_state=random_state)
     svd.fit(subset)
 
+    # Optional: report / record explained variance ratio (EVR) for analysis.
+    if report_evr or evr_records is not None:
+        evr = getattr(svd, "explained_variance_ratio_", None)
+        if evr is not None and len(evr) > 0:
+            evr_sum = float(np.sum(evr))
+            top1 = float(evr[0])
+            top5 = float(np.sum(evr[: min(5, len(evr))]))
+            top10 = float(np.sum(evr[: min(10, len(evr))]))
+            if report_evr:
+                print(
+                    f"[SVD:{label}] EVR(sum)={evr_sum:.6f}  "
+                    f"top1={top1:.6f}  top5={top5:.6f}  top10={top10:.6f}"
+                )
+            if evr_records is not None:
+                evr_records.append(
+                    {
+                        "label": label,
+                        "orig_dim": int(orig_dim),
+                        "target_dim": int(target_dim),
+                        "svd_k": int(svd_k),
+                        "fit_rows": int(subset.shape[0]),
+                        "evr_sum": evr_sum,
+                        "evr_top1": top1,
+                        "evr_top5": top5,
+                        "evr_top10": top10,
+                        "explained_variance_ratio": evr.astype(float).tolist(),
+                    }
+                )
+
     nonpad = mat[1:, :].astype(np.float32, copy=False)
     reduced = svd.transform(nonpad)
     if svd_k < target_dim:
@@ -727,6 +768,10 @@ def _apply_truncated_svd(
 
 def main():
     args = parse_args()
+
+    svd_evr_records: Optional[list] = None
+    if args.svd_report_evr or args.svd_report_evr_path is not None:
+        svd_evr_records = []
 
     # --- 1. Resolve Prompts ---
     if args.prompt_list:
@@ -1072,6 +1117,8 @@ def main():
                     random_state=args.svd_random_state,
                     label=f"view{view_idx}",
                     normalize=False,  # Preserve variance for whitening
+                    report_evr=args.svd_report_evr,
+                    evr_records=svd_evr_records,
                 )
             
             # Apply center + whiten to each view independently
@@ -1137,6 +1184,8 @@ def main():
                 random_state=args.svd_random_state,
                 label="final",
                 normalize=False,  # Preserve variance for subsequent whitening
+                report_evr=args.svd_report_evr,
+                evr_records=svd_evr_records,
             )
 
     # --- 6. Apply Center + Whiten normalization (after final projection) ---
@@ -1164,8 +1213,31 @@ def main():
         f"Saved Qwen3 embeddings to: {os.path.abspath(args.output)}  "
         f"shape={mat.shape}  dtype={mat.dtype}  (prompts={len(prompts)}, mode={args.output_mode})"
     )
+
+    # --- 8. Save SVD EVR report (optional) ---
+    if args.svd_report_evr_path is not None:
+        os.makedirs(os.path.dirname(os.path.abspath(args.svd_report_evr_path)), exist_ok=True)
+        evr_payload = {
+            "meta": {
+                "output": os.path.abspath(args.output),
+                "output_mode": args.output_mode,
+                "num_prompts": int(len(prompts)),
+                "prompt_preset": args.prompt_preset,
+                "model_name_or_path": args.model_name_or_path,
+                "dataset": args.dataset,
+                "project_dim": args.project_dim,
+                "view_project_dim": args.view_project_dim,
+                "svd_random_state": args.svd_random_state,
+                "center": bool(args.center),
+                "whiten": bool(args.whiten),
+            },
+            "records": svd_evr_records or [],
+        }
+        with open(args.svd_report_evr_path, "w", encoding="utf-8") as f:
+            json.dump(evr_payload, f, ensure_ascii=False, indent=2)
+        print(f"[SVD] Saved EVR report to: {os.path.abspath(args.svd_report_evr_path)}")
     
-    # --- 8. Save Generated Texts (if enabled) ---
+    # --- 9. Save Generated Texts (if enabled) ---
     if all_generated_texts is not None and len(all_generated_texts) > 0:
         gen_texts_output = {
             "num_items": len(all_generated_texts),
