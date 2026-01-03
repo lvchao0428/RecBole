@@ -29,7 +29,7 @@ python scripts/two_phase_train.py \
   --config_files "sasrec_align_toys_base_stratified.yaml" \
   --phase_a_grid \
   --align_grid "0.08" \
-  --tau_grid "0.12" \
+  --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
   --phase_a_epochs 20 \
@@ -40,7 +40,7 @@ python scripts/two_phase_train.py \
   --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.05 \
-  --phase_b_alignment_weight 0.05 \
+  --phase_b_alignment_weight 0.15 \
   --phase_b_text_gate_reg_l2 0.05 \
   --phase_b_text_weight 1.0 \
   --phase_a_auto_to_b \
