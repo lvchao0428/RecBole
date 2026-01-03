@@ -14,7 +14,7 @@ class FiBiNETLayer(nn.Module):
         embedding_size (int): Dimension of each view's embedding.
         reduction_ratio (int): Reduction ratio for SENet.
     """
-    def __init__(self, num_fields, embedding_size, reduction_ratio=3):
+    def __init__(self, num_fields, embedding_size, reduction_ratio=2):
         super(FiBiNETLayer, self).__init__()
         self.num_fields = num_fields
         self.embedding_size = embedding_size

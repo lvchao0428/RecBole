@@ -89,7 +89,7 @@ multiview_align_scale: 1.0
 # [CHANGE-4] SENet压缩比从4降到2，保留更多multi-view信息
 # 原先: hidden_size/4 = 64维压缩
 # 现在: hidden_size/2 = 128维压缩
-text_view_senet_ratio: 1
+text_view_senet_ratio: 2
 
 # [CHANGE-5] 每个view独立L2归一化
 per_view_l2_norm: true
