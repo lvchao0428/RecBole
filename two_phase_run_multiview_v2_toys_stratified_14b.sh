@@ -51,9 +51,9 @@ python scripts/two_phase_train.py \
   --metric_gain_threshold 0.01 \
   --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
-  --phase_a_text_gate_reg_l2 0.05 \
+  --phase_a_text_gate_reg_l2 0.01 \
   --phase_b_alignment_weight 0.15 \
-  --phase_b_text_gate_reg_l2 0.05 \
+  --phase_b_text_gate_reg_l2 0.03 \
   --phase_b_text_weight 1.0 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
