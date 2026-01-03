@@ -4,6 +4,130 @@
 
 ---
 
+## [2026-01-03 19:10] 配置迭代优化 - Commit 9ab7924e
+
+### 📋 Git Commit 历史
+
+| Commit | 时间 | 说明 |
+|--------|------|------|
+| `9ab7924e` | 19:10 | update change log |
+| `01a4aa00` | 19:07 | update text l2 |
+| `f994c652` | 18:51 | update tau to 0.05 |
+| `ecbfa86f` | 18:34 | update yaml |
+| `724599bc` | 12:26 | update senet compress ratio |
+| `9239be49` | 11:50 | update 0103 train config |
+
+### 🔧 详细变更记录
+
+#### 1. Text Gate L2 正则化调整 (`01a4aa00`)
+
+**Shell 脚本参数变更** (10 个文件):
+
+| 参数 | 旧值 | 新值 | 说明 |
+|------|------|------|------|
+| `--phase_a_text_gate_reg_l2` | 0.05 | **0.01** | Phase A 放宽门控约束 |
+| `--phase_b_text_gate_reg_l2` | 0.05 | **0.03** | Phase B 适度约束 |
+
+**影响文件**:
+- `two_phase_run_tfidf_stratified.sh`
+- `two_phase_run_tfidf_llm_stratified.sh`
+- `two_phase_run_tfidf_toys_stratified.sh`
+- `two_phase_run_tfidf_llm_toys_stratified.sh`
+- `two_phase_run_multiview_v2_stratified.sh`
+- `two_phase_run_multiview_v2_stratified_14b.sh`
+- `two_phase_run_multiview_v2_stratified_32b.sh`
+- `two_phase_run_multiview_v2_toys_stratified_7b.sh`
+- `two_phase_run_multiview_v2_toys_stratified_14b.sh`
+- `two_phase_run_multiview_v2_toys_stratified_32b.sh`
+
+#### 2. Temperature 和 Alignment Weight 调整 (`f994c652`)
+
+**Shell 脚本参数变更** (10 个文件):
+
+| 参数 | 旧值 | 新值 | 说明 |
+|------|------|------|------|
+| `--tau_grid` | 0.12 | **0.05** | 降低温度，对齐更严格 |
+| `--phase_b_alignment_weight` | 0.05 | **0.15** | Phase B 增强对齐权重 |
+
+#### 3. SENet 压缩比调整 (`724599bc`)
+
+**YAML 配置变更** (7 个文件):
+
+| 参数 | 旧值 | 新值 | 说明 |
+|------|------|------|------|
+| `text_view_senet_ratio` | 1 | **2** | 恢复轻度压缩 (256→128→256) |
+
+**影响文件**:
+- `sasrec_align_multi_view_v2_stratified.yaml`
+- `sasrec_align_multi_view_v2_stratified_14b.yaml`
+- `sasrec_align_multi_view_v2_stratified_32b.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_7b.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_14b.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_32b.yaml`
+- `recbole/model/sequential_recommender/text_amplifier.py`
+
+#### 4. 正则化参数统一 (`9239be49`)
+
+**YAML 配置变更** (12 个 YAML + 10 个 Shell):
+
+| 参数 | 旧值 | 新值 | 说明 |
+|------|------|------|------|
+| `text_gate_reg_l2` | 0.01 | **0.05** | 恢复中等门控约束 |
+| `label_smoothing` | 0.05 | **0.1** | 恢复标准标签平滑 |
+
+---
+
+### 📊 当前最终配置状态
+
+#### Shell 脚本参数
+
+```bash
+# Temperature 和对齐
+--tau_grid "0.05"                    # 对齐严格
+--align_grid "0.08"
+--phase_b_alignment_weight 0.15      # Phase B 增强
+
+# 门控正则化 (渐进式)
+--phase_a_text_gate_reg_l2 0.01      # Phase A 宽松
+--phase_b_text_gate_reg_l2 0.03      # Phase B 适中
+
+# 学习率
+--lr_text_head 2e-3
+--lr_dnn_cross 5e-4
+--backbone_lr_scale 0.1
+```
+
+#### YAML 配置
+
+```yaml
+# SENet
+text_view_senet_ratio: 2             # 轻度压缩 (256→128→256)
+
+# 门控
+text_gate_init: 0.7
+text_gate_reg_l2: 0.05               # YAML 中的默认值
+
+# 正则化
+label_smoothing: 0.1
+hidden_dropout_prob: 0.2
+```
+
+---
+
+### ⚠️ 注意事项
+
+1. **Shell 参数会覆盖 YAML**: 两阶段训练脚本中的 `--phase_a_text_gate_reg_l2` 和 `--phase_b_text_gate_reg_l2` 会在运行时覆盖 YAML 中的 `text_gate_reg_l2`
+
+2. **tau 调整方向**: 从 0.12 → 0.05 是大幅降低，可能导致对齐过于严格。如果文本效果不好，考虑调回 0.1
+
+3. **SENet 压缩比**: 从 1 调回 2，增加了信息压缩，但也可能提升泛化能力
+
+---
+
+*Updated: 2026-01-03 19:10*
+
+---
+
 ## [2026-01-03] Multi-View V2 配置统一与优化
 
 ### 📋 修改概述
