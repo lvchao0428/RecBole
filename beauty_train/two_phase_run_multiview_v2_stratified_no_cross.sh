@@ -13,9 +13,11 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-base_dir='/home/charlie/project/RecBole'
+#base_dir='/home/charlie/project/RecBole'
+base_dir='/home/ubuntu/own/RecBole/'
 cd ${base_dir}
-yaml_dir='/home/charlie/project/RecBole/beauty_train'
+#yaml_dir='/home/charlie/project/RecBole/beauty_train'
+yaml_dir='/home/ubuntu/own/RecBole/beauty_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
