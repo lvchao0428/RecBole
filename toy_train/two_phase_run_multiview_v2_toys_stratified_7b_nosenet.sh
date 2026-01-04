@@ -40,7 +40,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Toys_and_Games \
-  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_toys_stratified_7b_nosenet.yaml" \
   --phase_a_grid \
   --align_grid "0.08" \
   --tau_grid "0.05" \

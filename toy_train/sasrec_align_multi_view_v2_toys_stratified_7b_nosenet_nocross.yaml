@@ -70,12 +70,14 @@ item_text_emb_path_llm: ""
 item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
 use_llm: false
 use_align: true
-use_cross: true
+use_cross: false
 text_cross_layer_num: 1  # Reduced from 2 to prevent CUDA timeout with multiview_text_cross
 use_seq_text_cross: false
 use_text_view_split: true
-use_multiview_text_cross: true  # Required for multi-view fusion
+use_multiview_text_cross: false # Required for multi-view fusion
+
 num_text_views: 4
+use_text_view_senet: false
 
 # ========== V2 新增配置 ==========
 # [CHANGE-3] Multi-View专属对齐损失放大系数

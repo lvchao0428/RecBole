@@ -76,6 +76,7 @@ use_seq_text_cross: false
 use_text_view_split: true
 use_multiview_text_cross: true  # Required for multi-view fusion
 num_text_views: 4
+use_text_view_senet: false
 
 # ========== V2 新增配置 ==========
 # [CHANGE-3] Multi-View专属对齐损失放大系数
