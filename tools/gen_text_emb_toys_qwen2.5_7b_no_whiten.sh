@@ -9,7 +9,8 @@
 # ==============================================
 
 # 项目根目录（根据实际情况修改）
-PROJECT_ROOT="/home/ubuntu/own/RecBole"
+#PROJECT_ROOT="/home/ubuntu/own/RecBole"
+PROJECT_ROOT="/home/charlie/project/RecBole"
 cd "$PROJECT_ROOT"
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -22,13 +23,15 @@ DATASET_NAME="Amazon_Toys_and_Games"
 # ==========================================
 # 模型路径配置
 # ==========================================
-MODEL_PATH="/data/model/qwen2.5-7b-instruct"
+#MODEL_PATH="/data/model/qwen2.5-7b-instruct"
+MODEL_PATH="/home/charlie/project/qwen/Qwen2.5-7B-Instruct"
 MODEL_NAME="qwen2.5_7b"
 
 # ==========================================
 # GPU 配置 - 使用多张GPU (根据实际情况修改)
 # ==========================================
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES=0
 
 # ==========================================
 # 性能优化环境变量
