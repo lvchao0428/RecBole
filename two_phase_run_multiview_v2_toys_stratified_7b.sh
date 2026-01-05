@@ -40,7 +40,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
   --phase_a_grid \
-  --align_grid "0.08" \
+  --align_grid "0.15" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -53,7 +53,7 @@ python scripts/two_phase_train.py \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.01 \
   --phase_b_alignment_weight 0.15 \
-  --phase_b_text_gate_reg_l2 0.03 \
+  --phase_b_text_gate_reg_l2 0.01 \
   --phase_b_text_weight 1.0 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
