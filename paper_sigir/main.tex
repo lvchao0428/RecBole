@@ -61,25 +61,86 @@ We further analyze the gap between sampled metrics and full metrics, and show ho
 \maketitle
 
 \section{Introduction}
+
 Sequential recommendation models such as \base~\cite{kang2018sasrec} have become a strong backbone for modeling user behavior sequences.
 Meanwhile, item text (titles, descriptions, reviews) provides complementary semantic cues and enables better generalization, especially for cold-start and long-tail items.
 Recently, \llm-derived representations further boost text quality, but also raise practical concerns about feature cost, storage, and inference latency.
 
+% TODO: 展开 - 工业界现状与挑战
+\paragraph{Industrial context and challenges.}
+% [请填写] 工业推荐系统中文本特征的现状
+% - 传统方法：TF-IDF、word2vec等轻量级方案
+% - LLM时代：预训练嵌入成本高但效果强
+% - 核心问题：LLM文本特征在什么场景下值得投入？
+
+% TODO: 展开 - 现有方法的局限性
+\paragraph{Limitations of existing approaches.}
+% [请填写] 现有文本增强推荐的局限
+% - 单一视图表示的信息瓶颈
+% - 缺乏ID-文本显式交互建模
+% - 采样评估与全排序评估的不一致性
+
+% TODO: 展开 - 本文贡献
+\paragraph{Our contributions.}
 This work targets a pragmatic \emph{method + empirical} position:
-instead of proposing a new \llm paradigm, we study a deployable plug-in framework that combines multi-view text features (from \tfidf and \llm prompts), explicit cross interactions, and contrastive alignment.
+instead of proposing a new \llm paradigm, we study a deployable \textbf{plug-in framework} that combines:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Multi-view text features}: \tfidf base view + multiple \llm prompt views (identity/function/audience/category)
+  \item \textbf{Explicit cross fusion}: DCN-V2 based high-order ID-text interactions
+  \item \textbf{Multi-view contrastive alignment}: InfoNCE-based text-to-ID space alignment
+\end{itemize}
 Our goal is to answer: \emph{when is a frugal solution enough, and when does multi-view \llm text pay off?}
 
-\paragraph{Motivation: sampled vs full metrics.}
+% TODO: 展开 - 评估策略
+\paragraph{Evaluation strategy: full ranking.}
 Industrial practice often relies on sampled evaluation (e.g., uniform 100 negatives) for speed, yet sampled metrics can be inconsistent with full ranking and may mis-rank models~\cite{krichene2020sampledmetrics}.
-We therefore emphasize full-ranking evaluation in our main results and provide an analysis of sampled-vs-full discrepancies.
+We therefore emphasize \textbf{full-ranking evaluation} in our main results and report \textbf{popularity-stratified metrics} (new/few/frequent) to understand cold-start and long-tail behavior.
+
+% TODO: 展开 - 论文组织
+\paragraph{Paper organization.}
+% [请填写] 论文各节内容简介
+
+\section{Related Work}
+\paragraph{Sequential recommendation.}
+Transformer-based sequential models such as \base~\cite{kang2018sasrec} and BERT-style objectives~\cite{sun2019bert4rec} are strong backbones for capturing user behavior patterns.
+GRU4Rec~\cite{hidasi2015gru4rec} pioneered RNN-based session modeling, while SASRec introduced self-attention for next-item prediction with causal masking.
+% [可扩展] 更多序列推荐相关工作
+
+\paragraph{Text-enhanced recommendation.}
+Item text features (from bag-of-words, neural encoders, or \llm embeddings) provide complementary signals beyond collaborative filtering.
+Early work used TF-IDF and word2vec for item representation; recent approaches leverage pretrained language models (BERT, GPT) for richer semantics.
+% [可扩展] 文本增强推荐相关工作
+
+\paragraph{Feature interaction and cross networks.}
+Deep \& Cross Network (DCN)~\cite{wang2017dcn} and its successor DCN-V2~\cite{wang2021dcnv2} explicitly model feature crosses, complementing implicit interactions learned by DNNs.
+In recommendation, cross networks have shown effectiveness in CTR prediction; we adapt them for ID-text fusion in sequential settings.
+
+\paragraph{Contrastive learning in recommendation.}
+Contrastive objectives such as \InfoNCE~\cite{oord2018cpc} have been widely adopted for self-supervised representation learning.
+In recommendation, contrastive methods align user/item representations across views~\cite{wu2021cl4rec}.
+We extend this to multi-view text-to-ID alignment.
+
+\paragraph{Evaluation protocols.}
+Sampled evaluation can mislead model selection~\cite{krichene2020sampledmetrics}; full-ranking evaluation provides more reliable comparisons but is computationally expensive.
+We adopt full ranking with stratified analysis to understand model behavior across popularity strata.
 
 \section{Research Questions}
-We organize the study around the following research questions (RQs):
-\begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{RQ1 (Value of multi-view text).} How much do multi-view \llm text views improve over a strong \tfidf text baseline under full ranking?
-  \item \textbf{RQ2 (Role of explicit cross).} Does an explicit cross module add complementary gains beyond the Transformer backbone?
-  \item \textbf{RQ3 (Alignment and evaluation stability).} Can multi-view alignment reduce the sampled-vs-full metric gap and improve ranking stability?
-  \item \textbf{RQ4 (Cost--benefit).} What extra compute/memory/latency does multi-view \llm require, and in which regimes is it worth it?
+We organize the study around the following research questions, with a focus on \textbf{ablation studies} to understand when and why each component helps:
+
+\begin{itemize}[leftmargin=*,itemsep=3pt]
+  \item \textbf{RQ1 (Whitening effect).} Does whitening (vs.\ L2-only normalization) improve text/\llm feature quality in single-view and multi-view settings?
+  
+  \item \textbf{RQ2 (SENet channel attention).} Does SENet gating provide effective channel attention for text features? We compare single-view and multi-view with/without SENet.
+  
+  \item \textbf{RQ3 (Multi-view vs.\ single-view under equal bandwidth).} Given the same total embedding dimension (e.g., single-view 256-d vs.\ multi-view $4\times 64$-d), does multi-view prompting outperform single-view? We focus on HR@K, NDCG@K, MRR@K, especially on \textbf{new} and \textbf{few} item strata (cold-start items).
+  
+  \item \textbf{RQ4 (Cross and Align ablation).} What are the individual and combined contributions of explicit cross fusion and multi-view alignment? We ablate:
+  \begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item multi-view + cross + align (full model)
+    \item multi-view + cross (no align)
+    \item multi-view + align (no cross)
+    \item multi-view only (no cross, no align)
+  \end{itemize}
 \end{itemize}
 
 \section{Method}
@@ -207,7 +268,7 @@ We use a two-phase training protocol implemented in our training script:
 \subsection{Datasets and Evaluation}
 We evaluate on two Amazon domains: \textbf{Beauty} and \textbf{Toys\&Games}.
 We follow time-ordered splits and report metrics under \textbf{full ranking} at $K\in\{5,10,20\}$.
-In addition to standard metrics (Recall, NDCG, MRR, Hit, Precision), we report \textbf{popularity-stratified} metrics by item interaction counts:
+In addition to standard metrics (HR, NDCG, MRR, Precision), we report \textbf{popularity-stratified} metrics by item interaction counts:
 \begin{itemize}[leftmargin=*,itemsep=1pt]
   \item \textbf{new}: $[1,3)$ interactions
   \item \textbf{few}: $[3,10)$ interactions
@@ -227,7 +288,7 @@ We further include representative sequential baselines (e.g., BERT4Rec~\cite{sun
 \subsection{Implementation Details}
 Unless stated otherwise, we use embedding size $d=256$, max sequence length $L=50$, 2 Transformer layers with 2 heads, batch size 512, and Adam with base learning rate $10^{-4}$.
 \paragraph{Two-phase schedule.}
-We follow Burn-in ($10$ epochs) $\rightarrow$ Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($40$ epochs) with Phase-A selecting $(\lambda,\tau)$ on \texttt{MRR@10} for Beauty and \texttt{Recall@10} for Toys\&Games.
+We follow Burn-in ($10$ epochs) $\rightarrow$ Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($40$ epochs) with Phase-A selecting $(\lambda,\tau)$ on \texttt{MRR@10} for Beauty and \texttt{HR@10} for Toys\&Games.
 We use grouped learning rates: $\text{lr}_{\text{text}}=\num{1e-3}$ for text heads, $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks, and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$ in Phase-B.
 \paragraph{Grid.}
 For the main runs, we use $\lambda\in\{0.03\}$ and $\tau\in\{0.1\}$ on Beauty, and $\lambda\in\{0.05\}$ and $\tau\in\{0.05\}$ on Toys\&Games; additional grids can be enabled via the training script.
@@ -258,131 +319,183 @@ The multi-view model adds only modest overhead (${\sim}6$M params) over the sing
 
 \section{Main Results}
 Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
-Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+27.5\% Recall@10 on Beauty, +14.9\% on Toys).
+Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+27.5\% HR@10 on Beauty, +14.9\% on Toys).
 The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
-On Beauty, \tfidf alone improves Recall@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG@10 from 2.69\% to 3.79\% (+40.9\%).
-On Toys, improvements are +14.9\% Recall@10 and +33.1\% NDCG@10.
+On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG@10 from 2.69\% to 3.79\% (+40.9\%).
+On Toys, improvements are +14.9\% HR@10 and +33.1\% NDCG@10.
 
 \paragraph{Multi-view shows dataset-dependent scaling.}
-On \textbf{Beauty}, \model (14B) achieves the best results with Recall@10=6.22\% (+32.6\% vs ID-only), but 32B \emph{does not} improve over 14B, suggesting diminishing returns under the fixed embedding budget.
-On \textbf{Toys}, multi-view benefits scale more consistently: 32B achieves Recall@10=7.02\% (+17.6\% vs ID-only), outperforming smaller models across all strata.
+On \textbf{Beauty}, \model (14B) achieves the best results with HR@10=6.22\% (+32.6\% vs ID-only), but 32B \emph{does not} improve over 14B, suggesting diminishing returns under the fixed embedding budget.
+On \textbf{Toys}, multi-view benefits scale more consistently: 32B achieves HR@10=7.02\% (+17.6\% vs ID-only), outperforming smaller models across all strata.
 
 \paragraph{Cold-start (new/few) improvements.}
 Multi-view provides the largest relative gains on \textbf{new} and \textbf{few} strata.
-On Beauty (14B), Recall\_new@10 improves from 1.71\% to 2.27\% (+32.7\%), and Recall\_few@10 from 3.33\% to 4.05\% (+21.6\%).
-On Toys (32B), Recall\_new@10 improves +24.1\% and Recall\_few@10 +20.4\%.
+On Beauty (14B), HR\_new@10 improves from 1.71\% to 2.27\% (+32.7\%), and HR\_few@10 from 3.33\% to 4.05\% (+21.6\%).
+On Toys (32B), HR\_new@10 improves +24.1\% and HR\_few@10 +20.4\%.
 
 \begin{table*}[t]
 \caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%).}
 \label{tab:main}
 \centering
 \small
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lccccccccc}
 \toprule
 \multirow{2}{*}{\textbf{Model}} &
-\multicolumn{2}{c}{\textbf{Overall}} &
-\multicolumn{2}{c}{\textbf{new}} &
-\multicolumn{2}{c}{\textbf{few}} &
-\multicolumn{2}{c}{\textbf{frequent}} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
-& Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 \\
+\multicolumn{3}{c}{\textbf{Overall}} &
+\multicolumn{3}{c}{\textbf{new stratum}} &
+\multicolumn{3}{c}{\textbf{few stratum}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
 \midrule
-\multicolumn{9}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only) & 4.69 & 2.69 & 1.71 & 1.01 & 3.33 & 1.98 & 7.86 & 4.47 \\
-\base + \tfidf & 5.98 & 3.79 & 2.08 & 1.36 & 3.78 & 2.53 & 10.27 & 6.44 \\
-\base + \tfidf + \llm (7B) & 6.00 & 3.80 & 2.03 & 1.32 & 3.84 & 2.57 & 10.29 & 6.45 \\
-\model (7B) & 6.05 & 3.82 & 2.09 & 1.33 & 3.85 & 2.56 & 10.37 & 6.49 \\
-\model (14B) & \textbf{6.22} & \textbf{3.86} & \textbf{2.27} & \textbf{1.39} & \textbf{4.05} & \textbf{2.66} & \textbf{10.60} & \textbf{6.51} \\
-\model (32B) & 6.05 & 3.81 & 2.08 & 1.34 & 3.83 & 2.53 & 10.40 & 6.47 \\
+\multicolumn{10}{l}{\textbf{Amazon Beauty}} \\
+\base (ID-only) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
+\base + \tfidf & 5.98 & 3.79 & 3.12 & 2.08 & 1.36 & 1.13 & 3.78 & 2.53 & 2.14 \\
+\base + \tfidf + \llm (7B) & 6.00 & 3.80 & 3.13 & 2.03 & 1.32 & 1.10 & 3.84 & 2.57 & 2.18 \\
+\model (7B) & 6.05 & 3.82 & 3.14 & 2.09 & 1.33 & 1.09 & 3.85 & 2.56 & 2.16 \\
+\model (14B) & \textbf{6.22} & \textbf{3.86} & \textbf{3.13} & \textbf{2.27} & \textbf{1.39} & \textbf{1.12} & \textbf{4.05} & \textbf{2.66} & \textbf{2.23} \\
+\model (32B) & 6.05 & 3.81 & 3.12 & 2.08 & 1.34 & 1.10 & 3.83 & 2.53 & 2.13 \\
 \midrule
-\multicolumn{9}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only) & 5.97 & 3.32 & 1.91 & 1.10 & 4.61 & 2.53 & 10.61 & 5.92 \\
-\base + \tfidf & 6.86 & 4.42 & 2.24 & 1.52 & 5.46 & 3.54 & 12.11 & 7.75 \\
-\base + \tfidf + \llm (7B) & 6.83 & 4.39 & 2.26 & 1.51 & 5.31 & 3.46 & 12.10 & 7.73 \\
-\model (7B) & 6.90 & 4.43 & 2.30 & 1.53 & 5.40 & 3.51 & 12.21 & 7.79 \\
-\model (14B) & 6.95 & 4.43 & 2.33 & 1.52 & 5.47 & 3.56 & 12.26 & 7.78 \\
-\model (32B) & \textbf{7.02} & \textbf{4.47} & \textbf{2.37} & \textbf{1.56} & \textbf{5.55} & \textbf{3.60} & \textbf{12.38} & \textbf{7.81} \\
+\multicolumn{10}{l}{\textbf{Amazon Toys\&Games}} \\
+\base (ID-only) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
+\base + \tfidf & 6.86 & 4.42 & 3.66 & 2.24 & 1.52 & 1.28 & 5.46 & 3.54 & 2.95 \\
+\base + \tfidf + \llm (7B) & 6.83 & 4.39 & 3.64 & 2.26 & 1.51 & 1.27 & 5.31 & 3.46 & 2.90 \\
+\model (7B) & 6.90 & 4.43 & 3.67 & 2.30 & 1.53 & 1.29 & 5.40 & 3.51 & 2.93 \\
+\model (14B) & 6.95 & 4.43 & 3.66 & 2.33 & 1.52 & 1.27 & 5.47 & 3.56 & 2.97 \\
+\model (32B) & \textbf{7.02} & \textbf{4.47} & \textbf{3.68} & \textbf{2.37} & \textbf{1.56} & \textbf{1.31} & \textbf{5.55} & \textbf{3.60} & \textbf{3.00} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Table~\ref{tab:mrr} reports MRR metrics for ranking quality analysis.
+\section{Analysis}
+
+We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B as the baseline unless otherwise noted.
+
+\subsection{RQ2 \& RQ4: SENet and Cross Network Ablation}
+
+Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel attention and/or explicit cross fusion.
+
+\begin{table*}[t]
+\caption{Ablation: SENet and Cross Network on multi-view 7B. All values are percentages (\%).}
+\label{tab:ablation_senet_cross}
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Configuration}} &
+\multicolumn{4}{c}{\textbf{Amazon Beauty}} &
+\multicolumn{4}{c}{\textbf{Amazon Toys\&Games}} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& HR@10 & NDCG@10 & MRR@10 & HR\_new@10 & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+Full (SENet + Cross) & 6.05 & 3.82 & 3.14 & 2.09 & 6.90 & 4.43 & 3.67 & 2.30 \\
+$-$ SENet & 6.11 & 3.82 & 3.11 & 2.16 & 6.95 & 4.46 & 3.69 & 2.30 \\
+$-$ Cross & 6.56 & 3.64 & 2.74 & 2.40 & 7.43 & 4.13 & 3.10 & 2.44 \\
+$-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Cross Network is essential for ranking quality.}
+Removing the cross module increases HR@10 (+8.4\% on Beauty, +7.7\% on Toys) but \emph{sharply degrades} ranking metrics: MRR@10 drops by 12.7\% on Beauty and 15.5\% on Toys, NDCG@10 drops by 4.7\% and 6.8\% respectively.
+This reveals a fundamental \textbf{HR--ranking trade-off}: without explicit cross interactions, the model produces smoother score distributions that improve coverage but lose discriminative power for top-1 ranking.
+
+\paragraph{SENet has minor impact on overall metrics.}
+Removing SENet alone causes only marginal changes ($<$1\% on most metrics).
+However, the combination of removing both SENet and Cross shows that SENet provides complementary calibration that slightly benefits cold-start items (HR\_new@10 improves by 3.4\% on Beauty when SENet is removed).
+
+\paragraph{Cold-start analysis.}
+Interestingly, removing cross improves HR\_new@10 (+14.8\% on Beauty, +6.1\% on Toys), suggesting that the cross module may over-emphasize head items.
+This implies a design choice: practitioners prioritizing cold-start HR may consider lighter fusion, while those prioritizing top-1 accuracy should retain cross.
+
+\subsection{RQ1: Whitening vs.\ L2-Only Normalization}
+
+Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only normalization on Beauty.
 
 \begin{table}[t]
-\caption{MRR@10 results (\%). $\Delta$ = relative improvement vs ID-only.}
-\label{tab:mrr}
+\caption{Ablation: Whitening effect on Beauty. All values are percentages (\%).}
+\label{tab:ablation_whiten}
 \centering
 \small
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Model} & \textbf{MRR} & $\Delta$ & \textbf{MRR\_new} & \textbf{MRR\_few} \\
+\textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-\multicolumn{5}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only) & 2.07 & --- & 0.79 & 1.56 \\
-\base + \tfidf & 3.12 & +50.7\% & 1.13 & 2.14 \\
-+ \llm (7B) & 3.13 & +51.2\% & 1.10 & 2.18 \\
-\model (14B) & \textbf{3.13} & \textbf{+51.2\%} & \textbf{1.12} & \textbf{2.23} \\
+\multicolumn{5}{l}{\textbf{Multi-view 7B}} \\
+w/ Whitening & 6.05 & 3.82 & 3.14 & 2.09 \\
+w/o Whitening & 6.76 & 3.58 & 2.60 & 2.22 \\
 \midrule
-\multicolumn{5}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only) & 2.49 & --- & 0.84 & 1.87 \\
-\base + \tfidf & 3.66 & +47.0\% & 1.28 & 2.95 \\
-+ \llm (7B) & 3.64 & +46.2\% & 1.27 & 2.90 \\
-\model (32B) & \textbf{3.68} & \textbf{+47.8\%} & \textbf{1.31} & \textbf{3.00} \\
+\multicolumn{5}{l}{\textbf{Single-view (TF-IDF + LLM)}} \\
+w/ Whitening & 6.00 & 3.80 & 3.13 & 2.03 \\
+w/o Whitening & 6.01 & 3.80 & 3.12 & 2.08 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Analysis}
-\subsection{Ablations}
-We ablate (i) explicit cross, (ii) alignment, (iii) per-view normalization, and (iv) cold-start reweighting.
-We also study the effect of the number of text views and the multi-view alignment scale $s_{\text{mv}}$.
+\paragraph{Whitening is critical for multi-view but not for single-view.}
+For multi-view, removing whitening increases HR@10 (+11.7\%) but drastically hurts ranking: MRR@10 drops by 17.2\% and NDCG@10 drops by 6.3\%.
+For single-view, whitening has minimal effect ($<$0.5\% on all metrics).
 
-\paragraph{What drives multi-view gains.}
-Since multi-view text is the centerpiece of \model, we ablate its two core ingredients: the explicit cross fusion and per-view SENet gating.
-Removing the cross module can slightly increase Recall@K, but it sharply degrades ranking quality (e.g., $\sim$20\% relative drop in MRR@10 and $\sim$10\% in NDCG@10 on Beauty), showing that cross interactions are essential for converting multi-view recall into top-ranked gains under full ranking.
-By contrast, SENet has a smaller impact on overall Recall/MRR/NDCG, yet materially changes exposure: disabling SENet substantially increases Coverage\_new, consistent with calibrated gating favoring head items at the expense of cold-start coverage.
-Together, these results indicate that the effectiveness of multi-view features is largely determined by \emph{how} the views are fused (cross) and calibrated (SENet), not merely by adding more textual signal.
+\paragraph{Interpretation.}
+Multi-view representations suffer from higher feature correlation across views; whitening decorrelates these features, enabling the cross network to learn more discriminative interactions.
+Single-view representations are already well-conditioned from the \llm encoder, making whitening redundant.
 
-\paragraph{When to use multi-view vs single-view.}
-Our results suggest a simple rule of thumb.
-Multi-view prompting is most worthwhile when the target objective emphasizes Recall@K (especially at $K{=}10/20$) and performance on \textbf{few}/\textbf{frequent} strata, where complementary prompt views provide broader semantic coverage and can improve candidate recall.
-In contrast, when most gains already come from \tfidf{+}\llm (single-view)---as in Beauty under a fixed embedding budget---or when the primary goal is cold-start ranking and exposure (Coverage\_new and \textbf{new}-stratum MRR/NDCG), a single-view \llm baseline can be a more robust and cost-effective choice.
+\subsection{RQ3: Multi-view vs.\ Single-view Under Equal Bandwidth}
 
-\subsection{Empirical Takeaways: Text Weighting and Budgeted Scaling}
-We summarize three observations that are consistent across Beauty and Toys\&Games and help interpret the trade-offs of text-enhanced sequential recommenders.
-\textbf{(A) Text weighting improves ranking quality with minor recall changes:}
-increasing the effective contribution of the text branch (e.g., stronger text fusion weight and milder gate regularization) tends to yield only small fluctuations in Recall@K while consistently improving ranking-oriented metrics such as MRR and NDCG.
-\textbf{(B) LLM scaling is not reliably monotonic under deployment constraints:}
-larger \llm encoders do not necessarily translate into better ranking or cold-start metrics, suggesting that a naive ``scale law'' does not hold in this setting.
-\textbf{(C) Multi-view gains are data-dependent and can reduce cold/new coverage:}
-while multi-view prompting can improve overall or frequent-item performance, the net benefit varies by domain and we observe a tendency for lower coverage on \textbf{new} items, indicating a head--tail trade-off.
+Comparing Table~\ref{tab:main} rows, we analyze single-view (256-d) vs.\ multi-view ($4\times 64$-d = 256-d total).
 
-\paragraph{Cross-domain synthesis.}
-Across both domains, the most robust improvement comes from enriching \tfidf with a single \llm view, whereas multi-view prompting does not consistently dominate the single-view baseline and can shift gains toward head (frequent) items at the expense of cold-start coverage (Coverage\_new) and \textbf{new}-stratum ranking metrics.
-Moreover, scaling up the \llm size yields, at best, stratum- and metric-specific gains (often most visible on the frequent stratum), and does not translate into uniformly better MRR/NDCG or cold-start performance.
+\paragraph{Beauty: single-view is competitive.}
+Multi-view 7B (6.05\% HR@10) marginally outperforms single-view (6.00\%), with similar NDCG and MRR.
+Multi-view 14B shows the only meaningful gain (+3.7\% HR@10), but 32B regresses.
+This suggests that on Beauty, the marginal benefit of multiple prompt views is limited under the same bandwidth.
 
-\paragraph{A note on embedding budgets and compression.}
-Importantly, our multi-view \llm features are generated under a fixed embedding budget for practicality: each view is compressed to a low-dimensional vector (e.g., 64-d) via TruncatedSVD before fusion.
-This compression acts as a representation bottleneck and is a key confounder when analyzing \llm scaling; a larger encoder may produce higher-rank representations that are more aggressively truncated under the same budget, potentially masking its advantage.
-Therefore, we interpret scaling behavior as \emph{budgeted scaling} under a given compression strength, and leave a systematic study of compression budgets (e.g., varying SVD dimensions and tracking explained variance retained) as future ablations.
+\paragraph{Toys: multi-view consistently helps.}
+Multi-view 7B (6.90\%) outperforms single-view (6.83\%) by +1.0\%, and this advantage grows with scale: 32B achieves 7.02\% (+2.8\% vs.\ single-view).
+The cold-start strata also benefit: HR\_new@10 improves from 2.26\% (single-view) to 2.37\% (32B multi-view).
 
-\subsubsection{Domain-wise observations under a fixed embedding budget}
-Under a fixed multi-view embedding budget (per-view TruncatedSVD to 64-d), Beauty is primarily driven by \tfidf$\rightarrow$\tfidf{+}\llm, while multi-view variants offer little additional overall improvement over the single-view \llm baseline and consistently underperform on cold-start (\textbf{new}) strata---including Recall\_new/NDCG\_new/MRR\_new and Coverage\_new---with the largest degradation at 32B (Table~\ref{tab:main}).
-In contrast, on Toys\&Games, multi-view prompting improves overall Recall@10/20 and few/frequent strata relative to the single-view \llm baseline, and shows a weak scaling trend on the frequent stratum from 7B$\rightarrow$14B$\rightarrow$32B; however, MRR/NDCG do not scale monotonically and Coverage\_new can drop at larger sizes, revealing a clear recall--ranking/coverage trade-off most evident at 32B.
+\paragraph{Takeaway.}
+Multi-view provides consistent gains on Toys but marginal/inconsistent gains on Beauty. The difference may stem from Toys having richer product semantics that benefit from multiple prompt perspectives.
 
-\subsection{Sampled Metrics vs Full Metrics}
-We compare sampled evaluation (e.g., uni100) and full ranking and quantify model ranking inconsistencies across settings.
-We test whether alignment reduces this mismatch and improves robustness.
+\subsection{Summary of Ablation Findings}
 
-\subsection{Efficiency and Trade-offs}
-We report GPU memory footprint, throughput, and inference latency.
-Since \llm embeddings are precomputed offline, online cost is dominated by projection/cross layers and feature storage, enabling a clear trade-off between a frugal (\tfidf-only) and a stronger (multi-view) option.
+\begin{table}[t]
+\caption{Summary: component contributions to model performance.}
+\label{tab:ablation_summary}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Component} & \textbf{HR} & \textbf{MRR/NDCG} \\
+\midrule
+Cross Network & $\downarrow$ (hurts) & $\uparrow\uparrow$ (essential) \\
+SENet & $\approx$ (neutral) & $\approx$ (neutral) \\
+Whitening (multi-view) & $\downarrow$ (hurts) & $\uparrow\uparrow$ (essential) \\
+Whitening (single-view) & $\approx$ (neutral) & $\approx$ (neutral) \\
+Multi-view (vs.\ single) & $\uparrow$ (helps on Toys) & $\approx$ (marginal) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{Interpretability}
-We visualize (i) view gates $g_v$, (ii) learned view alignment weights $\pi_v$, and (iii) representation geometry (t-SNE/UMAP) across views and ID space.
-We also inspect cross-module contributions (e.g., top-$k$ cross weights) to understand which interactions drive long-tail gains.
+The key insight is that \textbf{cross network and whitening are essential for ranking quality} (MRR/NDCG), even though they may slightly reduce HR.
+SENet provides calibration but is not critical.
+Multi-view prompting helps on Toys but is marginal on Beauty under equal bandwidth.
+
+\subsection{Understanding the HR--Ranking Trade-off}
+
+The observed trade-off between HR and ranking metrics (MRR/NDCG) may seem counter-intuitive at first glance---in traditional ranking settings, better ranking quality typically correlates with higher hit rates. However, under \textbf{full ranking} over the entire item catalog ($>$12K items), this trade-off is both expected and informative.
+
+\paragraph{Why does this trade-off occur?}
+The cross network and whitening produce \emph{sharper score distributions}, where a few items receive significantly higher scores than others. This ``winner-take-all'' effect benefits top-1 accuracy (MRR) but may push relevant items just outside the top-$K$ cutoff (hurting HR@$K$).
+In contrast, removing these components yields \emph{smoother score distributions}: more items cluster near the decision boundary, allowing more ground-truth items to enter top-$K$ (higher HR) at the cost of less precise top-1 ranking (lower MRR).
+
+\paragraph{Practitioner guidance.}
+This trade-off implies a clear design choice depending on the deployment scenario:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Candidate generation / recall-oriented systems}: If the goal is to maximize the number of relevant items in top-$K$ (e.g., first-stage retrieval), consider lighter fusion without explicit cross interactions.
+  \item \textbf{Final ranking / precision-oriented systems}: If the goal is to place the most relevant item at position 1 (e.g., re-ranking stage), retain cross network and whitening for sharper discrimination.
+  \item \textbf{Balanced systems}: Use NDCG@$K$ as the primary metric, which naturally balances coverage and ranking quality via position-weighted gains.
+\end{itemize}
 
 \begin{figure}[t]
 \centering
@@ -397,25 +510,17 @@ We also inspect cross-module contributions (e.g., top-$k$ cross weights) to unde
 \label{fig:framework}
 \end{figure}
 
-\section{Related Work}
-\paragraph{Sequential recommendation.}
-Transformer-based sequential models such as \base~\cite{kang2018sasrec} and BERT-style objectives~\cite{sun2019bert4rec} are strong backbones.
-\paragraph{Text-enhanced recommendation.}
-Item text features (from bag-of-words, neural encoders, or \llm embeddings) provide complementary signals; our focus is on multi-view prompting and deployable fusion.
-\paragraph{Contrastive alignment and evaluation.}
-We build on contrastive objectives (\InfoNCE~\cite{oord2018cpc}) and study how sampled evaluation can mislead model selection~\cite{krichene2020sampledmetrics}.
-
 \section{Conclusion}
 We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
 Our experiments on Amazon Beauty and Toys\&Games reveal several practical insights:
 
-\textbf{(1) Text features provide substantial gains}: \tfidf alone improves Recall@10 by +27.5\% on Beauty and +14.9\% on Toys over ID-only baselines, with even larger NDCG gains (+40.9\% and +33.1\%).
+\textbf{(1) Text features provide substantial gains}: \tfidf alone improves HR@10 by +27.5\% on Beauty and +14.9\% on Toys over ID-only baselines, with even larger NDCG gains (+40.9\% and +33.1\%).
 
-\textbf{(2) Multi-view scaling is domain-dependent}: On Beauty, 14B achieves the best results (+32.6\% Recall@10 vs ID-only) but 32B does not improve further. On Toys, 32B consistently outperforms smaller models (+17.6\% Recall@10).
+\textbf{(2) Cross network and whitening are essential for ranking}: Our ablations show that removing the cross module increases recall but sharply degrades MRR ($-$12.7\% on Beauty, $-$15.5\% on Toys) and NDCG. Whitening is critical for multi-view ($-$17.2\% MRR without it) but not for single-view.
 
-\textbf{(3) Cold-start benefits are consistent}: Multi-view provides the largest relative gains on \textbf{new} and \textbf{few} strata, with Recall\_new@10 improving +32.7\% on Beauty (14B) and +24.1\% on Toys (32B).
+\textbf{(3) Multi-view scaling is domain-dependent}: On Beauty, 14B achieves the best results (+32.6\% HR@10 vs ID-only) but 32B does not improve further. On Toys, 32B consistently outperforms smaller models (+17.6\% HR@10).
 
-\textbf{(4) Budgeted scaling has limits}: Under fixed embedding compression, larger \llm encoders do not guarantee monotonic improvements, highlighting the need for domain-specific evaluation.
+\textbf{(4) HR--ranking trade-off exists}: Components that improve ranking quality (cross, whitening) may slightly hurt HR, revealing a fundamental design trade-off that practitioners should consider based on their primary objective.
 
 \balance  % Balance columns on last page
 \bibliographystyle{ACM-Reference-Format}

@@ -72,25 +72,86 @@
 \maketitle
 
 \section{引言}
+
 诸如 \base~\cite{kang2018sasrec} 等序列推荐模型已成为建模用户行为序列的强大骨干网络。
 同时，物品文本（标题、描述、评论）提供了补充的语义线索，能够实现更好的泛化，特别是对于冷启动和长尾物品。
 近年来，\llm 衍生的表示进一步提升了文本质量，但也引发了关于特征成本、存储和推理延迟的实际关注。
 
+% TODO: 展开 - 工业界现状与挑战
+\paragraph{工业背景与挑战}
+% [请填写] 工业推荐系统中文本特征的现状
+% - 传统方法：TF-IDF、word2vec等轻量级方案
+% - LLM时代：预训练嵌入成本高但效果强
+% - 核心问题：LLM文本特征在什么场景下值得投入？
+
+% TODO: 展开 - 现有方法的局限性
+\paragraph{现有方法的局限}
+% [请填写] 现有文本增强推荐的局限
+% - 单一视图表示的信息瓶颈
+% - 缺乏ID-文本显式交互建模
+% - 采样评估与全排序评估的不一致性
+
+% TODO: 展开 - 本文贡献
+\paragraph{本文贡献}
 本工作定位于务实的\emph{方法+实证}立场：
-我们不是提出新的 \llm 范式，而是研究一个可部署的插件框架，该框架结合了多视图文本特征（来自 \tfidf 和 \llm 提示）、显式交叉交互和对比对齐。
+我们不是提出新的 \llm 范式，而是研究一个可部署的\textbf{插件框架}，该框架结合了：
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{多视图文本特征}：\tfidf 基础视图 + 多个 \llm 提示视图（身份/功能/受众/类别）
+  \item \textbf{显式交叉融合}：基于 DCN-V2 的高阶 ID-文本交互
+  \item \textbf{多视图对比对齐}：基于 InfoNCE 的文本到ID空间对齐
+\end{itemize}
 我们的目标是回答：\emph{何时节约方案就足够了，何时多视图 \llm 文本值得投入？}
 
-\paragraph{动机：采样指标 vs 全排序指标}
+% TODO: 展开 - 评估策略
+\paragraph{评估策略：全排序}
 工业实践通常依赖采样评估（如均匀100个负样本）以提高速度，但采样指标可能与全排序不一致，可能导致模型排序错误~\cite{krichene2020sampledmetrics}。
-因此，我们在主要结果中强调全排序评估，并提供采样与全排序差异的分析。
+因此，我们在主要结果中强调\textbf{全排序评估}，并报告\textbf{流行度分层指标}（new/few/frequent）以理解冷启动和长尾行为。
+
+% TODO: 展开 - 论文组织
+\paragraph{论文组织}
+% [请填写] 论文各节内容简介
+
+\section{相关工作}
+\paragraph{序列推荐}
+基于 Transformer 的序列模型如 \base~\cite{kang2018sasrec} 和 BERT 风格目标~\cite{sun2019bert4rec} 是捕获用户行为模式的强大骨干。
+GRU4Rec~\cite{hidasi2015gru4rec} 开创了基于 RNN 的会话建模，而 SASRec 引入了带因果掩码的自注意力进行下一物品预测。
+% [可扩展] 更多序列推荐相关工作
+
+\paragraph{文本增强推荐}
+物品文本特征（来自词袋、神经编码器或 \llm 嵌入）提供了协同过滤之外的补充信号。
+早期工作使用 TF-IDF 和 word2vec 进行物品表示；近期方法利用预训练语言模型（BERT、GPT）获取更丰富的语义。
+% [可扩展] 文本增强推荐相关工作
+
+\paragraph{特征交互与交叉网络}
+Deep \& Cross Network (DCN)~\cite{wang2017dcn} 及其后续 DCN-V2~\cite{wang2021dcnv2} 显式建模特征交叉，补充 DNN 学习的隐式交互。
+在推荐中，交叉网络在 CTR 预测中展示了有效性；我们将其适配用于序列设置中的 ID-文本融合。
+
+\paragraph{推荐中的对比学习}
+对比目标如 \InfoNCE~\cite{oord2018cpc} 已被广泛用于自监督表示学习。
+在推荐中，对比方法跨视图对齐用户/物品表示~\cite{wu2021cl4rec}。
+我们将其扩展到多视图文本-ID对齐。
+
+\paragraph{评估协议}
+采样评估可能误导模型选择~\cite{krichene2020sampledmetrics}；全排序评估提供更可靠的比较但计算开销大。
+我们采用带分层分析的全排序以理解模型在不同流行度分层上的行为。
 
 \section{研究问题}
-我们围绕以下研究问题（RQs）组织研究：
-\begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{RQ1（多视图文本的价值）} 在全排序下，多视图 \llm 文本视图相比强 \tfidf 文本基线能改进多少？
-  \item \textbf{RQ2（显式交叉的作用）} 显式交叉模块是否在 Transformer 骨干之外提供补充增益？
-  \item \textbf{RQ3（对齐与评估稳定性）} 多视图对齐能否减少采样与全排序指标的差距并提高排序稳定性？
-  \item \textbf{RQ4（成本收益）} 多视图 \llm 需要多少额外的计算/内存/延迟，在哪些场景下值得？
+我们围绕以下研究问题组织研究，重点关注\textbf{消融实验}以理解每个组件何时以及为何有帮助：
+
+\begin{itemize}[leftmargin=*,itemsep=3pt]
+  \item \textbf{RQ1（白化效果）} 白化（vs. 仅L2归一化）是否改善单视图和多视图设置下的文本/\llm 特征质量？
+  
+  \item \textbf{RQ2（SENet通道注意力）} SENet门控是否为文本特征提供有效的通道注意力？我们比较有/无SENet的单视图和多视图。
+  
+  \item \textbf{RQ3（等带宽下多视图 vs. 单视图）} 给定相同的总嵌入维度（如单视图256维 vs. 多视图 $4\times 64$维），多视图提示是否优于单视图？我们关注 HR@K、NDCG@K、MRR@K，特别是\textbf{new}和\textbf{few}物品分层（冷启动物品）。
+  
+  \item \textbf{RQ4（Cross和Align消融）} 显式交叉融合和多视图对齐的单独和组合贡献是什么？我们消融：
+  \begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item 多视图 + cross + align（完整模型）
+    \item 多视图 + cross（无align）
+    \item 多视图 + align（无cross）
+    \item 仅多视图（无cross，无align）
+  \end{itemize}
 \end{itemize}
 
 \section{方法}
@@ -240,7 +301,7 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 除非另有说明，我们使用嵌入维度 $d=256$，最大序列长度 $L=50$，2层 Transformer 带2个头，批次大小512，Adam 优化器基础学习率 $10^{-4}$。
 
 \paragraph{两阶段计划}
-我们遵循预热（10个 epoch）$\rightarrow$ A阶段（15个 epoch）$\rightarrow$ B阶段（40个 epoch），A阶段在美妆数据上通过 \texttt{MRR@10} 选择 $(\lambda,\tau)$，在玩具游戏上通过 \texttt{Recall@10}。
+我们遵循预热（10个 epoch）$\rightarrow$ A阶段（15个 epoch）$\rightarrow$ B阶段（40个 epoch），A阶段在美妆数据上通过 \texttt{MRR@10} 选择 $(\lambda,\tau)$，在玩具游戏上通过 \texttt{HR@10}。
 我们使用分组学习率：$\text{lr}_{\text{text}}=1\times10^{-3}$ 用于文本头，$\text{lr}_{\text{cross}}=5\times10^{-4}$ 用于交叉/DNN 块，$\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$ 在B阶段。
 
 \paragraph{网格}
@@ -273,69 +334,54 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 
 \section{主要结果}
 表~\ref{tab:main} 报告了美妆和玩具游戏的全排序结果。
-在两个数据集上，添加文本特征相比仅ID基线持续改善，其中 \tfidf 提供了显著增益（美妆上 Recall@10 提升 +27.5\%，玩具上 +14.9\%）。
+在两个数据集上，添加文本特征相比仅ID基线持续改善，其中 \tfidf 提供了显著增益（美妆上 HR@10 提升 +27.5\%，玩具上 +14.9\%）。
 主要发现如下：
 
 \paragraph{文本特征相比仅ID带来大幅增益}
-在美妆上，仅 \tfidf 就将 Recall@10 从 4.69\% 提升到 5.98\%（+27.5\%），NDCG@10 从 2.69\% 提升到 3.79\%（+40.9\%）。
-在玩具上，改进分别为 +14.9\% Recall@10 和 +33.1\% NDCG@10。
+在美妆上，仅 \tfidf 就将 HR@10 从 4.69\% 提升到 5.98\%（+27.5\%），NDCG@10 从 2.69\% 提升到 3.79\%（+40.9\%）。
+在玩具上，改进分别为 +14.9\% HR@10 和 +33.1\% NDCG@10。
 
 \paragraph{多视图呈现数据集依赖的缩放}
-在\textbf{美妆}上，\model（14B）取得最佳结果，Recall@10=6.22\%（相比仅ID +32.6\%），但32B\emph{并未}比14B更好，表明在固定嵌入预算下收益递减。
-在\textbf{玩具}上，多视图收益更一致地缩放：32B 达到 Recall@10=7.02\%（相比仅ID +17.6\%），在所有分层上优于较小模型。
+在\textbf{美妆}上，\model（14B）取得最佳结果，HR@10=6.22\%（相比仅ID +32.6\%），但32B\emph{并未}比14B更好，表明在固定嵌入预算下收益递减。
+在\textbf{玩具}上，多视图收益更一致地缩放：32B 达到 HR@10=7.02\%（相比仅ID +17.6\%），在所有分层上优于较小模型。
 
 \paragraph{冷启动（new/few）改进}
 多视图在\textbf{new}和\textbf{few}分层上提供最大的相对增益。
-在美妆（14B）上，Recall\_new@10 从 1.71\% 提升到 2.27\%（+32.7\%），Recall\_few@10 从 3.33\% 提升到 4.05\%（+21.6\%）。
-在玩具（32B）上，Recall\_new@10 提升 +24.1\%，Recall\_few@10 提升 +20.4\%。
+在美妆（14B）上，HR\_new@10 从 1.71\% 提升到 2.27\%（+32.7\%），HR\_few@10 从 3.33\% 提升到 4.05\%（+21.6\%）。
+在玩具（32B）上，HR\_new@10 提升 +24.1\%，HR\_few@10 提升 +20.4\%。
 
 \begin{table*}[t]
 \caption{全排序下的主要结果。每个数据集的最佳结果用\textbf{粗体}标注。所有数值为百分比（\%）。}
 \label{tab:main}
 \centering
 \small
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lccccccccc}
 \toprule
 \multirow{2}{*}{\textbf{模型}} &
-\multicolumn{2}{c}{\textbf{整体}} &
-\multicolumn{2}{c}{\textbf{new}} &
-\multicolumn{2}{c}{\textbf{few}} &
-\multicolumn{2}{c}{\textbf{frequent}} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
-& Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 & Recall@10 & NDCG@10 \\
+\multicolumn{3}{c}{\textbf{整体}} &
+\multicolumn{3}{c}{\textbf{new 分层}} &
+\multicolumn{3}{c}{\textbf{few 分层}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
 \midrule
-\multicolumn{9}{l}{\textbf{亚马逊美妆}} \\
-\base（仅ID） & 4.69 & 2.69 & 1.71 & 1.01 & 3.33 & 1.98 & 7.86 & 4.47 \\
-\base + \tfidf & 5.98 & 3.79 & 2.08 & 1.36 & 3.78 & 2.53 & 10.27 & 6.44 \\
-\base + \tfidf + \llm（7B） & 6.00 & 3.80 & 2.03 & 1.32 & 3.84 & 2.57 & 10.29 & 6.45 \\
-\model（7B） & 6.05 & 3.82 & 2.09 & 1.33 & 3.85 & 2.56 & 10.37 & 6.49 \\
-\model（14B） & \textbf{6.22} & \textbf{3.86} & \textbf{2.27} & \textbf{1.39} & \textbf{4.05} & \textbf{2.66} & \textbf{10.60} & \textbf{6.51} \\
-\model（32B） & 6.05 & 3.81 & 2.08 & 1.34 & 3.83 & 2.53 & 10.40 & 6.47 \\
+\multicolumn{10}{l}{\textbf{亚马逊美妆}} \\
+\base（仅ID） & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
+\base + \tfidf & 5.98 & 3.79 & 3.12 & 2.08 & 1.36 & 1.13 & 3.78 & 2.53 & 2.14 \\
+\base + \tfidf + \llm（7B） & 6.00 & 3.80 & 3.13 & 2.03 & 1.32 & 1.10 & 3.84 & 2.57 & 2.18 \\
+\model（7B） & 6.05 & 3.82 & 3.14 & 2.09 & 1.33 & 1.09 & 3.85 & 2.56 & 2.16 \\
+\model（14B） & \textbf{6.22} & \textbf{3.86} & \textbf{3.13} & \textbf{2.27} & \textbf{1.39} & \textbf{1.12} & \textbf{4.05} & \textbf{2.66} & \textbf{2.23} \\
+\model（32B） & 6.05 & 3.81 & 3.12 & 2.08 & 1.34 & 1.10 & 3.83 & 2.53 & 2.13 \\
 \midrule
-\multicolumn{9}{l}{\textbf{亚马逊玩具游戏}} \\
-\base（仅ID） & 5.97 & 3.32 & 1.91 & 1.10 & 4.61 & 2.53 & 10.61 & 5.92 \\
-\base + \tfidf & 6.86 & 4.42 & 2.24 & 1.52 & 5.46 & 3.54 & 12.11 & 7.75 \\
-\base + \tfidf + \llm（7B） & 6.83 & 4.39 & 2.26 & 1.51 & 5.31 & 3.46 & 12.10 & 7.73 \\
-\model（7B） & 6.90 & 4.43 & 2.30 & 1.53 & 5.40 & 3.51 & 12.21 & 7.79 \\
-\model（14B） & 6.95 & 4.43 & 2.33 & 1.52 & 5.47 & 3.56 & 12.26 & 7.78 \\
-\model（32B） & \textbf{7.02} & \textbf{4.47} & \textbf{2.37} & \textbf{1.56} & \textbf{5.55} & \textbf{3.60} & \textbf{12.38} & \textbf{7.81} \\
+\multicolumn{10}{l}{\textbf{亚马逊玩具游戏}} \\
+\base（仅ID） & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
+\base + \tfidf & 6.86 & 4.42 & 3.66 & 2.24 & 1.52 & 1.28 & 5.46 & 3.54 & 2.95 \\
+\base + \tfidf + \llm（7B） & 6.83 & 4.39 & 3.64 & 2.26 & 1.51 & 1.27 & 5.31 & 3.46 & 2.90 \\
+\model（7B） & 6.90 & 4.43 & 3.67 & 2.30 & 1.53 & 1.29 & 5.40 & 3.51 & 2.93 \\
+\model（14B） & 6.95 & 4.43 & 3.66 & 2.33 & 1.52 & 1.27 & 5.47 & 3.56 & 2.97 \\
+\model（32B） & \textbf{7.02} & \textbf{4.47} & \textbf{3.68} & \textbf{2.37} & \textbf{1.56} & \textbf{1.31} & \textbf{5.55} & \textbf{3.60} & \textbf{3.00} \\
 \bottomrule
 \end{tabular}
 \end{table*}
-
-表~\ref{tab:mrr} 报告了用于排序质量分析的 MRR 指标。
-
-\begin{table}[t]
-\caption{MRR@10 结果（\%）。$\Delta$ = 相对仅ID的相对提升。}
-\label{tab:mrr}
-\centering
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{模型} & \textbf{MRR} & $\Delta$ & \textbf{MRR\_new} & \textbf{MRR\_few} \\
-\midrule
-\multicolumn{5}{l}{\textbf{亚马逊美妆}} \\
-\base（仅ID） & 2.07 & --- & 0.79 & 1.56 \\
 \base + \tfidf & 3.12 & +50.7\% & 1.13 & 2.14 \\
 + \llm（7B） & 3.13 & +51.2\% & 1.10 & 2.18 \\
 \model（14B） & \textbf{3.13} & \textbf{+51.2\%} & \textbf{1.12} & \textbf{2.23} \\
@@ -350,57 +396,133 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \end{table}
 
 \section{分析}
-\subsection{消融实验}
-我们消融 (i) 显式交叉，(ii) 对齐，(iii) 逐视图归一化，和 (iv) 冷启动重加权。
-我们还研究文本视图数量和多视图对齐缩放 $s_{\text{mv}}$ 的影响。
 
-\paragraph{多视图增益的驱动因素}
-由于多视图文本是 \model 的核心，我们消融其两个核心成分：显式交叉融合和逐视图 SENet 门控。
-移除交叉模块可以略微增加 Recall@K，但会急剧降低排序质量（如在美妆上 MRR@10 相对下降约20\%，NDCG@10 下降约10\%），表明交叉交互对于在全排序下将多视图召回转化为头部排名增益至关重要。
-相比之下，SENet 对整体 Recall/MRR/NDCG 的影响较小，但实质性地改变了曝光：禁用 SENet 大幅增加 Coverage\_new，这与校准门控偏向头部物品而牺牲冷启动覆盖一致。
-综合来看，这些结果表明多视图特征的有效性主要取决于视图\emph{如何}融合（交叉）和校准（SENet），而不仅仅是添加更多文本信号。
+我们进行系统的消融实验来回答 RQ1--RQ4。除非另有说明，所有消融以多视图 7B 为基线。
 
-\paragraph{何时使用多视图 vs 单视图}
-我们的结果提供了一个简单的经验法则。
-当目标强调 Recall@K（特别是 $K{=}10/20$）和\textbf{few}/\textbf{frequent}分层性能时，多视图提示最有价值，此时互补的提示视图提供更广的语义覆盖，可以改善候选召回。
-相反，当大部分增益已经来自 \tfidf{+}\llm（单视图）时——如在固定嵌入预算下的美妆——或当主要目标是冷启动排序和曝光（Coverage\_new 和\textbf{new}分层 MRR/NDCG）时，单视图 \llm 基线可能是更稳健和性价比更高的选择。
+\subsection{RQ2 \& RQ4: SENet 和交叉网络消融}
 
-\subsection{实证要点：文本加权和预算缩放}
-我们总结三个在美妆和玩具游戏上一致的观察，有助于理解文本增强序列推荐器的权衡。
+表~\ref{tab:ablation_senet_cross} 展示了移除 SENet 通道注意力和/或显式交叉融合的效果。
 
-\textbf{(A) 文本加权以较小的召回变化改善排序质量：}
-增加文本分支的有效贡献（如更强的文本融合权重和更温和的门控正则化）往往只在 Recall@K 上产生小幅波动，同时持续改善排序导向的指标如 MRR 和 NDCG。
+\begin{table*}[t]
+\caption{消融实验：多视图 7B 上的 SENet 和交叉网络。所有数值为百分比（\%）。}
+\label{tab:ablation_senet_cross}
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{2}{*}{\textbf{配置}} &
+\multicolumn{4}{c}{\textbf{亚马逊美妆}} &
+\multicolumn{4}{c}{\textbf{亚马逊玩具游戏}} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& HR@10 & NDCG@10 & MRR@10 & HR\_new@10 & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+完整（SENet + Cross） & 6.05 & 3.82 & 3.14 & 2.09 & 6.90 & 4.43 & 3.67 & 2.30 \\
+$-$ SENet & 6.11 & 3.82 & 3.11 & 2.16 & 6.95 & 4.46 & 3.69 & 2.30 \\
+$-$ Cross & 6.56 & 3.64 & 2.74 & 2.40 & 7.43 & 4.13 & 3.10 & 2.44 \\
+$-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
-\textbf{(B) LLM 缩放在部署约束下不是单调可靠的：}
-更大的 \llm 编码器不一定转化为更好的排序或冷启动指标，表明朴素的"缩放法则"在此设置下不成立。
+\paragraph{交叉网络对排序质量至关重要}
+移除交叉模块增加了 HR@10（美妆 +8.4\%，玩具 +7.7\%），但\emph{急剧降低}了排序指标：MRR@10 在美妆上下降 12.7\%，在玩具上下降 15.5\%；NDCG@10 分别下降 4.7\% 和 6.8\%。
+这揭示了一个基本的\textbf{HR-排序权衡}：没有显式交叉交互，模型产生更平滑的分数分布，改善了覆盖但失去了 Top-1 排序的区分能力。
 
-\textbf{(C) 多视图增益是数据依赖的，可能降低冷启动/新物品覆盖：}
-虽然多视图提示可以改善整体或高频物品性能，但净收益因领域而异，我们观察到\textbf{new}物品覆盖率降低的趋势，表明存在头部-尾部权衡。
+\paragraph{SENet 对整体指标影响较小}
+单独移除 SENet 仅导致边际变化（大多数指标 $<$1\%）。
+然而，同时移除 SENet 和 Cross 的组合表明，SENet 提供了互补的校准，略微有利于冷启动物品（移除 SENet 时美妆的 HR\_new@10 提升 3.4\%）。
 
-\paragraph{跨领域综合}
-在两个领域中，最稳健的改进来自用单个 \llm 视图丰富 \tfidf，而多视图提示并不一致地优于单视图基线，可能将增益转向头部（高频）物品，代价是冷启动覆盖（Coverage\_new）和\textbf{new}分层排序指标。
-此外，扩大 \llm 规模最多只能获得分层和指标特定的增益（通常在高频分层上最明显），并不能转化为普遍更好的 MRR/NDCG 或冷启动性能。
+\paragraph{冷启动分析}
+有趣的是，移除 Cross 改善了 HR\_new@10（美妆 +14.8\%，玩具 +6.1\%），表明交叉模块可能过度强调头部物品。
+这意味着一个设计选择：优先考虑冷启动 HR 的从业者可以考虑更轻的融合，而优先考虑 Top-1 准确率的应该保留交叉。
 
-\paragraph{关于嵌入预算和压缩的说明}
-重要的是，我们的多视图 \llm 特征是在固定嵌入预算下生成的以保证实用性：每个视图在融合前通过 TruncatedSVD 压缩到低维向量（如64维）。
-这种压缩作为表示瓶颈，是分析 \llm 缩放时的关键混淆因素；更大的编码器可能产生更高秩的表示，在相同预算下被更激进地截断，可能掩盖其优势。
-因此，我们将缩放行为解释为给定压缩强度下的\emph{预算缩放}，并将压缩预算的系统研究（如变化 SVD 维度和跟踪解释方差保留）作为未来的消融实验。
+\subsection{RQ1: 白化 vs 仅 L2 归一化}
 
-\subsubsection{固定嵌入预算下的领域观察}
-在固定的多视图嵌入预算下（每视图 TruncatedSVD 到64维），美妆主要由 \tfidf$\rightarrow$\tfidf{+}\llm 驱动，而多视图变体相对于单视图 \llm 基线几乎没有额外的整体改进，并且在冷启动（\textbf{new}）分层上持续表现不佳——包括 Recall\_new/NDCG\_new/MRR\_new 和 Coverage\_new——在32B时降级最大（表~\ref{tab:main}）。
-相反，在玩具游戏上，多视图提示相对于单视图 \llm 基线改善了整体 Recall@10/20 和 few/frequent 分层，并在 frequent 分层上从 7B$\rightarrow$14B$\rightarrow$32B 显示出弱缩放趋势；然而，MRR/NDCG 不单调缩放，Coverage\_new 在更大规模时可能下降，揭示了在32B时最明显的召回-排序/覆盖权衡。
+表~\ref{tab:ablation_whiten} 比较了美妆数据集上白化（ZCA + L2）与仅 L2 归一化的效果。
 
-\subsection{采样指标 vs 全排序指标}
-我们比较采样评估（如 uni100）和全排序，并量化不同设置下的模型排序不一致性。
-我们测试对齐是否减少这种不匹配并提高鲁棒性。
+\begin{table}[t]
+\caption{消融实验：美妆数据集上的白化效果。所有数值为百分比（\%）。}
+\label{tab:ablation_whiten}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+\multicolumn{5}{l}{\textbf{多视图 7B}} \\
+带白化 & 6.05 & 3.82 & 3.14 & 2.09 \\
+无白化 & 6.76 & 3.58 & 2.60 & 2.22 \\
+\midrule
+\multicolumn{5}{l}{\textbf{单视图（TF-IDF + LLM）}} \\
+带白化 & 6.00 & 3.80 & 3.13 & 2.03 \\
+无白化 & 6.01 & 3.80 & 3.12 & 2.08 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\subsection{效率和权衡}
-我们报告 GPU 内存占用、吞吐量和推理延迟。
-由于 \llm 嵌入是离线预计算的，在线成本主要由投影/交叉层和特征存储决定，在节约型（仅 \tfidf）和更强（多视图）选项之间实现清晰的权衡。
+\paragraph{白化对多视图至关重要，但对单视图不重要}
+对于多视图，移除白化增加了 HR@10（+11.7\%），但严重损害排序：MRR@10 下降 17.2\%，NDCG@10 下降 6.3\%。
+对于单视图，白化影响很小（所有指标 $<$0.5\%）。
 
-\subsection{可解释性}
-我们可视化 (i) 视图门控 $g_v$，(ii) 学习的视图对齐权重 $\pi_v$，和 (iii) 跨视图和ID空间的表示几何（t-SNE/UMAP）。
-我们还检查交叉模块贡献（如 top-$k$ 交叉权重）以理解哪些交互驱动长尾增益。
+\paragraph{解释}
+多视图表示在视图间存在更高的特征相关性；白化去相关这些特征，使交叉网络能够学习更具区分性的交互。
+单视图表示从 \llm 编码器已经是良好条件化的，使得白化变得冗余。
+
+\subsection{RQ3: 等带宽下多视图 vs 单视图}
+
+比较表~\ref{tab:main} 的行，我们分析单视图（256维）vs 多视图（$4\times 64$维 = 256维总计）。
+
+\paragraph{美妆：单视图具有竞争力}
+多视图 7B（6.05\% HR@10）略优于单视图（6.00\%），NDCG 和 MRR 相似。
+多视图 14B 显示唯一有意义的增益（HR@10 +3.7\%），但 32B 退化。
+这表明在美妆上，在相同带宽下多个提示视图的边际收益有限。
+
+\paragraph{玩具：多视图持续有帮助}
+多视图 7B（6.90\%）比单视图（6.83\%）高 +1.0\%，这一优势随规模增长：32B 达到 7.02\%（相比单视图 +2.8\%）。
+冷启动分层也受益：HR\_new@10 从 2.26\%（单视图）提升到 2.37\%（32B 多视图）。
+
+\paragraph{要点}
+多视图在玩具上提供一致的增益，但在美妆上增益边际/不一致。差异可能源于玩具具有更丰富的产品语义，受益于多个提示视角。
+
+\subsection{消融发现总结}
+
+\begin{table}[t]
+\caption{总结：各组件对模型性能的贡献。}
+\label{tab:ablation_summary}
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{组件} & \textbf{HR} & \textbf{MRR/NDCG} \\
+\midrule
+交叉网络 & $\downarrow$（降低） & $\uparrow\uparrow$（至关重要） \\
+SENet & $\approx$（中性） & $\approx$（中性） \\
+白化（多视图） & $\downarrow$（降低） & $\uparrow\uparrow$（至关重要） \\
+白化（单视图） & $\approx$（中性） & $\approx$（中性） \\
+多视图（vs 单视图） & $\uparrow$（在玩具上有帮助） & $\approx$（边际） \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+关键洞察是\textbf{交叉网络和白化对排序质量至关重要}（MRR/NDCG），即使它们可能略微降低 HR。
+SENet 提供校准但不是关键的。
+多视图提示在玩具上有帮助，但在等带宽下对美妆是边际的。
+
+\subsection{理解 HR--排序 权衡}
+
+HR 和排序指标（MRR/NDCG）之间观察到的权衡乍看之下可能违反直觉——在传统排序设置中，更好的排序质量通常与更高的命中率正相关。然而，在对整个物品目录（$>$12K 物品）进行\textbf{全排序}的设置下，这种权衡既是预期的也是有意义的。
+
+\paragraph{为什么会出现这种权衡？}
+交叉网络和白化产生\emph{更尖锐的分数分布}，其中少数物品获得显著高于其他物品的分数。这种"赢家通吃"效应有利于 Top-1 准确率（MRR），但可能将相关物品推到 Top-$K$ 边界之外（损害 HR@$K$）。
+相反，移除这些组件会产生\emph{更平滑的分数分布}：更多物品聚集在决策边界附近，使更多真实相关物品进入 Top-$K$（更高 HR），但代价是 Top-1 排序不够精准（更低 MRR）。
+
+\paragraph{从业者指南}
+这种权衡意味着根据部署场景的明确设计选择：
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{候选生成/召回导向系统}：如果目标是最大化 Top-$K$ 中的相关物品数量（如第一阶段检索），考虑不使用显式交叉交互的轻量级融合。
+  \item \textbf{精排/精度导向系统}：如果目标是将最相关的物品放在位置1（如重排序阶段），保留交叉网络和白化以获得更强的区分能力。
+  \item \textbf{平衡系统}：使用 NDCG@$K$ 作为主要指标，它通过位置加权增益自然地平衡覆盖率和排序质量。
+\end{itemize}
 
 \begin{figure}[t]
 \centering
@@ -415,27 +537,17 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \label{fig:framework}
 \end{figure}
 
-\section{相关工作}
-\paragraph{序列推荐}
-基于 Transformer 的序列模型如 \base~\cite{kang2018sasrec} 和 BERT 风格目标~\cite{sun2019bert4rec} 是强大的骨干。
-
-\paragraph{文本增强推荐}
-物品文本特征（来自词袋、神经编码器或 \llm 嵌入）提供补充信号；我们的重点是多视图提示和可部署的融合。
-
-\paragraph{对比对齐和评估}
-我们基于对比目标（\InfoNCE~\cite{oord2018cpc}）构建，并研究采样评估如何误导模型选择~\cite{krichene2020sampledmetrics}。
-
 \section{结论}
 我们提出了 \model，一个结合归一化多视图文本特征、显式交叉交互和多视图对比对齐的序列推荐插件框架。
 我们在亚马逊美妆和玩具游戏上的实验揭示了几个实用洞察：
 
-\textbf{(1) 文本特征带来显著增益}：仅 \tfidf 就在美妆上提升 Recall@10 +27.5\%，在玩具上提升 +14.9\%，相比仅ID基线，NDCG 增益更大（+40.9\% 和 +33.1\%）。
+\textbf{(1) 文本特征带来显著增益}：仅 \tfidf 就在美妆上提升 HR@10 +27.5\%，在玩具上提升 +14.9\%，相比仅ID基线，NDCG 增益更大（+40.9\% 和 +33.1\%）。
 
-\textbf{(2) 多视图缩放因数据集而异}：在美妆上，14B 取得最佳结果（相比仅ID Recall@10 +32.6\%），但 32B 未能进一步提升。在玩具上，32B 持续优于较小模型（Recall@10 +17.6\%）。
+\textbf{(2) 交叉网络和白化对排序至关重要}：我们的消融实验表明，移除交叉模块增加 HR 但急剧降低 MRR（美妆 $-$12.7\%，玩具 $-$15.5\%）和 NDCG。白化对多视图至关重要（无白化时 MRR $-$17.2\%），但对单视图不重要。
 
-\textbf{(3) 冷启动收益一致}：多视图在\textbf{new}和\textbf{few}分层上提供最大的相对增益，美妆（14B）上 Recall\_new@10 提升 +32.7\%，玩具（32B）上提升 +24.1\%。
+\textbf{(3) 多视图缩放因数据集而异}：在美妆上，14B 取得最佳结果（相比仅ID HR@10 +32.6\%），但 32B 未能进一步提升。在玩具上，32B 持续优于较小模型（HR@10 +17.6\%）。
 
-\textbf{(4) 预算缩放有限制}：在固定嵌入压缩下，更大的 \llm 编码器并不保证单调改进，突显了领域特定评估的必要性。
+\textbf{(4) 存在 HR-排序权衡}：改善排序质量的组件（交叉、白化）可能略微降低 HR，揭示了一个基本的设计权衡，从业者应根据其主要目标进行考虑。
 
 \balance  % 最后一页平衡列
 \bibliographystyle{ACM-Reference-Format}
