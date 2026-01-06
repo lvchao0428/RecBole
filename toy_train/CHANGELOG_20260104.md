@@ -58,14 +58,14 @@
 - **text_use_senet**: true
 - **num_text_views**: 1 (单一视角)
 - **text_weight**: 1.0
-- **text_gate_init**: 0.7
-- **text_gate_reg_l2**: 0.01 (更弱的正则化)
+- **text_gate_init**: 0.8 *(2026-01-05 更新: 0.7→0.8)*
+- **text_gate_reg_l2**: 0.02 *(2026-01-05 更新: 0.05→0.02)*
 
-#### 正则化 (高 dropout)
-- **hidden_dropout_prob**: 0.5
-- **attn_dropout_prob**: 0.5
-- **cross_dropout_prob**: 0.5
-- **cold_start_align_boost**: 3.0
+#### 正则化 (标准 dropout)
+- **hidden_dropout_prob**: 0.2
+- **attn_dropout_prob**: 0.2
+- **cross_dropout_prob**: 0.2
+- **cold_start_align_boost**: 0 (关闭)
 
 ---
 
@@ -87,9 +87,12 @@
 | Model | SASRecAlignMultiViewV2 | SASRecAlign |
 | num_text_views | 4 | 1 |
 | Text Source | 4-view split | Single LLM embedding |
-| dropout | 0.2 | 0.5 |
-| cold_start_align_boost | 0 | 3.0 |
-| text_gate_reg_l2 | 0.05 | 0.01 |
+| dropout | 0.2 | 0.2 |
+| cold_start_align_boost | 0 | 0 |
+| text_gate_init | 0.8 | 0.8 |
+| text_gate_reg_l2 | 0.02 | 0.02 |
+
+> **注**: 以上为 2026-01-05 更新后的值。旧值: text_gate_init=0.7, text_gate_reg_l2=0.05
 
 ---
 
@@ -101,6 +104,61 @@
 ---
 
 ## 变更历史
+
+### 2026-01-05: 增强 Text 特征权重实验
+
+#### 问题背景
+
+根据 Toy 数据集消融实验结果发现异常：
+- **tfidf + llm + no_whiten** 比 **tfidf + llm** 效果更好 (recall@5: 0.0534 vs 0.0527, +1.33%)
+- **multi-view + 7b + no_whiten** 下降温和 (-1.32%)，而 Beauty 数据集类似配置 recall 上升 7.03%
+
+这表明 Toy 数据集上文本特征的影响力不足，白化效果不明显。
+
+#### 修改内容
+
+**YAML 配置文件修改** (增强文本门控初始化和降低正则化):
+
+| 配置项 | 旧值 | 新值 | 说明 |
+|--------|------|------|------|
+| `text_gate_init` | 0.7 | 0.8 | 提高初始门控权重，增强文本融合 |
+| `text_gate_reg_l2` | 0.05 | 0.02 | 降低 L2 正则化，让 gate 更自由学习 |
+
+**受影响的配置文件 (项目根目录)**:
+- `sasrec_align_toys_base_stratified.yaml`
+- `sasrec_align_toys_qwen3_stratified.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_7b.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_14b.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_32b.yaml`
+
+**受影响的配置文件 (toy_train 目录)**:
+- `sasrec_align_toys_qwen3_stratified_no_whiten.yaml`
+- `sasrec_align_multi_view_v2_toys_stratified_7b_no_whiten.yaml`
+
+**Shell 脚本修改** (增加 Phase B 的门控正则化参数):
+
+新增参数: `--phase_b_text_gate_reg_l2 0.01`
+
+**受影响的脚本 (项目根目录)**:
+- `two_phase_run_tfidf_toys_stratified.sh`
+- `two_phase_run_tfidf_llm_toys_stratified.sh`
+- `two_phase_run_multiview_v2_toys_stratified_7b.sh`
+- `two_phase_run_multiview_v2_toys_stratified_14b.sh`
+- `two_phase_run_multiview_v2_toys_stratified_32b.sh`
+
+**受影响的脚本 (toy_train 目录)**:
+- `two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh`
+- `two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh`
+
+#### 预期效果
+
+| 调整项 | 预期影响 |
+|--------|----------|
+| ↑ text_gate_init (0.7→0.8) | 增强文本对 fused embedding 的初始贡献 |
+| ↓ text_gate_reg_l2 (0.05→0.02) | 让 gate 更自由学习最优权重 |
+| ↓ phase_b_text_gate_reg_l2 (0.01) | Phase B 微调时进一步降低约束 |
+
+---
 
 ### 2026-01-04
 - 创建 changelog 文档
