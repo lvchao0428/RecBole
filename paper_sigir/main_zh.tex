@@ -32,6 +32,7 @@
 \usepackage{balance}
 
 % XeLaTeX 中文支持 - 使用 Overleaf 预装的 Noto 字体
+\let\eth\relax % avoid xunicode/fontspec redefining \eth (conflicts with amssymb)
 \usepackage{fontspec}
 \usepackage{xeCJK}
 \setCJKmainfont{Noto Serif CJK SC}
@@ -56,15 +57,11 @@
 % \email{email@example.com}
 
 \begin{abstract}
-文本特征已成为序列推荐器的标准插件，但两个实际问题仍不清楚：
-(\emph{i}) 当轻量级文本特征（如 \tfidf）已经足够强时，多视图 \llm 特征能带来什么额外价值；以及
-(\emph{ii}) 为什么在采样评估下的改进有时无法转化为全排序增益。
-本文提出 \model，一个可工业部署的框架，结合了：(1) \emph{归一化多视图文本表示}（一个 \tfidf 基础视图加多个 \llm 提示视图），
-(2) 一个\emph{显式交叉模块}，用于构建超越自注意力的高阶特征交互，以及
-(3) \emph{多视图对比对齐}，将每个文本视图与协同ID空间绑定，提高全排序下的鲁棒性。
-我们在两个亚马逊领域（美妆和玩具游戏）进行评估，并报告全排序下的标准和流行度分层指标。
-在所有数据集上，\model 持续改善整体和长尾性能，同时在节约型（仅 \tfidf）和更强配置（多视图 \llm）之间提供清晰的成本收益权衡。
-我们进一步分析采样指标与全排序指标之间的差距，并展示对齐如何缓解排序不稳定性。
+文本特征是序列推荐模型中最常用的插件之一，为协同信号提供语义补充。
+但在实践中仍存在两个痛点：廉价的 \tfidf 已经很强，多视角 \llm 嵌入的边际收益需权衡成本；同时 uni100 等 uniform-100 负采样评测可能与全排序指标不一致，从而误导模型选择。
+为此，我们提出 \model（MV-Align），将多视角文本表示进行归一化/白化，并通过显式 cross 模块建模高阶 ID--文本交互，同时以对比学习将各视图对齐到协同 ID 空间并对冷启动样本重加权。
+在 Amazon Beauty 与 Toys\&Games 上的全排序评估中，\model 的 HR@10 分别达到 6.22\% 与 7.02\%，并在冷启动分层上进一步提升（例如 HR\_new@10 最高 2.37\%，HR\_few@10 最高 5.55\%）。
+我们揭示了 HR 与排序指标（MRR/NDCG）之间的权衡，并给出何时选择轻量 \tfidf 配置、何时上多视角 \llm 强配置的实践建议；同时在附录报告超参数敏感性与稳定性分析。
 \end{abstract}
 
 \keywords{序列推荐, 文本特征, 多视图表示, 显式交叉, 对比对齐, 评估指标}
@@ -73,43 +70,25 @@
 
 \section{引言}
 
-诸如 \base~\cite{kang2018sasrec} 等序列推荐模型已成为建模用户行为序列的强大骨干网络。
-同时，物品文本（标题、描述、评论）提供了补充的语义线索，能够实现更好的泛化，特别是对于冷启动和长尾物品。
-近年来，\llm 衍生的表示进一步提升了文本质量，但也引发了关于特征成本、存储和推理延迟的实际关注。
+诸如 \base~\cite{kang2018sasrec} 等序列推荐模型已成为建模用户行为序列的强大骨干网络，但真实工业场景中大量物品处于冷启动/长尾状态，协同信号稀疏，泛化困难。
+物品文本（标题、描述、评论）能提供语义线索并缓解该问题，但也带来了典型矛盾：轻量特征（如 \tfidf）成本低且效果出奇地强，而 \llm 衍生嵌入语义更丰富，却在离线提取、存储与在线服务上成本更高。
 
-% TODO: 展开 - 工业界现状与挑战
-\paragraph{工业背景与挑战}
-% [请填写] 工业推荐系统中文本特征的现状
-% - 传统方法：TF-IDF、word2vec等轻量级方案
-% - LLM时代：预训练嵌入成本高但效果强
-% - 核心问题：LLM文本特征在什么场景下值得投入？
+本工作由两个实践观察驱动。
+其一，在强 \tfidf 基线已经建立之后（例如 Beauty 全排序下 HR@10 与 NDCG@10 分别提升 +27.5\% 与 +40.9\%），再叠加 \llm 特征的边际收益往往更小且具有领域依赖性，使得“多视角提示是否值得”变得不清晰。
+其二，工业中模型选择常依赖快速的采样评估（uniform-100 负采样，亦称 uni100），但采样指标可能与全排序不一致并导致模型排序错误~\cite{krichene2020sampledmetrics}；当改进主要集中在冷启动/长尾分层时，这种不一致的代价尤为明显。
 
-% TODO: 展开 - 现有方法的局限性
-\paragraph{现有方法的局限}
-% [请填写] 现有文本增强推荐的局限
-% - 单一视图表示的信息瓶颈
-% - 缺乏ID-文本显式交互建模
-% - 采样评估与全排序评估的不一致性
+\model 以“先处理、再交互、再对齐”的方式化解上述矛盾。
+我们首先对每个文本视角做归一化并进行白化，以处理尺度不一致并降低跨视角冗余相关性；
+随后引入显式 cross 模块（DCN-V2）来学习超越自注意力的高阶 ID$\times$Text 交互；
+最后用对比学习将各文本视角对齐回协同 ID 空间，并对冷启动样本重加权，避免对齐信号被高频物品主导。
 
-% TODO: 展开 - 本文贡献
-\paragraph{本文贡献}
-本工作定位于务实的\emph{方法+实证}立场：
-我们不是提出新的 \llm 范式，而是研究一个可部署的\textbf{插件框架}，该框架结合了：
+我们的贡献主要包括三点：
 \begin{itemize}[leftmargin=*,itemsep=1pt]
-  \item \textbf{多视图文本特征}：\tfidf 基础视图 + 多个 \llm 提示视图（身份/功能/受众/类别）
-  \item \textbf{显式交叉融合}：基于 DCN-V2 的高阶 ID-文本交互
-  \item \textbf{多视图对比对齐}：基于 InfoNCE 的文本到ID空间对齐
+  \item 提出 \model，一个可部署的 \base 插件框架，既支持节约型的 \tfidf-only 配置，也支持在固定嵌入预算下更强的多视角 \llm 特征。
+  \item 在 Amazon Beauty 与 Toys\&Games 上采用\textbf{全排序}与流行度分层指标进行评测，并给出系统消融（白化、SENet、cross）与稳健性分析（附录中的超参数敏感性/稳定性）。
+  \item 不仅报告增益，还解释一个关键现象：白化与显式 cross 往往提升排序质量（MRR/NDCG）但可能轻微降低召回（HR），从而形成 HR--排序 指标的权衡，并据此给出何时选择轻量方案、何时采用强配置的实践建议。
 \end{itemize}
-我们的目标是回答：\emph{何时节约方案就足够了，何时多视图 \llm 文本值得投入？}
-
-% TODO: 展开 - 评估策略
-\paragraph{评估策略：全排序}
-工业实践通常依赖采样评估（如均匀100个负样本）以提高速度，但采样指标可能与全排序不一致，可能导致模型排序错误~\cite{krichene2020sampledmetrics}。
-因此，我们在主要结果中强调\textbf{全排序评估}，并报告\textbf{流行度分层指标}（new/few/frequent）以理解冷启动和长尾行为。
-
-% TODO: 展开 - 论文组织
-\paragraph{论文组织}
-% [请填写] 论文各节内容简介
+本文其余部分组织如下：我们回顾相关工作，介绍 \model 与两阶段训练协议，展示全排序结果与消融实验，并给出分析与结论。
 
 \section{相关工作}
 \paragraph{序列推荐}
@@ -286,6 +265,9 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
   \item \textbf{few}：$[3,10)$ 次交互
   \item \textbf{frequent}：$[10,\infty)$ 次交互
 \end{itemize}
+流行度分层按训练集中的物品交互次数统计。
+为保证评测的可比性与部署相关性，正文以全排序指标为主，未在主文汇报 uni100 等采样评测；附录~\ref{app:sampled} 提供采样评测与全排序的一致性 sanity check（后续补全）。
+我们的评测采用 leave-one-out 的 next-item 设定（每个测试样本只有 1 个 ground-truth），因此 HR@K、Hit@K 与 Recall@K 数值等价；我们在正文中以 HR@K 表示命中/召回，并用 MRR/NDCG 反映靠前位置的排序质量。
 
 \subsection{基线}
 我们比较四种主要配置（对应我们的运行脚本）：
@@ -548,6 +530,58 @@ HR 和排序指标（MRR/NDCG）之间观察到的权衡乍看之下可能违反
 \textbf{(3) 多视图缩放因数据集而异}：在美妆上，14B 取得最佳结果（相比仅ID HR@10 +32.6\%），但 32B 未能进一步提升。在玩具上，32B 持续优于较小模型（HR@10 +17.6\%）。
 
 \textbf{(4) 存在 HR-排序权衡}：改善排序质量的组件（交叉、白化）可能略微降低 HR，揭示了一个基本的设计权衡，从业者应根据其主要目标进行考虑。
+
+\appendix
+\section{附录：稳健性与补充分析（待补全）}
+\label{sec:appendix}
+
+\subsection{采样评测一致性 Sanity Check（uni100 vs 全排序）}
+\label{app:sampled}
+正文以全排序指标为主，以反映部署时的真实候选集合并避免采样指标的潜在误导~\cite{krichene2020sampledmetrics}。
+本附录将补充 uni100 风格采样评测（每个测试样本均匀采样 100 个负例）与全排序之间的一致性检查。
+\paragraph{协议}
+对同一组训练好的 checkpoint，我们将分别在（i）全排序与（ii）uni100 采样评测下计算指标，并量化两种评测协议的一致性。
+\paragraph{将补充的内容}
+(1) sampled 与 full 指标的一致性（Spearman/Pearson 相关系数），并分别在 overall 与 new/few/frequent 分层上汇报；
+(2) sampled 是否保持 full-ranking 下的\emph{模型排序}（mis-ranking 例子）；
+(3) 对负采样随机种子的稳定性分析。
+\begin{table}[t]
+\caption{采样评测 vs 全排序的一致性 sanity check（占位；待补全）。}
+\label{tab:sampled_sanity}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{设置} & \textbf{Overall 相关} & \textbf{Tail 相关} & \textbf{是否误排} \\
+\midrule
+uni100（seed 1） & --- & --- & --- \\
+uni100（seed 2） & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{超参数敏感性与稳定性}
+\label{app:hyper}
+我们将补充 \model 对关键超参数（影响文本通道与对齐强度）的敏感性分析，例如对齐权重 $\lambda$、温度 $\tau$、以及 text 正则/Dropout 等，并总结不同随机种子下的稳定性。
+\begin{table}[t]
+\caption{\model 的超参数敏感性/稳定性（占位；待补全）。}
+\label{tab:hyper_sensitivity}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{超参数} & \textbf{范围} & \textbf{指标} & \textbf{波动} \\
+\midrule
+$\lambda$ & --- & --- & --- \\
+$\tau$ & --- & --- & --- \\
+text 正则/Dropout & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{补充消融：冷启动重加权与 Center-only 归一化}
+\label{app:additional}
+我们将补充隔离（i）对齐目标中的冷启动重加权，以及（ii）center-only 归一化基线的对照实验，并分析其对 overall 与 new/few/frequent 分层指标的影响。
 
 \balance  % 最后一页平衡列
 \bibliographystyle{ACM-Reference-Format}

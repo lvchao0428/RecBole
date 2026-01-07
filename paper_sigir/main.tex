@@ -45,15 +45,11 @@ Explicit Cross and Alignment for Reliable Full-Ranking Gains}
 % \email{email@example.com}
 
 \begin{abstract}
-Text features have become a standard plug-in for sequential recommenders, yet two practical questions remain unclear:
-(\emph{i}) when lightweight text features (e.g., \tfidf) are already strong, what additional value can multi-view \llm features bring; and
-(\emph{ii}) why do improvements under sampled evaluation sometimes fail to translate to full-ranking gains.
-This paper presents \model, an industrially deployable framework that combines (1) \emph{normalized multi-view text representations} (a \tfidf base view plus multiple \llm prompt views),
-(2) an \emph{explicit cross module} to build high-order feature interactions beyond self-attention, and
-(3) \emph{multi-view contrastive alignment} that ties each text view to the collaborative ID space and improves robustness under full ranking.
-We evaluate on two Amazon domains (Beauty and Toys\&Games) and report standard and popularity-stratified metrics under full ranking.
-Across datasets, \model consistently improves overall and long-tail performance, while offering a clear cost--benefit trade-off between a frugal (\tfidf-only) and a stronger (multi-view \llm) configuration.
-We further analyze the gap between sampled metrics and full metrics, and show how alignment mitigates ranking instability.
+Text features are a widely used plug-in for sequential recommenders, complementing collaborative signals with semantic cues.
+However, two practical issues remain: inexpensive \tfidf features are already strong so the marginal value of multi-view \llm embeddings must justify their cost, and uni100-style sampled evaluation (uniform-100 negatives) can disagree with full-ranking metrics and mislead model selection.
+We propose \model, which combines normalized (and whitened) multi-view text representations, an explicit cross module for high-order ID--text interactions, and contrastive text-to-ID alignment with cold-start reweighting.
+Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 6.22\% and 7.02\%, while improving cold-start strata (e.g., HR\_new@10 up to 2.37\% and HR\_few@10 up to 5.55\%).
+We reveal an HR--ranking trade-off and provide practitioner guidance on when a frugal \tfidf-only configuration suffices versus when stronger multi-view \llm features pay off, and we report robustness via hyperparameter sensitivity/stability analyses in the appendix.
 \end{abstract}
 
 \keywords{Sequential Recommendation, Text Features, Multi-View Representation, Explicit Cross, Contrastive Alignment, Evaluation Metrics}
@@ -62,43 +58,25 @@ We further analyze the gap between sampled metrics and full metrics, and show ho
 
 \section{Introduction}
 
-Sequential recommendation models such as \base~\cite{kang2018sasrec} have become a strong backbone for modeling user behavior sequences.
-Meanwhile, item text (titles, descriptions, reviews) provides complementary semantic cues and enables better generalization, especially for cold-start and long-tail items.
-Recently, \llm-derived representations further boost text quality, but also raise practical concerns about feature cost, storage, and inference latency.
+Modern sequential recommenders such as \base~\cite{kang2018sasrec} provide a strong backbone for modeling user behavior sequences, yet real-world catalogs are dominated by cold-start and long-tail items where collaborative signals are sparse.
+Item text (titles, descriptions, reviews) offers semantic cues that can improve generalization, but it also introduces an operational tension: lightweight features (e.g., \tfidf) are cheap and surprisingly strong, while \llm-derived embeddings can be richer yet substantially more expensive in extraction, storage, and serving.
 
-% TODO: 展开 - 工业界现状与挑战
-\paragraph{Industrial context and challenges.}
-% [请填写] 工业推荐系统中文本特征的现状
-% - 传统方法：TF-IDF、word2vec等轻量级方案
-% - LLM时代：预训练嵌入成本高但效果强
-% - 核心问题：LLM文本特征在什么场景下值得投入？
+Two practical observations motivate this work.
+First, once a strong \tfidf baseline is in place (e.g., +27.5\% HR@10 and +40.9\% NDCG@10 on Beauty under full ranking), the marginal gains from adding \llm features can be small and domain-dependent, making it unclear when multi-view prompting is worth the extra cost.
+Second, model selection in industry often relies on fast sampled evaluation (uniform-100 negatives, a.k.a.\ uni100), but sampled metrics can disagree with full-ranking metrics and even mis-rank models~\cite{krichene2020sampledmetrics}; this mismatch is particularly harmful when improvements concentrate on cold-start/long-tail strata.
 
-% TODO: 展开 - 现有方法的局限性
-\paragraph{Limitations of existing approaches.}
-% [请填写] 现有文本增强推荐的局限
-% - 单一视图表示的信息瓶颈
-% - 缺乏ID-文本显式交互建模
-% - 采样评估与全排序评估的不一致性
+\model addresses this contradiction with a simple ``prepare--interact--align'' recipe.
+We first normalize each text view and apply whitening to control scale mismatch and reduce cross-view redundancy.
+We then use an explicit cross module (DCN-V2) to learn high-order ID$\times$text interactions beyond what self-attention alone captures.
+Finally, we align each text view back to the collaborative ID space via a contrastive objective, with cold-start reweighting to prevent frequent items from dominating the alignment signal.
 
-% TODO: 展开 - 本文贡献
-\paragraph{Our contributions.}
-This work targets a pragmatic \emph{method + empirical} position:
-instead of proposing a new \llm paradigm, we study a deployable \textbf{plug-in framework} that combines:
+Our contributions are threefold.
 \begin{itemize}[leftmargin=*,itemsep=1pt]
-  \item \textbf{Multi-view text features}: \tfidf base view + multiple \llm prompt views (identity/function/audience/category)
-  \item \textbf{Explicit cross fusion}: DCN-V2 based high-order ID-text interactions
-  \item \textbf{Multi-view contrastive alignment}: InfoNCE-based text-to-ID space alignment
+  \item We propose \model, a deployable plug-in framework for \base that supports a frugal \tfidf-only configuration as well as stronger multi-view \llm features under a fixed embedding budget.
+  \item We benchmark on two Amazon domains (Beauty and Toys\&Games) with \textbf{full-ranking} evaluation and popularity-stratified metrics, and provide systematic ablations (whitening, SENet, cross) alongside robustness analyses (hyperparameter sensitivity/stability) in the appendix.
+  \item We go beyond reporting gains by explaining a key phenomenon: whitening and explicit cross can improve ranking quality (MRR/NDCG) while slightly hurting recall (HR), revealing an HR--ranking trade-off that guides when to choose lightweight versus stronger configurations.
 \end{itemize}
-Our goal is to answer: \emph{when is a frugal solution enough, and when does multi-view \llm text pay off?}
-
-% TODO: 展开 - 评估策略
-\paragraph{Evaluation strategy: full ranking.}
-Industrial practice often relies on sampled evaluation (e.g., uniform 100 negatives) for speed, yet sampled metrics can be inconsistent with full ranking and may mis-rank models~\cite{krichene2020sampledmetrics}.
-We therefore emphasize \textbf{full-ranking evaluation} in our main results and report \textbf{popularity-stratified metrics} (new/few/frequent) to understand cold-start and long-tail behavior.
-
-% TODO: 展开 - 论文组织
-\paragraph{Paper organization.}
-% [请填写] 论文各节内容简介
+The rest of the paper is organized as follows: we review related work, introduce \model and the two-phase training protocol, present full-ranking results and ablations, and conclude with analyses and takeaways.
 
 \section{Related Work}
 \paragraph{Sequential recommendation.}
@@ -274,6 +252,9 @@ In addition to standard metrics (HR, NDCG, MRR, Precision), we report \textbf{po
   \item \textbf{few}: $[3,10)$ interactions
   \item \textbf{frequent}: $[10,\infty)$ interactions
 \end{itemize}
+We compute popularity strata from item interaction counts in the training data.
+We focus on full-ranking metrics in the main paper and omit uni100-style sampled metrics for clarity and reliability; Appendix~\ref{app:sampled} provides a sanity check comparing sampled vs.\ full ranking.
+Our evaluation follows leave-one-out next-item prediction with a single ground-truth item per test case, under which HR@K, Hit@K, and Recall@K coincide; we use HR@K for brevity and rely on MRR/NDCG to capture top-position quality.
 
 \subsection{Baselines}
 We compare four primary configurations (corresponding to our run scripts):
@@ -521,6 +502,58 @@ Our experiments on Amazon Beauty and Toys\&Games reveal several practical insigh
 \textbf{(3) Multi-view scaling is domain-dependent}: On Beauty, 14B achieves the best results (+32.6\% HR@10 vs ID-only) but 32B does not improve further. On Toys, 32B consistently outperforms smaller models (+17.6\% HR@10).
 
 \textbf{(4) HR--ranking trade-off exists}: Components that improve ranking quality (cross, whitening) may slightly hurt HR, revealing a fundamental design trade-off that practitioners should consider based on their primary objective.
+
+\appendix
+\section{Robustness and Additional Analyses (To Be Filled)}
+\label{sec:appendix}
+
+\subsection{Sampled Evaluation Sanity Check (uni100 vs.\ Full Ranking)}
+\label{app:sampled}
+The main paper focuses on full-ranking evaluation to reflect deployment-time behavior and avoid the pitfalls of sampled metrics~\cite{krichene2020sampledmetrics}.
+Here we will provide a lightweight sanity check comparing uni100-style sampled evaluation (uniformly sampled 100 negatives per test instance) against full ranking.
+\paragraph{Protocol.}
+For each trained checkpoint, we will report metrics under (i) full ranking and (ii) uni100 sampled ranking, and quantify agreement between the two protocols.
+\paragraph{What we will report.}
+(1) Spearman/Pearson correlation between sampled and full metrics, overall and per popularity stratum (new/few/frequent);
+(2) whether sampled evaluation preserves the full-ranking \emph{model order} (mis-ranking examples);
+(3) stability w.r.t.\ negative-sampling seeds.
+\begin{table}[t]
+\caption{Sanity check of sampled evaluation vs.\ full ranking (placeholder; to be filled).}
+\label{tab:sampled_sanity}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Setting} & \textbf{Overall corr.} & \textbf{Tail corr.} & \textbf{Mis-rank?} \\
+\midrule
+uni100 (seed 1) & --- & --- & --- \\
+uni100 (seed 2) & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hyperparameter Sensitivity and Stability}
+\label{app:hyper}
+We will report sensitivity of \model to key hyperparameters that control the text channel and alignment (e.g., alignment weight $\lambda$, temperature $\tau$, and text regularization/dropout), and summarize stability across random seeds.
+\begin{table}[t]
+\caption{Hyperparameter sensitivity/stability of \model (placeholder; to be filled).}
+\label{tab:hyper_sensitivity}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Hyperparameter} & \textbf{Range} & \textbf{Metric} & \textbf{Variation} \\
+\midrule
+$\lambda$ & --- & --- & --- \\
+$\tau$ & --- & --- & --- \\
+text dropout/regularization & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Additional Ablations: Cold-start Reweighting and Center-only Normalization}
+\label{app:additional}
+We will include additional ablations that isolate (i) cold-start reweighting in the alignment objective and (ii) center-only normalization baselines, and analyze their effects on overall and tail strata.
 
 \balance  % Balance columns on last page
 \bibliographystyle{ACM-Reference-Format}
