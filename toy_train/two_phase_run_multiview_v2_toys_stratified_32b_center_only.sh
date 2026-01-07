@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #set -euo pipefail
 
-# Multi-View V2 Training with Stratified Evaluation (Amazon_Beauty Dataset)
-# 增强版Multi-View模型 - 使用 Qwen2.5-14B embeddings
+# Multi-View V2 Training with Stratified Evaluation (Amazon_Toys_and_Games Dataset)
+# 增强版Multi-View模型 - 使用 Qwen2.5-7B embeddings
 #
 # 改动点汇总（相比 two_phase_run_multiview_split_stratified.sh）：
 # ============================================================
@@ -13,15 +13,17 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-#cd /home/charlie/project/RecBole
+base_dir='/home/ubuntu/own/RecBole'
+cd ${base_dir}
+yaml_dir='/home/ubuntu/own/RecBole/toy_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 echo "========================================="
-echo "Multi-View V2 (14B) with Stratified Metrics (Beauty)"
+echo "Multi-View V2 (7B) with Stratified Metrics (Toys)"
 echo "========================================="
-echo "Dataset: Amazon_Beauty"
-echo "LLM Model: Qwen2.5-14B-Instruct"
+echo "Dataset: Amazon_Toys_and_Games"
+echo "LLM Model: Qwen2.5-7B-Instruct"
 echo ""
 echo "V2 Enhancements:"
 echo "  - Per-view L2 normalization (no cross-view weight normalization)"
@@ -37,10 +39,10 @@ echo ""
 
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
-  --dataset Amazon_Beauty \
-  --config_files "sasrec_align_multi_view_v2_stratified_14b.yaml" \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
   --phase_a_grid \
-  --align_grid "0.15" \
+  --align_grid "0.08" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -49,7 +51,7 @@ python scripts/two_phase_train.py \
   --phase_a_valid_metric "MRR@10" \
   --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
-  --lr_text_head 3e-3 \
+  --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.01 \
   --phase_b_alignment_weight 0.15 \
@@ -58,9 +60,9 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_multiview_v2_stratified \
+  --checkpoint_dir ./saved/phase_runs_multiview_v2_toys_stratified \
   --seed 2025 \
-  --variant_features "sasrec,multiview_v2,14b,4views,per_view_l2_norm,align_scale_2x,beauty,stratified" \
+  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,align_scale_2x,toys,stratified" \
   --watchdog_disable \
   --save
 

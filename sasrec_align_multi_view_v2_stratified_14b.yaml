@@ -68,13 +68,11 @@ train_neg_sample_args: null
 # Text feature sources (TF-IDF base + 4-view Qwen3 split embeddings)
 # /home/ubuntu/own/RecBole/dataset/Amazon_Beauty
 #item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
-item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.center_only.npy
-#item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 #item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.center_only.npy
 item_text_emb_path_llm: ""
-  #item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen2.5_14b_4views
-item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen2.5_14b_4views_center_only
-#item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_14b_4views
+  #item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen3_generative_4views_multiview
+item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_14b_4views
 #item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_7b_4views_center_only
 use_llm: false
 use_align: true

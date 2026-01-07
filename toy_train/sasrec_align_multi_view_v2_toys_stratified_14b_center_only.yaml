@@ -1,7 +1,7 @@
 ---
-# SASRec Multi-View V2 + Stratified Evaluation
-# 增强版Multi-View模型配置
-#
+# SASRec Multi-View V2 + Stratified Evaluation (Amazon_Toys_and_Games Dataset)
+# 增强版Multi-View模型配置 - Qwen2.5-7B
+# 
 # 改动点（相比 sasrec_align_multi_view_stratified.yaml）：
 # 1. model: SASRecAlignMultiViewV2 (使用V2版本)
 # 2. multiview_align_scale: 2.0 (Multi-View专属对齐损失放大)
@@ -17,11 +17,10 @@ inner_size: 256
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-gpu_id: "1"
+gpu_id: "5"
 
-
-# Dataset / data loader
-dataset: Amazon_Beauty
+# Dataset (Amazon_Toys_and_Games specific)
+dataset: Amazon_Toys_and_Games
 field_separator: "\t"
 seq_separator: " "
 USER_ID_FIELD: user_id
@@ -36,7 +35,7 @@ MAX_ITEM_LIST_LENGTH: 50
 POSITION_FIELD: position_id
 load_col:
   inter: [user_id, item_id, rating, timestamp]
-  item: [item_id]
+  item: [item_id, title, categories]
 
 # Training / Evaluation
 epochs: 50
@@ -65,13 +64,10 @@ valid_metric: MRR@10
 loss_type: CE
 train_neg_sample_args: null
 
-# Text feature sources (TF-IDF base + 4-view Qwen3 split embeddings)
-# /home/ubuntu/own/RecBole/dataset/Amazon_Beauty
-#item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
-item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+# Text feature sources (TF-IDF base + 4-view Qwen2.5-7B split embeddings)
+item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.base.center_only.npy
 item_text_emb_path_llm: ""
-  #item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Beauty/qwen3_generative_4views_multiview
-item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/qwen2.5_32b_4views
+item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/qwen2.5_14b_4views_center_only
 use_llm: false
 use_align: true
 use_cross: true
@@ -136,3 +132,4 @@ freeze_backbone: false
 align_exclude_topk: 0
 fuse_text_feature: true
 use_fusion: false
+

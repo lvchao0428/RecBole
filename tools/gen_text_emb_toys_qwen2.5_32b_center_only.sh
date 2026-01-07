@@ -28,8 +28,8 @@ MODEL_NAME="qwen2.5_32b"
 # ==========================================
 # GPU 配置 - 使用多张GPU (根据实际情况修改)
 # ==========================================
-#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+#export CUDA_VISIBLE_DEVICES=7
 
 # ==========================================
 # 性能优化环境变量
