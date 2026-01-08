@@ -46,7 +46,8 @@ Explicit Cross and Alignment for Reliable Full-Ranking Gains}
 
 \begin{abstract}
 Text features are a widely used plug-in for sequential recommenders, complementing collaborative signals with semantic cues.
-However, two practical issues remain: inexpensive \tfidf features are already strong so the marginal value of multi-view \llm embeddings must justify their cost, and uni100-style sampled evaluation (uniform-100 negatives) can disagree with full-ranking metrics and mislead model selection.
+However, the marginal gain of multi-view \llm embeddings over simpler alternatives (\tfidf, single-view \llm) is often small and domain-dependent, raising questions about when the added complexity is justified.
+Compounding this, sampled evaluation (e.g., uniform-100 negatives) can disagree with full-ranking metrics, especially for cold-start items, potentially misleading model selection.
 We propose \model, which combines normalized (and whitened) multi-view text representations, an explicit cross module for high-order ID--text interactions, and contrastive text-to-ID alignment with cold-start reweighting.
 Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 6.22\% and 7.02\%, while improving cold-start strata (e.g., HR\_new@10 up to 2.37\% and HR\_few@10 up to 5.55\%).
 We reveal an HR--ranking trade-off and provide practitioner guidance on when a frugal \tfidf-only configuration suffices versus when stronger multi-view \llm features pay off, and we report robustness via hyperparameter sensitivity/stability analyses in the appendix.
