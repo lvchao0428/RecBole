@@ -108,7 +108,7 @@ text_view_half_precision: true
 
 # Alignment and gating
 alignment_weight: 0.05
-temperature: 0.07
+temperature: 0.05
 detach_text_emb: true
 normalize_text: true
 text_weight: 1.0

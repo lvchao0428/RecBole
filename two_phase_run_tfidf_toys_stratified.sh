@@ -28,7 +28,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_toys_base_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.08" \
+  --align_grid "0.15" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \

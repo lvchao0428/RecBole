@@ -49,7 +49,7 @@ python scripts/two_phase_train.py \
   --phase_a_valid_metric "MRR@10" \
   --metric_baseline 0.0272 \
   --metric_gain_threshold 0.01 \
-  --lr_text_head 3e-3 \
+  --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.01 \
   --phase_b_alignment_weight 0.15 \
