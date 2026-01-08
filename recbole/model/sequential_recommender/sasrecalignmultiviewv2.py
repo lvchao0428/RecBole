@@ -41,6 +41,13 @@ SASRecAlignMultiView V2 - Enhanced Multi-View Text Features
     - 权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
     - 搜索标记: # [CHANGE-6]
 
+【改动7】alignment_weight 影响推理时文本融合强度
+    - 位置: _get_fused_item_embeddings() 方法
+    - 原因: 和老版 SASRecAlign 保持一致，让 alignment_weight 不仅影响训练 loss，也影响推理
+    - 公式: effective_text_weight = alpha * text_weight * (1 + alignment_weight) * (0.07 / temperature)
+    - 效果: alignment_weight 越大，推理时文本通道越强；temperature 越小，文本通道越强
+    - 搜索标记: # [CHANGE-7]
+
 配置示例 (yaml):
 ===============
 multiview_align_scale: 2.0      # Multi-View专属对齐损失放大
@@ -48,6 +55,8 @@ text_view_senet_ratio: 2        # SENet压缩比（原默认4）
 per_view_l2_norm: true          # 每个view独立L2归一化
 cold_start_align_boost: 3.0     # 冷启动对齐权重增强（0=关闭）
 cold_start_align_threshold: 10  # 冷启动阈值（popularity低于此值获得额外权重）
+alignment_weight: 0.15          # 同时影响训练对齐loss强度和推理文本融合强度
+temperature: 0.05               # 同时影响训练InfoNCE和推理文本融合强度
 """
 
 import json
@@ -438,13 +447,14 @@ class SASRecAlignMultiViewV2(SASRecAlign):
             gate = gate.to(item_emb.device).unsqueeze(1)
             alpha = alpha * gate
         
-        # Temperature and alignment scaling
-        if hasattr(self, 'alignment_temp_scale_flag') and self.alignment_temp_scale_flag:
-            temp_scale = 1.0 / self.temperature if self.temperature > 0 else 1.0
-        else:
-            temp_scale = 1.0
+        # Temperature and alignment scaling for inference
+        # [CHANGE-7] 让 alignment_weight 也能影响推理时的文本融合强度（和老版 SASRecAlign 一致）
+        # align_scale: 1.0 + alignment_weight，alignment_weight 越大，推理时文本通道越强
+        # temp_scale: 0.07 / temperature，temperature 越小，推理时文本通道越强
+        align_scale = (1.0 + self.alignment_weight) if self.alignment_weight > 0 else 1.0
+        temp_scale = (0.07 / self.temperature) if self.temperature > 0 else 1.0
             
-        effective_text_weight = alpha * self.text_weight * temp_scale
+        effective_text_weight = alpha * self.text_weight * align_scale * temp_scale
         
         # Use cross network fusion if enabled
         if self.use_cross and self.item_fusion_predictor is not None:

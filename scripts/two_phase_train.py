@@ -655,6 +655,7 @@ def main(local_rank=None, queue=None, dist_config=None):
     parser.add_argument("--phase_b_epochs", type=int, default=40, help="epochs for Phase-B")
     parser.add_argument("--phase_a_alignment_weight", type=float, default=None, help="override Phase-A alignment_weight (disabled when using grid)")
     parser.add_argument("--phase_b_alignment_weight", type=float, default=None, help="override Phase-B alignment_weight")
+    parser.add_argument("--phase_b_temperature", type=float, default=None, help="override Phase-B temperature (tau)")
     parser.add_argument("--phase_a_text_gate_reg_l2", type=float, default=None, help="override Phase-A text_gate_reg_l2")
     parser.add_argument("--phase_b_text_gate_reg_l2", type=float, default=None, help="override Phase-B text_gate_reg_l2")
     parser.add_argument("--phase_b_text_weight", type=float, default=None, help="override Phase-B text_weight")
@@ -788,6 +789,9 @@ def main(local_rank=None, queue=None, dist_config=None):
         if burnin_ckpt:
             logger_burn.info(set_color("[Burn-in] Saved checkpoint", "green") + f": {burnin_ckpt}")
         _release_phase_resources("Burn-in", model_burn, trainer_burn, dataset_burn, train_burn, valid_burn, test_burn)
+    # Track selected temperature from Phase-A so Phase-B can inherit it (esp. when Phase-A grid is used)
+    selected_temperature = None
+
     if not args.only_phase_b:
         phase_a_progress_logger = PhaseProgressLogger("phase_a_progress")
         phase_a_progress_path = phase_a_progress_logger.path
@@ -985,6 +989,7 @@ def main(local_rank=None, queue=None, dist_config=None):
             if best_tuple is not None:
                 phase_a_ckpt = best_tuple[4]
                 res_a = best_tuple[3]
+                selected_temperature = best_tuple[2]
                 logger = getLogger()
                 logger.info(set_color("[Phase-A:grid] Grid complete. Best combo", "blue") + f": {args.phase_a_valid_metric}={best_tuple[0]:.6f}, alignment_weight={best_tuple[1]}, temperature={best_tuple[2]}")
                 if metric_target is not None:
@@ -1006,6 +1011,10 @@ def main(local_rank=None, queue=None, dist_config=None):
             }
             if args.phase_a_alignment_weight is not None:
                 phase_a_dict["alignment_weight"] = float(args.phase_a_alignment_weight)
+            # Optional: allow Phase-A to set temperature by directly editing config/YAML;
+            # if Phase-A dict contains it (e.g., via external merge), remember it for Phase-B.
+            if "temperature" in phase_a_dict:
+                selected_temperature = phase_a_dict["temperature"]
             if args.phase_a_text_gate_reg_l2 is not None:
                 phase_a_dict["text_gate_reg_l2"] = float(args.phase_a_text_gate_reg_l2)
             # Optional user overrides
@@ -1179,6 +1188,13 @@ def main(local_rank=None, queue=None, dist_config=None):
         }
         if args.phase_b_alignment_weight is not None:
             phase_b_dict["alignment_weight"] = float(args.phase_b_alignment_weight)
+        # Temperature handling for Phase-B:
+        # - If user explicitly sets --phase_b_temperature, use it.
+        # - Else, if Phase-A grid selected a temperature, inherit it so Phase-B is consistent with Phase-A selection.
+        if args.phase_b_temperature is not None:
+            phase_b_dict["temperature"] = float(args.phase_b_temperature)
+        elif selected_temperature is not None:
+            phase_b_dict["temperature"] = float(selected_temperature)
         if args.phase_b_text_gate_reg_l2 is not None:
             phase_b_dict["text_gate_reg_l2"] = float(args.phase_b_text_gate_reg_l2)
         if args.phase_b_text_weight is not None:
