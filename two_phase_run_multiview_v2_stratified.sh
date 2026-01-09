@@ -8,9 +8,12 @@
 # ============================================================
 # 1. 模型: SASRecAlignMultiViewV2 (使用V2版本)
 # 2. 每个view独立L2归一化（而不是跨view权重归一化）
-# 3. multiview_align_scale: 2.0 (对齐损失放大)
+# 3. multiview_align_scale: 1.0 (训练对齐损失)
 # 4. text_view_senet_ratio: 2 (减少信息压缩)
-# 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
+# 5. alignment_weight: 0.10 (折中值，同时影响训练+推理)
+# 6. text_weight: 0.7 (补偿CHANGE-7带来的推理放大)
+# 7. cold_start_align_boost: 3.0 (开启冷启动加权)
+# 8. cross_dropout_prob: 0.15 (降低以稳定排序)
 # ============================================================
 
 #cd /home/charlie/project/RecBole
@@ -20,11 +23,16 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 echo "========================================="
 echo "Multi-View V2 with Stratified Metrics"
 echo "========================================="
-echo "V2 Enhancements:"
+echo "V2 Enhancements (with CHANGE-7: alignment affects inference):"
 echo "  - Per-view L2 normalization (no cross-view weight normalization)"
-echo "  - multiview_align_scale: 2.0 (alignment loss amplification)"
-echo "  - text_view_senet_ratio: 2 (less compression)"
-echo "  - alignment_weight: 0.15 (3x stronger)"
+echo "  - alignment_weight: 0.10 (affects both training loss AND inference fusion)"
+echo "  - text_weight: 0.7 (compensate for align_scale × temp_scale amplification)"
+echo "  - cold_start_align_boost: 3.0 (boost alignment for new/few items)"
+echo "  - cross_dropout_prob: 0.15 (stabilize ranking)"
+echo ""
+echo "Inference text weight formula:"
+echo "  effective = alpha × text_weight × (1 + align_weight) × (0.07 / temp)"
+echo "            ≈ 0.67 × 0.7 × 1.10 × 1.4 ≈ 0.72"
 echo ""
 echo "Item Stratification:"
 echo "  - new:      [1, 3)   interactions"
@@ -37,7 +45,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_multi_view_v2_stratified.yaml" \
   --phase_a_grid \
-  --align_grid "0.15" \
+  --align_grid "0.10" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -49,15 +57,15 @@ python scripts/two_phase_train.py \
   --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_text_gate_reg_l2 0.01 \
-  --phase_b_alignment_weight 0.15 \
+  --phase_b_alignment_weight 0.10 \
   --phase_b_text_gate_reg_l2 0.03 \
-  --phase_b_text_weight 1.0 \
+  --phase_b_text_weight 0.7 \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_multiview_v2_stratified \
   --seed 2025 \
-  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,beauty,stratified" \
+  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,cold_boost,beauty,stratified" \
   --watchdog_disable \
   --save
 
@@ -65,15 +73,16 @@ echo ""
 echo "========================================="
 echo "✅ Training Done!"
 echo "========================================="
-echo "V2 Model Changes:"
+echo "V2 Model Changes (with CHANGE-7):"
 echo "  - Per-view L2 normalization (each view normalized independently)"
-echo "  - No cross-view weight normalization (each view contributes 0~1)"
-echo "  - multiview_align_scale=2.0 (alignment loss 2x stronger)"
-echo "  - alignment_weight=0.15 (3x vs original 0.05)"
-echo "  - text_view_senet_ratio=2 (128-dim reduction vs 64-dim)"
+echo "  - alignment_weight=0.10 (affects training + inference)"
+echo "  - text_weight=0.7 (compensate for inference amplification)"
+echo "  - cold_start_align_boost=3.0 (boost new/few items)"
+echo "  - cross_dropout_prob=0.15 (stabilize ranking)"
+echo "  - text_view_senet_ratio=2 (128-dim reduction)"
 echo ""
 echo "Stratified metrics in results:"
 echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"
 echo "  - NDCG_new@10, NDCG_few@10, NDCG_frequent@10"
-echo "  - Coverage_new@10, Coverage_few@10, Coverage_frequent@10"
+echo "  - MRR_new@10, MRR_few@10, MRR_frequent@10"
 echo ""
