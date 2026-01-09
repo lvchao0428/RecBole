@@ -1,0 +1,136 @@
+---
+# SASRec Multi-View V2 + Stratified Evaluation (Amazon_Toys_and_Games Dataset)
+# ============================================================
+# 压榨版配置 - 对齐 Beauty 的成功配置
+# 
+# 目标: 让 Toys 的 no-whiten 趋势与 Beauty 一致
+# 假设: Toys 的 text 特征没有充分学习
+# 方案: 增强对齐强度，使用 cold_start_boost 替代 IPW
+# ============================================================
+
+model: SASRecAlignMultiViewV2
+hidden_size: 256
+fusion_chunk_size: 16384
+n_layers: 2
+n_heads: 2
+inner_size: 256
+hidden_act: gelu
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+gpu_id: "2"
+
+# Dataset (Amazon_Toys_and_Games specific)
+dataset: Amazon_Toys_and_Games
+field_separator: "\t"
+seq_separator: " "
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+LABEL_FIELD: label
+NEG_PREFIX: neg_
+RATING_FIELD: rating
+TIME_FIELD: timestamp
+ITEM_LIST_LENGTH_FIELD: item_length
+LIST_SUFFIX: _list
+MAX_ITEM_LIST_LENGTH: 50
+POSITION_FIELD: position_id
+load_col:
+  inter: [user_id, item_id, rating, timestamp]
+  item: [item_id, title, categories]
+
+# Training / Evaluation
+epochs: 50
+train_batch_size: 512
+eval_batch_size: 512
+learning_rate: 0.0001
+eval_step: 5
+stopping_step: 20
+clip_grad_norm: { max_norm: 5 }
+eval_args:
+  group_by: user
+  order: TO
+  split: {'LS': 'valid_and_test'}
+  mode:  {'valid': 'full','test':'full'}
+eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
+topk: [5, 10, 20]
+
+# 评估指标：标准指标 + 分档指标
+metrics: [
+  Recall, MRR, NDCG, Hit, Precision,
+  StratifiedRecall, StratifiedNDCG, StratifiedMRR, StratifiedHit,
+  ItemPopularityStats
+]
+
+valid_metric: MRR@10
+loss_type: CE
+train_neg_sample_args: null
+
+# Text feature sources (TF-IDF base + 4-view Qwen2.5-7B split embeddings)
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
+item_text_emb_path_llm: ""
+item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
+use_llm: false
+use_align: true
+use_cross: true
+text_cross_layer_num: 1
+use_seq_text_cross: false
+use_text_view_split: true
+use_multiview_text_cross: true
+num_text_views: 4
+
+# ========== V2 配置 (对齐 Beauty) ==========
+# [CHANGE] multiview_align_scale: 保持 1.0，不额外放大
+multiview_align_scale: 1.0
+
+# [CHANGE] SENet压缩比
+text_view_senet_ratio: 2
+
+# [CHANGE] 每个view独立L2归一化
+per_view_l2_norm: true
+
+# ========== 关键修改：对齐 Beauty ==========
+# [CHANGE-1] 使用 cold_start_align_boost 替代 IPW
+# Beauty 证明 cold_start_boost=3.0 有效
+cold_start_align_boost: 3.0       # 从 0 改为 3.0
+cold_start_align_threshold: 10
+
+# [CHANGE-2] 关闭 IPW（用 cold_start 替代）
+use_ipw_weighting: false          # 从 true 改为 false
+
+# ================================
+
+text_view_half_precision: true
+
+# ========== 对齐 Beauty 的核心参数 ==========
+# [CHANGE-3] 增强对齐强度
+alignment_weight: 0.10            # 从 0.05 改为 0.10 (和 Beauty 一致)
+temperature: 0.05                 # 从 0.07 改为 0.05 (更紧的 InfoNCE)
+
+# [CHANGE-4] 降低 text_weight，补偿增强的对齐
+text_weight: 0.7                  # 从 1.0 改为 0.7 (和 Beauty 一致)
+
+detach_text_emb: true
+normalize_text: true
+text_tail_threshold: 0
+text_gate_init: 0.7
+text_gate_reg_l2: 0.05
+text_gate_reg_entropy: 0.0
+
+# Regularization & scoring
+weight_decay: 1e-5
+label_smoothing: 0.1
+hidden_dropout_prob: 0.2
+attn_dropout_prob: 0.2
+token_dropout_prob: 0.2
+cross_dropout_prob: 0.15          # 从 0.2 改为 0.15 (和 Beauty 一致)
+cosine_score: true
+cosine_scale: 10.0
+
+# Stabilizers
+text_proj_norm: true
+fused_item_norm: true
+disable_text_feature: false
+text_mlp_bn: false
+freeze_backbone: false
+align_exclude_topk: 0
+fuse_text_feature: true
+use_fusion: false
