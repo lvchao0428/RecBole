@@ -48,13 +48,36 @@ SASRecAlignMultiView V2 - Enhanced Multi-View Text Features
     - 效果: alignment_weight 越大，推理时文本通道越强；temperature 越小，文本通道越强
     - 搜索标记: # [CHANGE-7]
 
+【改动8】IPW (Inverse Propensity Weighting) 对齐权重
+    - 位置: _compute_ipw_weights(), _compute_align_weights() 方法
+    - 原因: 比 cold_start_align_boost 更平滑优雅，无硬阈值，有因果推断理论支持
+    - 公式: weight = 1.0 + (max_weight - 1.0) * clamp((log(threshold+1) - log(pop+1)) / log(threshold+1), 0, 1) ** alpha
+    - 效果: 高频物品(pop>=threshold)权重≈1.0，低频物品权重逐渐增加，全局平滑无拐点
+    - 配置项:
+        use_ipw_weighting: true       # 启用 IPW（优先于 cold_start_align_boost）
+        ipw_threshold: 10             # 高频阈值，与分层评估 frequent 阈值对齐
+        ipw_alpha: 0.5                # 曲线形状，>1更陡峭，<1更平缓
+        ipw_max_weight: 4.0           # 最大权重（对应 pop=0）
+        ipw_clip_min: 0.5             # 权重下限
+        ipw_clip_max: 10.0            # 权重上限
+    - 搜索标记: # [IPW]
+
 配置示例 (yaml):
 ===============
 multiview_align_scale: 2.0      # Multi-View专属对齐损失放大
 text_view_senet_ratio: 2        # SENet压缩比（原默认4）
 per_view_l2_norm: true          # 每个view独立L2归一化
-cold_start_align_boost: 3.0     # 冷启动对齐权重增强（0=关闭）
-cold_start_align_threshold: 10  # 冷启动阈值（popularity低于此值获得额外权重）
+
+# 方案A: 使用 IPW（推荐，更平滑）
+use_ipw_weighting: true         # 启用 IPW
+ipw_threshold: 10               # 高频阈值，与分层评估 frequent 阈值对齐
+ipw_alpha: 0.5                  # 曲线形状
+ipw_max_weight: 4.0             # 最大权重
+
+# 方案B: 使用 cold_start（简单直观）
+# cold_start_align_boost: 3.0   # 冷启动对齐权重增强（0=关闭）
+# cold_start_align_threshold: 10  # 冷启动阈值
+
 alignment_weight: 0.15          # 同时影响训练对齐loss强度和推理文本融合强度
 temperature: 0.05               # 同时影响训练InfoNCE和推理文本融合强度
 """
@@ -271,13 +294,19 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                     "DCN-V2 layers: disabled (use_cross=False)"
                 )
             # [CHANGE-6] 记录冷启动对齐权重配置
-            if self.cold_start_align_boost > 0:
+            # [IPW] 优先记录 IPW，否则记录 cold_start
+            if self.use_ipw_weighting:
+                self.logger.info(
+                    "IPW alignment weighting: enabled (threshold=%d, alpha=%.2f, max_weight=%.2f, clip=[%.2f, %.2f])",
+                    self.ipw_threshold, self.ipw_alpha, self.ipw_max_weight, self.ipw_clip_min, self.ipw_clip_max
+                )
+            elif self.cold_start_align_boost > 0:
                 self.logger.info(
                     "Cold-start alignment boost: enabled (boost=%.2f, threshold=%d)",
                     self.cold_start_align_boost, self.cold_start_align_threshold
                 )
             else:
-                self.logger.info("Cold-start alignment boost: disabled (boost=0)")
+                self.logger.info("Alignment weighting: disabled (no IPW, no cold_start_boost)")
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
         """Get the embedding buffer for a specific view."""
@@ -549,6 +578,28 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         
         return weights
 
+    def _compute_align_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
+        """统一的对齐权重计算接口 (覆写基类方法)。
+        
+        优先使用 IPW，如果未启用则回退到 cold_start_align_boost。
+        
+        [IPW] Inverse Propensity Weighting:
+        - 使用对数平滑，高频物品权重≈1.0，低频物品权重更高
+        - 比 cold_start 更平滑，无硬阈值
+        
+        Args:
+            item_ids: Item IDs [B]
+            
+        Returns:
+            weights: Per-item weights [B]
+        """
+        if self.use_ipw_weighting:
+            return self._compute_ipw_weights(item_ids)
+        elif self.cold_start_align_boost > 0:
+            return self._compute_cold_start_weights(item_ids)
+        else:
+            return torch.ones(item_ids.size(0), device=item_ids.device)
+
     def calculate_loss(self, interaction):
         """
         Calculate loss with per-view alignment losses.
@@ -582,18 +633,18 @@ class SASRecAlignMultiViewV2(SASRecAlign):
             if self.detach_text_emb:
                 view_stack = view_stack.detach()
             
-            # [CHANGE-6] 计算冷启动权重
-            cold_start_weights = self._compute_cold_start_weights(pos_items)  # [B]
-            use_weighted_align = self.cold_start_align_boost > 0
+            # [CHANGE-6 + IPW] 计算对齐权重（优先 IPW，否则 cold_start）
+            align_weights = self._compute_align_weights(pos_items)  # [B]
+            use_weighted_align = self.use_ipw_weighting or self.cold_start_align_boost > 0
             
             # Calculate alignment loss for each view separately
             per_view_align_losses = []
             for idx in range(self.num_text_views):
                 view_feat = view_stack[:, idx, :]  # [B, hidden_size]
                 
-                # [CHANGE-6] 使用加权或普通 InfoNCE 对齐损失
+                # [CHANGE-6 + IPW] 使用加权或普通 InfoNCE 对齐损失
                 if use_weighted_align:
-                    align_loss_i = self._info_nce_align_weighted(id_item_emb, view_feat, cold_start_weights)
+                    align_loss_i = self._info_nce_align_weighted(id_item_emb, view_feat, align_weights)
                 else:
                     align_loss_i = self._info_nce_align(id_item_emb, view_feat)
                 per_view_align_losses.append(align_loss_i)
@@ -632,19 +683,26 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                         "  view_gates (no normalization)=[%s]",
                         view_gate_str
                     )
-                    # [CHANGE-6] 记录冷启动权重信息
+                    # [CHANGE-6 + IPW] 记录对齐权重信息
                     if use_weighted_align:
-                        min_w = cold_start_weights.min().item()
-                        max_w = cold_start_weights.max().item()
-                        mean_w = cold_start_weights.mean().item()
-                        cold_count = (cold_start_weights > 1.01).sum().item()
-                        self.logger.info(
-                            "  cold_start_align: boost=%.2f, threshold=%d, weights=[min=%.2f, max=%.2f, mean=%.2f], cold_items=%d/%d",
-                            self.cold_start_align_boost, self.cold_start_align_threshold,
-                            min_w, max_w, mean_w, cold_count, cold_start_weights.size(0)
-                        )
+                        min_w = align_weights.min().item()
+                        max_w = align_weights.max().item()
+                        mean_w = align_weights.mean().item()
+                        boosted_count = (align_weights > 1.01).sum().item()
+                        if self.use_ipw_weighting:
+                            self.logger.info(
+                                "  IPW weighting: threshold=%d, alpha=%.2f, max_weight=%.2f, weights=[min=%.2f, max=%.2f, mean=%.2f], boosted_items=%d/%d",
+                                self.ipw_threshold, self.ipw_alpha, self.ipw_max_weight,
+                                min_w, max_w, mean_w, boosted_count, align_weights.size(0)
+                            )
+                        else:
+                            self.logger.info(
+                                "  cold_start_align: boost=%.2f, threshold=%d, weights=[min=%.2f, max=%.2f, mean=%.2f], cold_items=%d/%d",
+                                self.cold_start_align_boost, self.cold_start_align_threshold,
+                                min_w, max_w, mean_w, boosted_count, align_weights.size(0)
+                            )
                     else:
-                        self.logger.info("  cold_start_align: disabled (boost=0)")
+                        self.logger.info("  alignment weighting: disabled (no IPW, no cold_start)")
                 except Exception:
                     pass
                 self._multiview_align_debug_logged = True

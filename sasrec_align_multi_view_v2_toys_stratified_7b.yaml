@@ -7,6 +7,7 @@
 # 2. multiview_align_scale: 2.0 (Multi-View专属对齐损失放大)
 # 3. text_view_senet_ratio: 2 (SENet压缩比从4降到2)
 # 4. per_view_l2_norm: true (每个view独立L2归一化)
+# 5. use_ipw_weighting: true (IPW 对齐权重，替代 cold_start)
 
 model: SASRecAlignMultiViewV2
 hidden_size: 256
@@ -17,7 +18,7 @@ inner_size: 256
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-gpu_id: "1"
+gpu_id: "2"
 
 # Dataset (Amazon_Toys_and_Games specific)
 dataset: Amazon_Toys_and_Games
@@ -65,9 +66,11 @@ loss_type: CE
 train_neg_sample_args: null
 
 # Text feature sources (TF-IDF base + 4-view Qwen2.5-7B split embeddings)
-item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.center_only.npy
+#item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.center_only.npy
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
 item_text_emb_path_llm: ""
-item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views_center_only
+#item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views_center_only
+item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
 use_llm: false
 use_align: true
 use_cross: true
@@ -90,14 +93,20 @@ text_view_senet_ratio: 2
 # [CHANGE-5] 每个view独立L2归一化
 per_view_l2_norm: true
 
-# [CHANGE-6] 冷启动对齐权重增强
-# 问题: 对齐损失被高频商品主导，冷启动商品的对齐信号弱
-# 解决: 给低频商品更高的对齐损失权重
-# 权重公式: weight = 1.0 + boost * max(0, threshold - popularity) / threshold
-# - cold_start_align_boost: 增强系数 (0=关闭，建议2.0-5.0)
-# - cold_start_align_threshold: 低于此popularity的商品获得额外权重
-cold_start_align_boost: 0       # 冷启动商品最高获得 1+3=4倍 对齐权重
-cold_start_align_threshold: 10    # popularity < 10 的商品获得额外权重
+# [CHANGE-6] 冷启动对齐权重增强 (legacy, 已被 IPW 替代)
+# cold_start_align_boost: 0
+# cold_start_align_threshold: 10
+
+# [CHANGE-8] IPW (Inverse Propensity Weighting) - 推荐使用
+# 比 cold_start 更平滑优雅，无硬阈值，有因果推断理论支持
+# 公式: weight = 1.0 + (max_weight - 1.0) * clamp((log(threshold+1) - log(pop+1)) / log(threshold+1), 0, 1) ** alpha
+# 效果: 高频物品(pop>=threshold)权重≈1.0，低频物品权重逐渐增加，全局平滑无拐点
+use_ipw_weighting: true           # 启用 IPW（优先于 cold_start_align_boost）
+ipw_threshold: 10                 # 高频阈值，与分层评估 frequent 阈值对齐
+ipw_alpha: 0.5                    # 曲线形状，>1更陡峭，<1更平缓
+ipw_max_weight: 4.0               # 最大权重（对应 pop=0）
+ipw_clip_min: 0.5                 # 权重下限
+ipw_clip_max: 10.0                # 权重上限
 # ================================
 
 text_view_half_precision: true

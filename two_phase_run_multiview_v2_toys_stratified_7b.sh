@@ -11,6 +11,10 @@
 # 3. multiview_align_scale: 2.0 (对齐损失放大)
 # 4. text_view_senet_ratio: 2 (减少信息压缩)
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
+# 6. [IPW] use_ipw_weighting: true (平滑的逆倾向加权，替代 cold_start)
+#    - ipw_threshold: 10 (与分层评估 frequent 阈值对齐)
+#    - ipw_alpha: 0.5 (曲线形状)
+#    - ipw_max_weight: 4.0 (最大权重)
 # ============================================================
 
 #cd /home/ubuntu/own/RecBole
@@ -29,6 +33,11 @@ echo "  - multiview_align_scale: 2.0 (alignment loss amplification)"
 echo "  - text_view_senet_ratio: 2 (less compression)"
 echo "  - alignment_weight: 0.15 (3x stronger)"
 echo ""
+echo "IPW (Inverse Propensity Weighting):"
+echo "  - use_ipw_weighting: true (smoother than cold_start)"
+echo "  - ipw_threshold: 10 (pop >= 10 → weight ≈ 1.0)"
+echo "  - ipw_alpha: 0.5, ipw_max_weight: 4.0"
+echo ""
 echo "Item Stratification:"
 echo "  - new:      [1, 3)   interactions"
 echo "  - few:      [3, 10)  interactions"
@@ -40,7 +49,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
   --phase_a_grid \
-  --align_grid "0.08" \
+  --align_grid "0.15" \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 10 \
   --burnin_eval_step 2 \
@@ -60,7 +69,7 @@ python scripts/two_phase_train.py \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_multiview_v2_toys_stratified \
   --seed 2025 \
-  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,align_scale_2x,toys,stratified" \
+  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,align_scale_2x,ipw,toys,stratified" \
   --watchdog_disable \
   --save
 
@@ -74,6 +83,11 @@ echo "  - No cross-view weight normalization (each view contributes 0~1)"
 echo "  - multiview_align_scale=2.0 (alignment loss 2x stronger)"
 echo "  - alignment_weight=0.15 (3x vs original 0.05)"
 echo "  - text_view_senet_ratio=2 (128-dim reduction vs 64-dim)"
+echo ""
+echo "IPW alignment weighting:"
+echo "  - threshold=10, alpha=0.5, max_weight=4.0"
+echo "  - pop >= 10: weight ≈ 1.0 (frequent items)"
+echo "  - pop < 10: weight smoothly increases (new/few items)"
 echo ""
 echo "Stratified metrics in results:"
 echo "  - Recall_new@10, Recall_few@10, Recall_frequent@10"

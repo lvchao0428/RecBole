@@ -25,3 +25,15 @@ text_cross_layer_num: 3
 multiview_align_scale: 1.0
 text_view_senet_ratio: 2
 per_view_l2_norm: true
+
+# Cold-start alignment (legacy, use IPW instead)
+cold_start_align_boost: 0.0
+cold_start_align_threshold: 10
+
+# IPW (Inverse Propensity Weighting) - recommended over cold_start
+use_ipw_weighting: false
+ipw_threshold: 10      # 高频阈值，pop >= threshold 时 weight ≈ 1.0（与 frequent 阈值对齐）
+ipw_alpha: 0.5         # 曲线形状，>1 更陡峭，<1 更平缓
+ipw_max_weight: 4.0    # 最大权重（对应 pop=0）
+ipw_clip_min: 0.5
+ipw_clip_max: 10.0

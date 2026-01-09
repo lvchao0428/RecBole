@@ -141,6 +141,19 @@ class SASRecAlign(SequentialRecommender):
         # - cold_start_align_threshold: 低于此popularity的商品获得额外权重
         self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
         self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
+        
+        # [IPW] Inverse Propensity Weighting for alignment loss
+        # - use_ipw_weighting: 是否启用 IPW 权重（优先于 cold_start_align_boost）
+        # - ipw_threshold: 高频阈值，pop >= threshold 时 weight ≈ 1.0（与分层评估 frequent 阈值对齐）
+        # - ipw_alpha: 控制曲线形状，>1 更陡峭（低频物品权重增长更快），<1 更平缓
+        # - ipw_max_weight: 最大权重（对应 pop=0），类似 1+boost
+        # - ipw_clip_min/max: 权重裁剪范围，防止极端值
+        self.use_ipw_weighting = bool(config["use_ipw_weighting"]) if "use_ipw_weighting" in config else False
+        self.ipw_threshold = int(config["ipw_threshold"]) if "ipw_threshold" in config else 10  # 与 frequent 阈值对齐
+        self.ipw_alpha = float(config["ipw_alpha"]) if "ipw_alpha" in config else 0.5
+        self.ipw_max_weight = float(config["ipw_max_weight"]) if "ipw_max_weight" in config else 4.0
+        self.ipw_clip_min = float(config["ipw_clip_min"]) if "ipw_clip_min" in config else 0.5
+        self.ipw_clip_max = float(config["ipw_clip_max"]) if "ipw_clip_max" in config else 10.0
         # New: simple non-cross enhancements
         self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
         self.text_tail_threshold = int(config["text_tail_threshold"]) if "text_tail_threshold" in config else 0
@@ -248,6 +261,8 @@ class SASRecAlign(SequentialRecommender):
         except Exception:
             pop_counts = np.zeros((self.n_items,), dtype=np.int64)
         self.register_buffer("item_popularity", torch.from_numpy(pop_counts).long())
+        # [IPW] 预计算最大 popularity 用于 IPW 权重归一化
+        self.max_popularity = int(pop_counts.max()) if pop_counts.max() > 0 else 1
         if self.text_tail_threshold > 0:
             gate = (self.item_popularity <= int(self.text_tail_threshold)).float()
         else:
@@ -747,6 +762,73 @@ class SASRecAlign(SequentialRecommender):
         weights = 1.0 + self.cold_start_align_boost * cold_factor  # [1.0, 1.0 + boost]
         
         return weights
+
+    def _compute_ipw_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
+        """[IPW] 计算 Inverse Propensity Weighting 权重。
+        
+        使用对数平滑的 IPW，确保：
+        - popularity >= ipw_threshold 时，weight ≈ 1.0（与分层评估 frequent 阈值对齐）
+        - popularity = 0 时，weight = ipw_max_weight
+        - 中间平滑过渡，无硬阈值
+        
+        公式:
+            threshold = ipw_threshold  # 默认 10，与 frequent 阈值对齐
+            log_threshold = log(threshold + 1)
+            log_pop = log(pop + 1)
+            normalized = clamp((log_threshold - log_pop) / log_threshold, 0, 1)
+            weight = 1.0 + (max_weight - 1.0) * normalized ** alpha
+        
+        Args:
+            item_ids: Item IDs [B]
+            
+        Returns:
+            weights: Per-item weights [B], 高频物品(pop>=threshold)权重≈1.0，低频物品权重更高
+        """
+        if not self.use_ipw_weighting:
+            return torch.ones(item_ids.size(0), device=item_ids.device)
+        
+        # 获取 item popularity
+        item_pop = self.item_popularity[item_ids].float()  # [B]
+        threshold = float(self.ipw_threshold)  # 高频阈值，与分层评估的 frequent 阈值对齐
+        
+        # 对数平滑 IPW（基于 threshold 而非 max_pop）
+        # 让 pop >= threshold 时 weight ≈ 1.0
+        log_threshold = torch.log(torch.tensor(threshold + 1.0, device=item_ids.device))
+        log_pop = torch.log(item_pop + 1.0)  # +1 防止 log(0)
+        log_ratio = log_threshold - log_pop  # pop >= threshold 时 <= 0，pop = 0 时 = log_threshold
+        
+        # 归一化到 [0, 1]：pop >= threshold 时为 0，pop = 0 时为 1
+        # 使用 clamp 确保 pop > threshold 时 normalized = 0（而非负值）
+        normalized = torch.clamp(log_ratio / log_threshold.clamp_min(1e-6), min=0.0, max=1.0)
+        
+        # 应用 alpha 控制曲线形状，然后映射到 [1.0, max_weight]
+        # alpha > 1: 曲线更陡峭，低频物品权重增长更快
+        # alpha < 1: 曲线更平缓，权重分布更均匀
+        weight_factor = normalized ** self.ipw_alpha  # [0, 1]
+        weights = 1.0 + (self.ipw_max_weight - 1.0) * weight_factor  # [1.0, max_weight]
+        
+        # 裁剪防止极端值
+        weights = torch.clamp(weights, min=self.ipw_clip_min, max=self.ipw_clip_max)
+        
+        return weights
+
+    def _compute_align_weights(self, item_ids: torch.Tensor) -> torch.Tensor:
+        """统一的对齐权重计算接口。
+        
+        优先使用 IPW，如果未启用则回退到 cold_start_align_boost。
+        
+        Args:
+            item_ids: Item IDs [B]
+            
+        Returns:
+            weights: Per-item weights [B]
+        """
+        if self.use_ipw_weighting:
+            return self._compute_ipw_weights(item_ids)
+        elif self.cold_start_align_boost > 0:
+            return self._compute_cold_start_weights(item_ids)
+        else:
+            return torch.ones(item_ids.size(0), device=item_ids.device)
 
     def _info_nce_align_weighted(self, a: torch.Tensor, b: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
         """带权重的InfoNCE对齐损失，用于冷启动增强。
