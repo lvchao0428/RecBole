@@ -47,16 +47,17 @@ Phase-A (freeze backbone):
 
 ### 实验配置
 
-| GPU | 实验 | 模型 | Burn-in | tau | align | cold_boost | 说明 |
-|-----|------|------|---------|-----|-------|------------|------|
-| 0 | **burn0** | MV 7B | **0** | 0.05 | 0.10 | 2.0 | 无 burn-in 对照 |
-| 1 | **burn2** | MV 7B | **2** | 0.05 | 0.10 | 2.0 | 折中方案测试 |
-| 2 | **A** | LLM | 2 | 0.05 | 0.15 | 0 | TF-IDF+LLM 原版 |
-| 3 | **H** | LLM | 2 | 0.05 | 0.12 | 2.5 | TF-IDF+LLM 最优 |
-| 4 | **M1** | MV 7B | 2 | 0.05 | 0.10 | 2.0 | Multi-View 基础 |
-| 5 | **M2** | MV 7B | 2 | 0.05 | 0.12 | 3.0 | Multi-View 冷启动 |
-| 6 | **M3** | MV 7B | 2 | 0.05 | 0.15 | 2.0 | Multi-View 高对齐 |
-| 7 | **M4** | MV 7B | 2 | 0.05 | 0.12 | 4.0 | Multi-View 激进 |
+| GPU | 实验 | 模型 | Burn-in | Phase-A | Phase-B | 说明 |
+|-----|------|------|---------|---------|---------|------|
+| 0 | **burn0** | MV 7B | **0** | 20ep | 40ep | 无 burn-in 对照 |
+| 1 | **burn2** | MV 7B | **2** | 20ep | 40ep | 折中方案测试 |
+| 2 | **A** | LLM | 2 | 20ep | 40ep | TF-IDF+LLM 原版 |
+| 3 | **H** | LLM | 2 | 20ep | 40ep | TF-IDF+LLM 最优 |
+| 4 | **M1** | MV 7B | 2 | 20ep | 40ep | Multi-View 基础 |
+| 5 | **M2** | MV 7B | 2 | 20ep | 40ep | Multi-View 冷启动 |
+| 6 | **M3** | MV 7B | 2 | 20ep | 40ep | Multi-View 高对齐 |
+| 7 | **M4** | MV 7B | 2 | 20ep | 40ep | Multi-View 激进 |
+| **5090** | **M5** | MV 7B | 2 | **5ep** | **55ep** | 短 Phase-A 测试 (业界最小值) |
 
 ---
 
@@ -74,7 +75,8 @@ experiments/
 ├── exp_M1_mv_base.sh            # GPU 4: MV 基础 (burn-in: 10→2)
 ├── exp_M2_mv_cold.sh            # GPU 5: MV 冷启动 (burn-in: 10→2)
 ├── exp_M3_mv_high_align.sh      # GPU 6: MV 高对齐 (burn-in: 10→2)
-└── exp_M4_mv_aggressive.sh      # GPU 7: MV 激进 (burn-in: 10→2)
+├── exp_M4_mv_aggressive.sh      # GPU 7: MV 激进 (burn-in: 10→2)
+└── exp_M5_skip_phaseA.sh        # 5090: 最小 Phase-A (新增)
 
 已删除:
 ├── exp_C_moderate.sh            # 移除
@@ -95,6 +97,9 @@ bash experiments/exp_M1_mv_base.sh 4        # GPU 4: MV 基础
 bash experiments/exp_M2_mv_cold.sh 5        # GPU 5: MV 冷启动
 bash experiments/exp_M3_mv_high_align.sh 6  # GPU 6: MV 高对齐
 bash experiments/exp_M4_mv_aggressive.sh 7  # GPU 7: MV 激进
+
+# 5090 专用实验
+bash experiments/exp_M5_skip_phaseA.sh 0    # 5090: 最小 Phase-A
 ```
 
 ---
