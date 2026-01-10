@@ -643,7 +643,8 @@ def main(local_rank=None, queue=None, dist_config=None):
     parser.add_argument("--dataset", "-d", type=str, required=True, help="dataset name")
     parser.add_argument("--config_files", type=str, default=None, help="space-separated config yaml files")
     
-    # Distributed training arguments
+    # GPU and Distributed training arguments
+    parser.add_argument("--gpu_id", type=str, default=None, help="GPU ID to use (overrides YAML config, e.g., '0' or '0,1')")
     parser.add_argument("--nproc", type=int, default=1, help="number of processes (GPUs) for distributed training")
     parser.add_argument("--ip", type=str, default="localhost", help="master node IP for distributed training")
     parser.add_argument("--port", type=str, default="5678", help="master node port for distributed training")
@@ -725,6 +726,12 @@ def main(local_rank=None, queue=None, dist_config=None):
             "port": args.port,
             "offset": args.group_offset,
         }
+    
+    # Override gpu_id if specified via command line
+    if args.gpu_id is not None:
+        dist_config_dict["gpu_id"] = args.gpu_id
+        logger = getLogger()
+        logger.info(f"[Config] GPU ID override: {args.gpu_id}")
 
     watchdog = None
     if (not args.watchdog_disable) and args.watchdog_interval and args.watchdog_interval > 0:
