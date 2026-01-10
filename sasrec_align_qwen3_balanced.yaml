@@ -63,7 +63,8 @@ loss_type: CE
 train_neg_sample_args: null
 
 # Text features (TF-IDF + LLM Single-View)
-item_text_emb_path_base: dataset/Amazon_Beauty/item_text_emb.base.npy
+#item_text_emb_path_base: dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_base: "" 
 item_text_emb_path_llm: dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
 use_llm: true
 use_align: true
