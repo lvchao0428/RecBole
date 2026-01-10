@@ -3,7 +3,7 @@
 # 目标：强训练、适度推理
 # 用法: bash experiments/exp_M3_mv_high_align.sh [GPU_ID]
 
-GPU_ID=${1:-6}  # 默认 GPU 6
+GPU_ID=${1:-6}  # 默认 GPU 6 (折中方案: burn-in=2)
 
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -21,7 +21,7 @@ python scripts/two_phase_train.py \
   --phase_a_grid \
   --align_grid "0.15" \
   --tau_grid "0.05" \
-  --backbone_burnin_epochs 10 \
+  --backbone_burnin_epochs 2 \
   --burnin_eval_step 2 \
   --phase_a_epochs 20 \
   --phase_a_eval_step 1 \

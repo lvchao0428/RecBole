@@ -3,7 +3,7 @@
 # 目标：增强冷启动商品推荐
 # 用法: bash experiments/exp_M2_mv_cold.sh [GPU_ID]
 
-GPU_ID=${1:-5}  # 默认 GPU 5
+GPU_ID=${1:-5}  # 默认 GPU 5 (折中方案: burn-in=2)
 
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -21,7 +21,7 @@ python scripts/two_phase_train.py \
   --phase_a_grid \
   --align_grid "0.12" \
   --tau_grid "0.05" \
-  --backbone_burnin_epochs 10 \
+  --backbone_burnin_epochs 2 \
   --burnin_eval_step 2 \
   --phase_a_epochs 20 \
   --phase_a_eval_step 1 \
