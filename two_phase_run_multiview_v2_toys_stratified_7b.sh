@@ -21,6 +21,10 @@
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
+# GPU ID support - can be set via environment variable or defaults to 0
+GPU_ID=${GPU_ID:-0}
+echo "Using GPU: $GPU_ID"
+
 echo "========================================="
 echo "Multi-View V2 (7B) with Stratified Metrics (Toys)"
 echo "========================================="
@@ -48,6 +52,7 @@ python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
   --tau_grid "0.05" \
