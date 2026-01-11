@@ -57,9 +57,11 @@ loss_type: CE
 train_neg_sample_args: null
 
 # 7B embeddings (Toys)
-item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
+#item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
 item_text_emb_path_llm: ""
-item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
+  #item_text_emb_split_dir: /home/ubuntu/own/RecBole/dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
+item_text_emb_split_dir: /home/charlie/project/RecBole/dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
 use_llm: false
 use_align: true
 use_cross: true
