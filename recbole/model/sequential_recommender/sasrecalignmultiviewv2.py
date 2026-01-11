@@ -62,6 +62,15 @@ SASRecAlignMultiView V2 - Enhanced Multi-View Text Features
         ipw_clip_max: 10.0            # 权重上限
     - 搜索标记: # [IPW]
 
+【改动9】推理时冷启动文本权重增强 (Inference Cold Text Boost)
+    - 位置: _fuse_with_cross_network() 方法
+    - 原因: 训练时的 cold_start_align_boost 只影响对齐损失，推理时所有商品使用相同的 text_weight
+           导致模型对新品"有能力但不敢推"，HR_new 下降但 MRR_new 提升
+    - 配置项: inference_cold_text_boost (默认 0.0 关闭，建议设为 0.5-2.0)
+    - 公式: effective_text_weight *= 1.0 + boost * max(0, threshold - pop) / threshold
+    - 效果: 低频商品推理时获得更强的文本信号，提升 HR_new 而不损害 MRR_frequent
+    - 搜索标记: # [CHANGE-9]
+
 配置示例 (yaml):
 ===============
 multiview_align_scale: 2.0      # Multi-View专属对齐损失放大
@@ -77,6 +86,9 @@ ipw_max_weight: 4.0             # 最大权重
 # 方案B: 使用 cold_start（简单直观）
 # cold_start_align_boost: 3.0   # 冷启动对齐权重增强（0=关闭）
 # cold_start_align_threshold: 10  # 冷启动阈值
+
+# 方案C: 推理时冷启动加权（可与 A/B 组合）
+inference_cold_text_boost: 1.0  # 推理时给低频商品更强的文本权重（0=关闭）
 
 alignment_weight: 0.15          # 同时影响训练对齐loss强度和推理文本融合强度
 temperature: 0.05               # 同时影响训练InfoNCE和推理文本融合强度
@@ -145,6 +157,11 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         # cold_start_align_threshold: 低于此popularity的商品获得额外权重
         self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
         self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
+        
+        # [CHANGE-9] 推理时冷启动文本权重增强
+        # inference_cold_text_boost: 推理时给低频商品更强的文本权重，提升 HR_new
+        # 公式: effective_text_weight *= 1.0 + boost * max(0, threshold - pop) / threshold
+        self.inference_cold_text_boost = float(config["inference_cold_text_boost"]) if "inference_cold_text_boost" in config else 0.0
 
         self.text_view_buffer_names = []
         self.text_view_proj = nn.ModuleList()
@@ -307,6 +324,15 @@ class SASRecAlignMultiViewV2(SASRecAlign):
                 )
             else:
                 self.logger.info("Alignment weighting: disabled (no IPW, no cold_start_boost)")
+            
+            # [CHANGE-9] 记录推理时冷启动文本权重配置
+            if self.inference_cold_text_boost > 0:
+                self.logger.info(
+                    "Inference cold text boost: enabled (boost=%.2f, threshold=%d)",
+                    self.inference_cold_text_boost, self.cold_start_align_threshold
+                )
+            else:
+                self.logger.info("Inference cold text boost: disabled")
 
     def _get_view_buffer(self, idx: int) -> torch.Tensor:
         """Get the embedding buffer for a specific view."""
@@ -484,6 +510,19 @@ class SASRecAlignMultiViewV2(SASRecAlign):
         temp_scale = (0.07 / self.temperature) if self.temperature > 0 else 1.0
             
         effective_text_weight = alpha * self.text_weight * align_scale * temp_scale
+        
+        # [CHANGE-9] 推理时冷启动文本权重增强
+        # 给低频商品更强的文本信号，提升 HR_new 而不损害 MRR_frequent
+        if self.inference_cold_text_boost > 0 and item_ids is not None:
+            item_pop = self.item_popularity[item_ids].float()  # [B]
+            threshold = float(self.cold_start_align_threshold)
+            cold_factor = torch.clamp(threshold - item_pop, min=0) / threshold  # [0, 1]
+            cold_boost = 1.0 + self.inference_cold_text_boost * cold_factor  # [1.0, 1.0 + boost]
+            cold_boost = cold_boost.unsqueeze(1).to(effective_text_weight.device)  # [B, 1]
+            if effective_text_weight.dim() == 0:
+                effective_text_weight = effective_text_weight * cold_boost
+            else:
+                effective_text_weight = effective_text_weight * cold_boost
         
         # Use cross network fusion if enabled
         if self.use_cross and self.item_fusion_predictor is not None:
