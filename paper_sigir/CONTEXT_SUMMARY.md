@@ -115,6 +115,37 @@ temperature: 0.05
 - **候选**：standard (cold=2.0, infer=1.0)
 - **验证**：`exp_unified_aggressive_toys`, `exp_unified_standard_beauty`
 
+### 4. ⚠️ 公平对比问题 (新增)
+- **问题**：Multi-view 使用 aggressive 参数 (cold=2.5, infer=1.5)，而基准模型用 cold=0
+- **影响**：提升可能部分来自参数而非模型结构
+- **解决方案**：重跑基准模型使用相同的 cold_boost 参数
+
+#### 参数支持情况
+| 参数 | TF-IDF/LLM | Multi-view |
+|------|------------|------------|
+| cold_start_align_boost | ✅ 支持 | ✅ 支持 |
+| inference_cold_text_boost | ❌ 不支持 | ✅ 支持 |
+
+#### 公平对比实验 (8组)
+```bash
+# Beauty
+exp_fair_tfidf_cold2_beauty.sh        # TF-IDF + cold=2.0
+exp_fair_tfidf_llm_cold2_beauty.sh    # TF-IDF+LLM + cold=2.0
+exp_fair_multiview_no_boost_beauty.sh # Multi-view 无 boost
+exp_fair_multiview_cold2_only_beauty.sh # Multi-view cold=2.0 无 infer
+
+# Toys (同上)
+exp_fair_tfidf_cold2_toys.sh
+exp_fair_tfidf_llm_cold2_toys.sh
+exp_fair_multiview_no_boost_toys.sh
+exp_fair_multiview_cold2_only_toys.sh
+```
+
+#### 贡献分解框架
+1. **架构贡献**: MV(cold=X, infer=0) vs LLM(cold=X)
+2. **LLM贡献**: LLM(cold=X) vs TF-IDF(cold=X)
+3. **CHANGE-9贡献**: MV(cold=2, infer=1) vs MV(cold=2, infer=0) ← Multi-view 特有
+
 ---
 
 ## 📂 重要文件路径

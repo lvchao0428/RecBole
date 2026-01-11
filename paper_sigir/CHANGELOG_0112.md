@@ -148,3 +148,174 @@ GPU_ID=7 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standar
 |------|-----|------|
 | exp_inference_boost_toys_14b | 4090-5 | 运行中 |
 | exp_inference_boost_toys_32b | 4090-6 | 运行中 |
+
+---
+
+# 公平对比分析 (Fair Comparison)
+
+## 问题识别
+
+### 问题 1：数据集规模相近
+
+| 数据集 | Items | Users | Interactions |
+|--------|-------|-------|--------------|
+| Beauty | ~67k | ~22k | ~200k |
+| Toys | ~167k | ~19k | ~170k |
+
+**结论**：数据规模相近，Scale Law 失效更可能是**参数未优化**而非数据瓶颈。
+
+### 问题 2：参数不公平
+
+当前对比存在的问题：
+
+| 模型 | cold_boost | infer_boost | 问题 |
+|------|------------|-------------|------|
+| TF-IDF | 0 | 0 | 基准配置 |
+| TF-IDF+LLM | 0 | 0 | 基准配置 |
+| **Multi-view (aggressive)** | **2.5** | **1.5** | ⚠️ 不公平 |
+
+**核心问题**：Multi-view 的提升可能部分来自 `cold_boost` 和 `infer_boost` 参数，而非模型结构本身。
+
+---
+
+## 参数支持情况
+
+| 参数 | SASRecAlign (TF-IDF/LLM) | MultiViewV2 | 性质 |
+|------|--------------------------|-------------|------|
+| `cold_start_align_boost` | ✅ 支持 | ✅ 支持 | **共有参数** |
+| `inference_cold_text_boost` | ❌ 不支持 | ✅ 支持 | **Multi-view 特有** |
+
+---
+
+## 公平对比实验矩阵
+
+### 贡献分解
+
+| 对比组 | 控制变量 | 证明的贡献 |
+|--------|----------|----------|
+| TF-IDF vs TF-IDF+LLM (同参数) | 模型结构 | LLM 嵌入的价值 |
+| TF-IDF+LLM vs Multi-view (同参数) | 模型结构 | 多视角架构的价值 |
+| Multi-view (cold=2, infer=0) vs (cold=2, infer=1) | infer_boost | CHANGE-9 的价值 |
+
+### Beauty 公平对比矩阵
+
+| 模型 | cold_boost | infer_boost | 实验 | 状态 |
+|------|------------|-------------|------|------|
+| TF-IDF (cold=0) | 0 | 0 | 已有 | ✅ |
+| **TF-IDF (cold=2)** | 2.0 | 0 | exp_fair_tfidf_cold2_beauty | ⏳ |
+| TF-IDF+LLM (cold=0) | 0 | 0 | 已有 | ✅ |
+| **TF-IDF+LLM (cold=2)** | 2.0 | 0 | exp_fair_tfidf_llm_cold2_beauty | ⏳ |
+| **Multi-view (cold=0, infer=0)** | 0 | 0 | exp_fair_multiview_no_boost_beauty | ⏳ |
+| **Multi-view (cold=2, infer=0)** | 2.0 | 0 | exp_fair_multiview_cold2_only_beauty | ⏳ |
+| Multi-view (cold=2, infer=1) | 2.0 | 1.0 | 已有 | ✅ |
+
+### Toys 公平对比矩阵
+
+| 模型 | cold_boost | infer_boost | 实验 | 状态 |
+|------|------------|-------------|------|------|
+| TF-IDF (cold=0) | 0 | 0 | 已有 | ✅ |
+| **TF-IDF (cold=2)** | 2.0 | 0 | exp_fair_tfidf_cold2_toys | ⏳ |
+| TF-IDF+LLM (cold=0) | 0 | 0 | 已有 | ✅ |
+| **TF-IDF+LLM (cold=2)** | 2.0 | 0 | exp_fair_tfidf_llm_cold2_toys | ⏳ |
+| **Multi-view (cold=0, infer=0)** | 0 | 0 | exp_fair_multiview_no_boost_toys | ⏳ |
+| **Multi-view (cold=2, infer=0)** | 2.0 | 0 | exp_fair_multiview_cold2_only_toys | ⏳ |
+| Multi-view (cold=2, infer=1) | 2.0 | 1.0 | 已有 | ✅ |
+
+---
+
+## 公平对比实验执行命令
+
+### Beauty
+
+```bash
+# TF-IDF + cold_boost=2.0
+GPU_ID=X nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty.log 2>&1 &
+
+# TF-IDF+LLM + cold_boost=2.0
+GPU_ID=X nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty.log 2>&1 &
+
+# Multi-view 无 boost
+GPU_ID=X nohup bash experiments/exp_fair_multiview_no_boost_beauty.sh > fair_mv_no_boost_beauty.log 2>&1 &
+
+# Multi-view cold=2.0 only (无 infer_boost)
+GPU_ID=X nohup bash experiments/exp_fair_multiview_cold2_only_beauty.sh > fair_mv_cold2_only_beauty.log 2>&1 &
+```
+
+### Toys
+
+```bash
+# TF-IDF + cold_boost=2.0
+GPU_ID=X nohup bash experiments/exp_fair_tfidf_cold2_toys.sh > fair_tfidf_cold2_toys.log 2>&1 &
+
+# TF-IDF+LLM + cold_boost=2.0
+GPU_ID=X nohup bash experiments/exp_fair_tfidf_llm_cold2_toys.sh > fair_tfidf_llm_cold2_toys.log 2>&1 &
+
+# Multi-view 无 boost
+GPU_ID=X nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no_boost_toys.log 2>&1 &
+
+# Multi-view cold=2.0 only (无 infer_boost)
+GPU_ID=X nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys.log 2>&1 &
+```
+
+---
+
+## 预期结果与分析框架
+
+### 1. 多视角架构贡献 (Architecture Contribution)
+
+```
+对比: Multi-view (cold=X, infer=0) vs TF-IDF+LLM (cold=X)
+预期: Multi-view > TF-IDF+LLM (因为多视角结构)
+如果相等: 多视角结构无额外贡献，提升全来自 CHANGE-9
+```
+
+### 2. LLM 嵌入贡献 (LLM Embedding Contribution)
+
+```
+对比: TF-IDF+LLM (cold=X) vs TF-IDF (cold=X)
+预期: TF-IDF+LLM > TF-IDF (因为 LLM 语义)
+如果相等或反转: LLM 嵌入在该配置下无额外贡献
+```
+
+### 3. CHANGE-9 贡献 (Inference Boost Contribution)
+
+```
+对比: Multi-view (cold=2, infer=1) vs Multi-view (cold=2, infer=0)
+预期: 前者 HR_new 更高 (因为推理时冷启动加权)
+这是 Multi-view 特有能力，公平比较下的真正创新
+```
+
+### 4. Cold Boost 贡献 (Training-time Cold Boost)
+
+```
+对比: 任意模型 (cold=2) vs 同模型 (cold=0)
+预期: cold=2 的低频指标更好
+这是共有参数，不是 Multi-view 的独特贡献
+```
+
+---
+
+## 论文叙述建议
+
+基于公平对比，论文应该分层叙述贡献：
+
+1. **基础贡献**：TF-IDF 特征 + 对齐损失带来的基础提升
+2. **LLM 贡献**：LLM 嵌入相比 TF-IDF 的边际提升（可能很小）
+3. **多视角架构贡献**：Multi-view 相比单视角的提升（需公平对比确认）
+4. **CHANGE-9 贡献**：inference_cold_text_boost 带来的 HR_new 提升（Multi-view 特有）
+
+---
+
+## 新增公平对比脚本清单
+
+### Beauty
+- `experiments/exp_fair_tfidf_cold2_beauty.sh`
+- `experiments/exp_fair_tfidf_llm_cold2_beauty.sh`
+- `experiments/exp_fair_multiview_no_boost_beauty.sh`
+- `experiments/exp_fair_multiview_cold2_only_beauty.sh`
+
+### Toys
+- `experiments/exp_fair_tfidf_cold2_toys.sh`
+- `experiments/exp_fair_tfidf_llm_cold2_toys.sh`
+- `experiments/exp_fair_multiview_no_boost_toys.sh`
+- `experiments/exp_fair_multiview_cold2_only_toys.sh`
