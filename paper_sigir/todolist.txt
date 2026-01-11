@@ -1,0 +1,69 @@
+GPU_ID=0 nohup bash two_phase_run_tfidf_stratified.sh > tfidf_beauty.log 2>&1 &
+GPU_ID=0 nohup bash two_phase_run_tfidf_toys_stratified.sh > tfidf_toys.log 2>&1 &
+
+GPU_ID=0 nohup bash two_phase_run_tfidf_llm_stratified.sh > tfidf_llm_beauty.log 2>&1 &
+GPU_ID=1 nohup bash two_phase_run_multiview_v2_stratified.sh > mv_7b_beauty.log 2>&1 &
+GPU_ID=2 nohup bash two_phase_run_multiview_v2_stratified_14b.sh > mv_14b_beauty.log 2>&1 &
+GPU_ID=3 nohup bash two_phase_run_multiview_v2_stratified_32b.sh > mv_32b_beauty.log 2>&1 &
+GPU_ID=4 nohup bash two_phase_run_tfidf_llm_toys_stratified.sh > tfidf_llm_toys.log 2>&1 &
+GPU_ID=5 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > mv_7b_toys.log 2>&1 &
+GPU_ID=6 nohup bash two_phase_run_multiview_v2_toys_stratified_14b.sh > mv_14b_toys.log 2>&1 &
+GPU_ID=7 nohup bash two_phase_run_multiview_v2_toys_stratified_32b.sh > mv_32b_toys.log 2>&1 &
+
+
+0111, 16:42
+GPU_ID=0 nohup bash experiments/exp_inference_boost_toys.sh > exp_inference_boost_toys.log 2>&1 &
+
+GPU_ID=0 nohup bash experiments/exp_inference_boost.sh > inference_boost.log 2>&1 &
+
+GPU_ID=4 nohup bash experiments/exp_inference_boost_aggressive.sh > exp_inference_boost_aggressive.log 2>&1 &
+
+
+# 4090 卡1 - Toys 激进版
+GPU_ID=1 nohup bash experiments/exp_inference_boost_aggressive_toys.sh > boost_aggressive_toys.log 2>&1 &
+
+# 4090 卡2 - 14B Scale Law
+GPU_ID=2 nohup bash experiments/exp_inference_boost_14b.sh > boost_14b.log 2>&1 &
+
+# 4090 卡3 - Threshold=5 精准版
+GPU_ID=3 nohup bash experiments/exp_inference_boost_threshold5.sh > boost_threshold5.log 2>&1 &
+
+
+# GPU 0: Beauty 32B + CHANGE-9 (修复 Scale Law 失效)
+GPU_ID=0 nohup bash experiments/exp_inference_boost_32b.sh > boost_32b.log 2>&1 &
+
+
+# GPU 7: threshold=3 精准匹配 new [0,3)
+GPU_ID=7 nohup bash experiments/exp_inference_boost_threshold3.sh > boost_threshold3.log 2>&1 &
+
+0111, doing exp
+# GPU 5: Toys 14B + CHANGE-9 (Scale Law 验证)
+GPU_ID=5 nohup bash experiments/exp_inference_boost_toys_14b.sh > boost_toys_14b.log 2>&1 &
+
+# GPU 6: Toys 32B + CHANGE-9 (Scale Law 天花板)
+GPU_ID=6 nohup bash experiments/exp_inference_boost_toys_32b.sh > boost_toys_32b.log 2>&1 &
+
+0112， exp
+# 5090: Toys 使用 Beauty 的 aggressive 参数 (统一参数验证)
+GPU_ID=0 nohup bash experiments/exp_unified_aggressive_toys.sh > unified_aggressive_toys.log 2>&1 &
+
+# 4090-0: TF-IDF+LLM Toys 高对齐 (修复层级反转)
+GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_align15.sh > tfidf_llm_toys_align15.log 2>&1 &
+
+# 4090-1: TF-IDF+LLM Toys 低温度 (修复层级反转)
+GPU_ID=1 nohup bash experiments/exp_tfidf_llm_toys_tau03.sh > tfidf_llm_toys_tau03.log 2>&1 &
+
+# 4090-2: Beauty 14B + aggressive (Scale Law 验证)
+GPU_ID=2 nohup bash experiments/exp_boost_14b_aggressive.sh > boost_14b_aggressive.log 2>&1 &
+
+# 4090-3: Beauty 32B + aggressive (Scale Law 验证)
+GPU_ID=3 nohup bash experiments/exp_boost_32b_aggressive.sh > boost_32b_aggressive.log 2>&1 &
+
+# 4090-4: Toys + threshold=5 (threshold 对比)
+GPU_ID=4 nohup bash experiments/exp_boost_toys_threshold5.sh > boost_toys_threshold5.log 2>&1 &
+
+# 4090-7: Beauty 使用 Toys 的 standard 参数 (统一参数对称验证)
+GPU_ID=7 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standard_beauty.log 2>&1 &
+
+
+
