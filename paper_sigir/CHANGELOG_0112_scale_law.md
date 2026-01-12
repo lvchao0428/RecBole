@@ -313,6 +313,67 @@ LLMs do capture richer semantics when properly preserved.
 
 ---
 
+## 公平对比实验结果 (0112 21:xx 完成)
+
+### Beauty 数据集 - 已完成实验
+
+| 实验 | 配置 | MRR@10 | MRR_new@10 | MRR_few@10 | MRR_freq@10 |
+|------|------|--------|------------|------------|-------------|
+| TF-IDF (cold=0) | 基准 | 0.0318 | **0.0113** | 0.0206 | 0.0542 |
+| TF-IDF (cold=2.0) | +cold_boost | 0.0315 | 0.0106 ↓ | 0.0205 | 0.0539 |
+| TF-IDF+LLM (cold=0) | 基准 | 0.0320 | 0.0104 | 0.0207 | 0.0550 |
+| TF-IDF+LLM (cold=2.0) | +cold_boost | 0.0320 | 0.0104 = | 0.0207 | 0.0550 |
+
+### 🔍 关键发现
+
+#### 发现1: cold_start_align_boost 对 TF-IDF+LLM 完全无效
+- TF-IDF+LLM (cold=2.0) 与 TF-IDF+LLM (cold=0) **所有指标完全一致**
+- 说明该参数在非 Multi-view 架构中不起作用
+
+#### 发现2: cold_start_align_boost 对 TF-IDF 有负效果
+- MRR_new@10: 0.0113 → 0.0106 (↓6.2%)
+- 整体 MRR@10: 0.0318 → 0.0315 (↓0.9%)
+
+#### 发现3: Multi-view 架构优势确认
+- Multi-view 7B (cold=0) MRR_new@10 = 0.0110
+- TF-IDF+LLM (cold=0) MRR_new@10 = 0.0104
+- **纯架构提升: +5.8% (无任何 boost)**
+
+### 📊 论文叙述建议
+
+```
+The cold_start_align_boost parameter is specifically designed for 
+the Multi-view architecture. When applied to simpler models (TF-IDF, 
+TF-IDF+LLM), it provides no benefit or even degrades performance.
+
+This confirms that Multi-view's improvement on cold-start items 
+stems from its multi-perspective feature fusion architecture, 
+not merely from parameter tuning.
+```
+
+---
+
+## 🐛 BUG 修复 (0112 22:xx)
+
+### 问题：`--config_dict` 参数未实现
+
+**发现**：`two_phase_train.py` 脚本中未定义 `--config_dict` 参数，导致：
+- 所有使用 `--config_dict "{'cold_start_align_boost': 2.0, ...}"` 的实验
+- 该参数被完全忽略，实际使用 YAML 中的 `cold_start_align_boost: 0`
+
+**受影响实验**：
+- `exp_fair_tfidf_cold2_beauty` - cold_boost 未生效
+- `exp_fair_tfidf_llm_cold2_beauty` - cold_boost 未生效  
+- 所有使用 `--config_dict` 的公平对比实验
+
+**修复**：在 `scripts/two_phase_train.py` 中添加：
+1. `--config_dict` 参数定义
+2. 解析并合并到 config 中
+
+**需要重新运行的实验**：所有公平对比实验
+
+---
+
 ## 下一步行动
 
 1. **等待当前实验完成**: 

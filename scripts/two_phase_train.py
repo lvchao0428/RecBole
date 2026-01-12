@@ -642,6 +642,7 @@ def main(local_rank=None, queue=None, dist_config=None):
     parser.add_argument("--model", "-m", type=str, required=True, help="model name, e.g., SASRec_Align")
     parser.add_argument("--dataset", "-d", type=str, required=True, help="dataset name")
     parser.add_argument("--config_files", type=str, default=None, help="space-separated config yaml files")
+    parser.add_argument("--config_dict", type=str, default=None, help="JSON/Python dict string to override config, e.g., \"{'cold_start_align_boost': 2.0}\"")
     
     # GPU and Distributed training arguments
     parser.add_argument("--gpu_id", type=str, default=None, help="GPU ID to use (overrides YAML config, e.g., '0' or '0,1')")
@@ -732,6 +733,21 @@ def main(local_rank=None, queue=None, dist_config=None):
         dist_config_dict["gpu_id"] = args.gpu_id
         logger = getLogger()
         logger.info(f"[Config] GPU ID override: {args.gpu_id}")
+
+    # Parse and merge --config_dict if provided
+    user_config_dict = {}
+    if args.config_dict:
+        import ast
+        try:
+            user_config_dict = ast.literal_eval(args.config_dict)
+            logger = getLogger()
+            logger.info(f"[Config] User config_dict override: {user_config_dict}")
+        except Exception as e:
+            logger = getLogger()
+            logger.warning(f"[Config] Failed to parse --config_dict: {e}")
+    
+    # Merge user config into dist_config_dict (user config takes priority)
+    dist_config_dict.update(user_config_dict)
 
     watchdog = None
     if (not args.watchdog_disable) and args.watchdog_interval and args.watchdog_interval > 0:
