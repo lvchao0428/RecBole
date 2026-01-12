@@ -231,13 +231,31 @@ exp_fair_multiview_cold2_only_toys.sh
 
 ---
 
+## 📋 最新三个实验（Toys Aggressive - 最高优先级）
+
+| GPU | 实验 | 目标 | 预期 MRR@10 |
+|-----|------|------|-------------|
+| 5090 | Toys MV 7B aggressive | 修复层级 | > 0.0373 |
+| 4090-0 | Toys MV 14B aggressive | Scale Law | > 7B |
+| 4090-1 | Toys MV 32B aggressive | Scale Law | > 14B |
+
+**执行命令**:
+```bash
+GPU_ID=0 nohup bash experiments/exp_multiview_toys_aggressive.sh > mv_toys_7b_aggressive.log 2>&1 &
+GPU_ID=0 nohup bash experiments/exp_multiview_toys_14b_aggressive.sh > mv_toys_14b_aggressive.log 2>&1 &
+GPU_ID=1 nohup bash experiments/exp_multiview_toys_32b_aggressive.sh > mv_toys_32b_aggressive.log 2>&1 &
+```
+
+---
+
 ## 💡 快速恢复对话
 
 ```
 请读取以下文件了解上下文：
 1. paper_sigir/CONTEXT_SUMMARY.md - 对话摘要
-2. paper_sigir/CHANGELOG_0112.md - 最新实验设计
-3. paper_sigir/0111.csv - 实验数据
+2. paper_sigir/CHANGELOG_0112_FINAL.md - 核心结论总结 ⭐
+3. paper_sigir/CHANGELOG_0112.md - 详细实验设计
+4. paper_sigir/0111.csv - 实验数据
 
 然后告诉我最新的实验结果，我会帮你分析并给出下一步建议。
 ```

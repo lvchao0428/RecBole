@@ -72,10 +72,10 @@ GPU_ID=4 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standar
 # ✅ 已清理磁盘空间，8 个实验已重新启动
 
 # Beauty: TF-IDF + cold_boost=2.0
-GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty_v3.log 2>&1 &  # [DONE] ✅ 0112 下午完成
+GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty_v3.log 2>&1 &  # [RUNNING] 重跑 v3
 
 # Beauty: TF-IDF+LLM + cold_boost=2.0
-GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty_v3.log 2>&1 &  # [DONE] ✅ 0112 下午完成
+GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty_v3.log 2>&1 &  # [RUNNING] 重跑 v3
 
 # Beauty: Multi-view 无 boost (纯架构贡献)
 GPU_ID=0 nohup bash experiments/exp_fair_multiview_no_boost_beauty.sh > fair_mv_no_boost_beauty_v2.log 2>&1 &  # [RUNNING] 重跑 v2
@@ -96,20 +96,72 @@ GPU_ID=6 nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no
 GPU_ID=7 nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys_v3.log 2>&1 &  # [RUNNING] 重跑 v3
 
 
-# NOTE: Scale Law 深度分析 & SVD 压缩比假设已挪到 CHANGELOG_0112.md
+# ============================================================
+# 0112 Scale Law 深度分析结论
+# ============================================================
+# 
+# 已验证发现:
+# - Scale Law 在 new/few/frequent 所有物品分组上均不成立
+# - 即使冷启动场景 (new items), 7B 也始终优于或持平 14B/32B
+# - 高频物品上 Scale Law 甚至完全反转 (Beauty: 7B > 14B > 32B)
+#
+# 核心结论:
+# "Multi-view 文本特征对高频物品的边际效益有限"
+# "7B 模型已足够捕获推荐任务所需的语义信息"
+#
+# ============================================================
 
 
 # ============================================================
-# 0112 晚 - Toys Multi-view Aggressive 实验 (修复层级 & Scale Law)
+# 0112 新假设: SVD 压缩比导致 Scale Law 失效
 # ============================================================
-# 目的: 使用 aggressive 参数 (cold=2.5, infer=1.5) 在 Toys 上跑 7B/14B/32B
-#       验证 Toys Multi-view > TF-IDF+LLM，并测试 Scale Law
+#
+# 问题: 所有模型 (7B/14B/32B) 的 LLM 嵌入都压缩到同样的 64D
+#       - 7B  (3584D) → 64D, 压缩比 56x
+#       - 14B (5120D) → 64D, 压缩比 80x  
+#       - 32B (5120D) → 64D, 压缩比 80x
+#       更大模型信息损失比例更高，抵消了语义优势
+#
+# 假设: 维度自适应压缩才能公平验证 Scale Law
+#       - 7B  → 64D  (保持不变)
+#       - 14B → 128D (降低压缩比)
+#       - 32B → 256D (降低压缩比)
+#
+# ============================================================
 
-# 5090: Toys Multi-view 7B Aggressive (最高优先级 - 修复层级)
-GPU_ID=0 nohup bash experiments/exp_multiview_toys_aggressive.sh > mv_toys_7b_aggressive.log 2>&1 &  # [RUNNING]
+# TODO: SVD 维度自适应实验 (需要修改预处理流程)
+# exp_svd_14b_128: 14B 模型 SVD 到 128 维
+# exp_svd_32b_256: 32B 模型 SVD 到 256 维
 
-# 4090-0: Toys Multi-view 14B Aggressive (Scale Law 验证)
-GPU_ID=0 nohup bash experiments/exp_multiview_toys_14b_aggressive.sh > mv_toys_14b_aggressive.log 2>&1 &  # [RUNNING]
+# TODO: 融合架构验证 (需要修改模型代码)
+# exp_proj_14b_128to64: 14B(128D) → 投影到 64D 再融合
+# exp_proj_32b_256to64: 32B(256D) → 投影到 64D 再融合
+# exp_attn_14b_128: 14B(128D) + 注意力融合
+# exp_attn_32b_256: 32B(256D) + 注意力融合
 
-# 4090-1: Toys Multi-view 32B Aggressive (Scale Law 完整验证)
-GPU_ID=1 nohup bash experiments/exp_multiview_toys_32b_aggressive.sh > mv_toys_32b_aggressive.log 2>&1 &  # [RUNNING]
+# 预期结果:
+# 如果假设成立: exp_svd_32b_256 > exp_svd_14b_128 > exp_svd_7b_64 (Scale Law 恢复!)
+# 如果假设不成立: LLM 规模对推荐任务确实帮助有限, 7B 已足够
+
+
+# ============================================================
+# 0112 深夜 - Beauty Scale Law 验证实验
+# ============================================================
+# 背景: Beauty/Toys 数据量相近 (259k vs 336k items)
+#       但 Beauty Scale Law 不成立，Toys Scale Law (HR) 成立
+# 假设: 14B 模型需要更强的 inference_cold_text_boost 才能释放潜力
+
+# 4090-5: Beauty 14B + 更高 infer_boost (验证 Scale Law 参数假设)
+GPU_ID=5 nohup bash experiments/exp_boost_beauty_14b_infer2.sh > boost_beauty_14b_infer2.log 2>&1 &  # [PENDING]
+
+# 配置变更:
+# - cold_start_align_boost: 2.5 (保持 aggressive)
+# - inference_cold_text_boost: 1.5 → 2.0 ⭐
+#
+# 对比目标:
+# - 7B aggressive: MRR@10 = 0.0327, HR@10 = 0.0607
+# - 14B aggressive: MRR@10 = 0.0322, HR@10 = 0.0595
+#
+# 预期:
+# 如果 14B + infer=2.0 > 7B + infer=1.5: 参数是 Scale Law 的关键
+# 如果 14B + infer=2.0 ≤ 7B + infer=1.5: Beauty 数据特性导致 Scale Law 失效
