@@ -277,9 +277,47 @@ LLMs do capture richer semantics when properly preserved.
 
 ---
 
+## 公平对比实验 (0112 20:xx 启动)
+
+### 实验目的
+验证各组件的**独立贡献**，分解 Multi-view 的提升来源。
+
+### 运行状态
+
+| GPU | 实验 | 数据集 | 目的 | 状态 |
+|-----|------|--------|------|------|
+| 4090-0 | `exp_fair_tfidf_cold2_beauty` | Beauty | TF-IDF + cold=2.0 | 🔄 运行中 |
+| 4090-1 | `exp_fair_tfidf_llm_cold2_beauty` | Beauty | TF-IDF+LLM + cold=2.0 | 🔄 运行中 |
+| 4090-5 | `exp_fair_tfidf_llm_cold2_toys` | Toys | TF-IDF+LLM + cold=2.0 | 🔄 运行中 |
+| 4090-6 | `exp_fair_multiview_no_boost_toys` | Toys | Multi-view 无 boost | 🔄 运行中 |
+
+### 待运行 (需要 GPU 2, 3, 4, 7)
+
+| GPU | 实验 | 数据集 | 目的 | 状态 |
+|-----|------|--------|------|------|
+| 4090-2 | `exp_fair_multiview_no_boost_beauty` | Beauty | Multi-view 无 boost | ⏳ 待运行 |
+| 4090-3 | `exp_fair_multiview_cold2_only_beauty` | Beauty | Multi-view cold=2 only | ⏳ 待运行 |
+| 4090-4 | `exp_fair_tfidf_cold2_toys` | Toys | TF-IDF + cold=2.0 | ⏳ 待运行 |
+| 4090-7 | `exp_fair_multiview_cold2_only_toys` | Toys | Multi-view cold=2 only | ⏳ 待运行 |
+
+### 对比矩阵
+
+完成后可分析:
+
+| 对比组 | 验证目标 |
+|--------|----------|
+| TF-IDF (cold=2) vs TF-IDF (cold=0) | cold_boost 对 TF-IDF 的提升 |
+| TF-IDF+LLM (cold=2) vs TF-IDF (cold=2) | LLM 嵌入的边际贡献 |
+| Multi-view (cold=0, infer=0) vs TF-IDF+LLM | 多视角架构的纯贡献 |
+| Multi-view (cold=2, infer=0) vs (cold=2, infer=1) | CHANGE-9 的独立贡献 |
+
+---
+
 ## 下一步行动
 
-1. **等待当前实验完成**: exp_boost_14b_aggressive, exp_boost_32b_aggressive
+1. **等待当前实验完成**: 
+   - exp_boost_14b_aggressive, exp_boost_32b_aggressive (Scale Law)
+   - exp_fair_* 公平对比实验
 2. **实现 SVD 维度自适应**: 修改预处理流程支持不同维度
 3. **设计融合层**: 支持不同维度特征融合
 4. **运行验证实验**: 验证压缩比假设

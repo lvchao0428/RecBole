@@ -67,30 +67,30 @@ GPU_ID=7 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standar
 
 
 
-0112， new exp
+0112， new exp (公平对比实验 - 验证各组件独立贡献)
 # Beauty: TF-IDF + cold_boost=2.0
-GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty.log 2>&1 &
+GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty.log 2>&1 &  # [RUNNING 0112 20:xx]
 
 # Beauty: TF-IDF+LLM + cold_boost=2.0
-GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty.log 2>&1 &
+GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty.log 2>&1 &  # [RUNNING 0112 20:xx]
 
 # Beauty: Multi-view 无 boost (纯架构贡献)
-GPU_ID=2 nohup bash experiments/exp_fair_multiview_no_boost_beauty.sh > fair_mv_no_boost_beauty.log 2>&1 &
+GPU_ID=2 nohup bash experiments/exp_fair_multiview_no_boost_beauty.sh > fair_mv_no_boost_beauty.log 2>&1 &  # [PENDING]
 
 # Beauty: Multi-view cold=2.0 only (无 infer_boost)
-GPU_ID=3 nohup bash experiments/exp_fair_multiview_cold2_only_beauty.sh > fair_mv_cold2_only_beauty.log 2>&1 &
+GPU_ID=3 nohup bash experiments/exp_fair_multiview_cold2_only_beauty.sh > fair_mv_cold2_only_beauty.log 2>&1 &  # [PENDING]
 
 # Toys: TF-IDF + cold_boost=2.0
-GPU_ID=4 nohup bash experiments/exp_fair_tfidf_cold2_toys.sh > fair_tfidf_cold2_toys.log 2>&1 &
+GPU_ID=4 nohup bash experiments/exp_fair_tfidf_cold2_toys.sh > fair_tfidf_cold2_toys.log 2>&1 &  # [PENDING]
 
 # Toys: TF-IDF+LLM + cold_boost=2.0
-GPU_ID=5 nohup bash experiments/exp_fair_tfidf_llm_cold2_toys.sh > fair_tfidf_llm_cold2_toys.log 2>&1 &
+GPU_ID=5 nohup bash experiments/exp_fair_tfidf_llm_cold2_toys.sh > fair_tfidf_llm_cold2_toys.log 2>&1 &  # [RUNNING 0112 20:xx]
 
 # Toys: Multi-view 无 boost (纯架构贡献)
-GPU_ID=6 nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no_boost_toys.log 2>&1 &
+GPU_ID=6 nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no_boost_toys.log 2>&1 &  # [RUNNING 0112 20:xx]
 
 # Toys: Multi-view cold=2.0 only (无 infer_boost)
-GPU_ID=7 nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys.log 2>&1 &
+GPU_ID=7 nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys.log 2>&1 &  # [PENDING]
 
 
 # ============================================================
