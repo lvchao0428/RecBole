@@ -319,3 +319,150 @@ GPU_ID=X nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_
 - `experiments/exp_fair_tfidf_llm_cold2_toys.sh`
 - `experiments/exp_fair_multiview_no_boost_toys.sh`
 - `experiments/exp_fair_multiview_cold2_only_toys.sh`
+
+---
+
+## 实验状态更新 (2025-01-12 晚)
+
+### 问题修复
+
+1. **--config_dict 参数未生效**：已在 `scripts/two_phase_train.py` 中修复
+2. **磁盘空间不足**：已清理，8 个公平对比实验已重新启动
+
+### 公平对比实验 (8组)
+
+| GPU | 实验 | 状态 | 版本 |
+|-----|------|------|------|
+| 0 | exp_fair_tfidf_cold2_beauty | ✅ **DONE** | v3 |
+| 1 | exp_fair_tfidf_llm_cold2_beauty | ✅ **DONE** | v3 |
+| 0 | exp_fair_multiview_no_boost_beauty | ✅ RUNNING | v2 |
+| 2 | exp_fair_multiview_cold2_only_beauty | ✅ RUNNING | v3 |
+| 3 | exp_fair_tfidf_cold2_toys | ✅ RUNNING | v3 |
+| 5 | exp_fair_tfidf_llm_cold2_toys | ✅ RUNNING | v3 |
+| 6 | exp_fair_multiview_no_boost_toys | ✅ RUNNING | v2 |
+| 7 | exp_fair_multiview_cold2_only_toys | ✅ RUNNING | v3 |
+
+---
+
+## 新增实验 (0112 晚) - Toys Multi-view Aggressive
+
+### 背景
+
+Toys 层级问题仍需修复：Multi-view 需要超越 TF-IDF+LLM (0.0371)。
+使用 aggressive 参数 (cold=2.5, infer=1.5) 进行验证。
+
+### 实验列表
+
+| GPU | 实验 | 配置 | 目的 | 状态 |
+|-----|------|------|------|------|
+| 5090 | `exp_multiview_toys_aggressive` | 7B + aggressive | 修复层级 (最高优先级) | 🔄 RUNNING |
+| 4090-0 | `exp_multiview_toys_14b_aggressive` | 14B + aggressive | Scale Law 验证 | 🔄 RUNNING |
+| 4090-1 | `exp_multiview_toys_32b_aggressive` | 32B + aggressive | Scale Law 完整验证 | 🔄 RUNNING |
+
+### 执行命令
+
+```bash
+# 5090: Toys Multi-view 7B Aggressive (最高优先级 - 修复层级)
+GPU_ID=0 nohup bash experiments/exp_multiview_toys_aggressive.sh > mv_toys_7b_aggressive.log 2>&1 &
+
+# 4090-0: Toys Multi-view 14B Aggressive (Scale Law 验证)
+GPU_ID=0 nohup bash experiments/exp_multiview_toys_14b_aggressive.sh > mv_toys_14b_aggressive.log 2>&1 &
+
+# 4090-1: Toys Multi-view 32B Aggressive (Scale Law 完整验证)
+GPU_ID=1 nohup bash experiments/exp_multiview_toys_32b_aggressive.sh > mv_toys_32b_aggressive.log 2>&1 &
+```
+
+### 预期结果
+
+| 实验 | 当前 MRR@10 | 预期 MRR@10 | 目标 |
+|------|-------------|-------------|------|
+| Toys MV-7B aggressive | N/A | > 0.0373 | 超越 TF-IDF (修复层级) |
+| Toys MV-14B aggressive | N/A | > 7B | Scale Law 验证 |
+| Toys MV-32B aggressive | N/A | > 14B | Scale Law 验证 |
+
+### 决策逻辑
+
+```
+如果 Toys MV-7B aggressive MRR > 0.0373 (TF-IDF):
+  → Toys 层级修复成功
+  → Multi-view + aggressive 参数是 Toys 最优配置
+
+如果 14B > 7B 且 32B > 14B:
+  → Toys Scale Law 成立 (与 Beauty 不同)
+  → 论文叙述: 数据集特性影响 Scale Law 表现
+
+如果 7B ≥ 14B ≥ 32B:
+  → Toys Scale Law 也不成立
+  → 论文叙述: 7B 模型已足够，与数据集无关
+```
+
+---
+
+# Scale Law 深度分析结论
+
+## 已验证发现
+
+基于 0111.csv 实验数据的分析：
+
+- ❌ **Scale Law 在 new/few/frequent 所有物品分组上均不成立**
+- 即使冷启动场景 (new items)，7B 也始终优于或持平 14B/32B
+- 高频物品上 Scale Law 甚至**完全反转** (Beauty: 7B > 14B > 32B)
+
+## 核心结论
+
+> "Multi-view 文本特征对高频物品的边际效益有限"
+> "7B 模型已足够捕获推荐任务所需的语义信息"
+
+---
+
+# 新假设：SVD 压缩比导致 Scale Law 失效
+
+## 问题分析
+
+所有模型 (7B/14B/32B) 的 LLM 嵌入都压缩到同样的 **64D**：
+
+| 模型 | 原始维度 | 压缩后 | 压缩比 | 信息损失 |
+|------|----------|--------|--------|----------|
+| 7B | 3584D | 64D | **56x** | 较小 |
+| 14B | 5120D | 64D | **80x** | 中等 ⚠️ |
+| 32B | 5120D | 64D | **80x** | 中等 ⚠️ |
+
+**核心问题**：更大模型信息损失比例更高，抵消了语义优势。
+
+## 假设
+
+维度自适应压缩才能公平验证 Scale Law：
+
+| 模型 | 建议压缩维度 | 压缩比 |
+|------|--------------|--------|
+| 7B | 64D | 56x (保持不变) |
+| 14B | **128D** | 40x (降低) |
+| 32B | **256D** | 20x (显著降低) |
+
+## TODO: 待验证实验
+
+### SVD 维度自适应实验 (需要修改预处理流程)
+
+| 实验 | 配置 | 目的 |
+|------|------|------|
+| `exp_svd_14b_128` | 14B 模型 SVD 到 128 维 | 验证维度提升效果 |
+| `exp_svd_32b_256` | 32B 模型 SVD 到 256 维 | 验证维度提升效果 |
+
+### 融合架构验证 (需要修改模型代码)
+
+| 实验 | 配置 | 目的 |
+|------|------|------|
+| `exp_proj_14b_128to64` | 14B(128D) → 投影到 64D 再融合 | 测试投影损失 |
+| `exp_proj_32b_256to64` | 32B(256D) → 投影到 64D 再融合 | 测试投影损失 |
+| `exp_attn_14b_128` | 14B(128D) + 注意力融合 | 测试注意力融合 |
+| `exp_attn_32b_256` | 32B(256D) + 注意力融合 | 测试注意力融合 |
+
+## 预期结果
+
+```
+如果假设成立: 
+  exp_svd_32b_256 > exp_svd_14b_128 > exp_svd_7b_64 (Scale Law 恢复!)
+
+如果假设不成立: 
+  LLM 规模对推荐任务确实帮助有限，7B 已足够
+```
