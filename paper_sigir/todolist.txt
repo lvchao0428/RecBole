@@ -63,7 +63,7 @@ GPU_ID=3 nohup bash experiments/exp_boost_32b_aggressive.sh > boost_32b_aggressi
 GPU_ID=4 nohup bash experiments/exp_boost_toys_threshold5.sh > boost_toys_threshold5.log 2>&1 &
 
 # 4090-7: Beauty 使用 Toys 的 standard 参数 (统一参数对称验证)
-GPU_ID=7 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standard_beauty.log 2>&1 &
+GPU_ID=4 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standard_beauty.log 2>&1 &  # [RUNNING 0112 18:xx 4090-4]
 
 
 

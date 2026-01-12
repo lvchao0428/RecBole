@@ -374,12 +374,35 @@ not merely from parameter tuning.
 
 ---
 
+## 🔄 公平对比实验重跑状态 (0112 18:xx)
+
+### 当前运行中
+
+| GPU | 实验 | 数据集 | 配置 | 状态 |
+|-----|------|--------|------|------|
+| 5090 | `multiview_no_boost_beauty` | Beauty | cold=0, infer=0 | 🔄 运行中 |
+| 4090-0 | `tfidf_cold2_beauty` v2 | Beauty | cold=2.0 | 🔄 修复后重跑 |
+| 4090-1 | `tfidf_llm_cold2_beauty` v2 | Beauty | cold=2.0 | 🔄 修复后重跑 |
+| 4090-2 | `multiview_cold2_only_beauty` v2 | Beauty | cold=2.0, infer=0 | 🔄 修复后重跑 |
+| 4090-3 | `tfidf_cold2_toys` v2 | Toys | cold=2.0 | 🔄 修复后重跑 |
+| 4090-4 | `unified_standard_beauty` | Beauty | Toys 参数 | 🔄 统一参数验证 |
+| 4090-5 | `tfidf_llm_cold2_toys` v2 | Toys | cold=2.0 | 🔄 修复后重跑 |
+| 4090-6 | `multiview_no_boost_toys` | Toys | cold=0, infer=0 | 🔄 运行中 |
+| 4090-7 | `multiview_cold2_only_toys` v2 | Toys | cold=2.0, infer=0 | 🔄 修复后重跑 |
+
+### 预期验证
+
+1. **cold_boost 真实效果**: 修复后 TF-IDF/TF-IDF+LLM + cold=2.0 是否有提升
+2. **Multi-view 纯架构贡献**: no_boost 实验结果
+3. **cold_boost 对 Multi-view 的效果**: cold2_only vs no_boost
+4. **统一参数泛化性**: Beauty 使用 Toys 参数是否有效
+
+---
+
 ## 下一步行动
 
-1. **等待当前实验完成**: 
-   - exp_boost_14b_aggressive, exp_boost_32b_aggressive (Scale Law)
-   - exp_fair_* 公平对比实验
-2. **实现 SVD 维度自适应**: 修改预处理流程支持不同维度
-3. **设计融合层**: 支持不同维度特征融合
-4. **运行验证实验**: 验证压缩比假设
+1. **等待当前实验完成** (~21:00-23:00)
+2. **分析公平对比结果**: 构建消融分析表格
+3. **验证统一参数**: 对比 unified_standard_beauty 和 unified_aggressive_toys
+4. **实现 SVD 维度自适应** (如果时间允许): 修改预处理流程支持不同维度
 
