@@ -62,37 +62,38 @@ GPU_ID=3 nohup bash experiments/exp_boost_32b_aggressive.sh > boost_32b_aggressi
 # 4090-4: Toys + threshold=5 (threshold 对比)
 GPU_ID=4 nohup bash experiments/exp_boost_toys_threshold5.sh > boost_toys_threshold5.log 2>&1 &
 
-# 4090-7: Beauty 使用 Toys 的 standard 参数 (统一参数对称验证)
-GPU_ID=4 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standard_beauty.log 2>&1 &  # [RUNNING 0112 18:xx 4090-4]
+# 4090-4: Beauty 使用 Toys 的 standard 参数 (统一参数对称验证)
+GPU_ID=4 nohup bash experiments/exp_unified_standard_beauty.sh > unified_standard_beauty.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 
 
 0112， new exp (公平对比实验 - 验证各组件独立贡献)
 # ⚠️ BUG修复: --config_dict 参数在 18:xx 之前未生效，以下实验已重跑
+# ❌ 磁盘满导致 8 个实验退出 (Exit 1)，需要清理磁盘后重启
 
 # Beauty: TF-IDF + cold_boost=2.0
-GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty_v2.log 2>&1 &  # [RERUN 0112 18:08 4090-0] 修复后
+GPU_ID=0 nohup bash experiments/exp_fair_tfidf_cold2_beauty.sh > fair_tfidf_cold2_beauty_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Beauty: TF-IDF+LLM + cold_boost=2.0
-GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty_v2.log 2>&1 &  # [RERUN 0112 18:08 4090-1] 修复后
+GPU_ID=1 nohup bash experiments/exp_fair_tfidf_llm_cold2_beauty.sh > fair_tfidf_llm_cold2_beauty_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Beauty: Multi-view 无 boost (纯架构贡献)
 GPU_ID=0 nohup bash experiments/exp_fair_multiview_no_boost_beauty.sh > fair_mv_no_boost_beauty.log 2>&1 &  # [RUNNING 5090] cold=0 不受影响
 
 # Beauty: Multi-view cold=2.0 only (无 infer_boost)
-GPU_ID=2 nohup bash experiments/exp_fair_multiview_cold2_only_beauty.sh > fair_mv_cold2_only_beauty_v2.log 2>&1 &  # [RERUN 0112 18:06 4090-2] 修复后
+GPU_ID=2 nohup bash experiments/exp_fair_multiview_cold2_only_beauty.sh > fair_mv_cold2_only_beauty_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Toys: TF-IDF + cold_boost=2.0
-GPU_ID=3 nohup bash experiments/exp_fair_tfidf_cold2_toys.sh > fair_tfidf_cold2_toys_v2.log 2>&1 &  # [RERUN 0112 18:07 4090-3] 修复后
+GPU_ID=3 nohup bash experiments/exp_fair_tfidf_cold2_toys.sh > fair_tfidf_cold2_toys_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Toys: TF-IDF+LLM + cold_boost=2.0
-GPU_ID=5 nohup bash experiments/exp_fair_tfidf_llm_cold2_toys.sh > fair_tfidf_llm_cold2_toys_v2.log 2>&1 &  # [RERUN 0112 18:xx 4090-5] 修复后
+GPU_ID=5 nohup bash experiments/exp_fair_tfidf_llm_cold2_toys.sh > fair_tfidf_llm_cold2_toys_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Toys: Multi-view 无 boost (纯架构贡献)
-GPU_ID=6 nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no_boost_toys.log 2>&1 &  # [RUNNING 4090-6] cold=0 不受影响
+GPU_ID=6 nohup bash experiments/exp_fair_multiview_no_boost_toys.sh > fair_mv_no_boost_toys.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 # Toys: Multi-view cold=2.0 only (无 infer_boost)
-GPU_ID=7 nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys_v2.log 2>&1 &  # [RERUN 0112 18:07 4090-7] 修复后
+GPU_ID=7 nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_cold2_only_toys_v2.log 2>&1 &  # [FAILED 磁盘满] 待重跑
 
 
 # ============================================================

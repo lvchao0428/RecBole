@@ -376,21 +376,28 @@ not merely from parameter tuning.
 
 ## 🔄 公平对比实验重跑状态 (0112 18:xx)
 
-### 当前运行中
+### ❌ 磁盘满导致实验失败 (0112 ~18:30)
+
+**8 个实验因磁盘空间不足退出 (Exit 1)**，需要清理磁盘后重启：
 
 | GPU | 实验 | 数据集 | 配置 | 状态 |
 |-----|------|--------|------|------|
-| 5090 | `multiview_no_boost_beauty` | Beauty | cold=0, infer=0 | 🔄 运行中 |
-| 4090-0 | `tfidf_cold2_beauty` v2 | Beauty | cold=2.0 | 🔄 修复后重跑 |
-| 4090-1 | `tfidf_llm_cold2_beauty` v2 | Beauty | cold=2.0 | 🔄 修复后重跑 |
-| 4090-2 | `multiview_cold2_only_beauty` v2 | Beauty | cold=2.0, infer=0 | 🔄 修复后重跑 |
-| 4090-3 | `tfidf_cold2_toys` v2 | Toys | cold=2.0 | 🔄 修复后重跑 |
-| 4090-4 | `unified_standard_beauty` | Beauty | Toys 参数 | 🔄 统一参数验证 |
-| 4090-5 | `tfidf_llm_cold2_toys` v2 | Toys | cold=2.0 | 🔄 修复后重跑 |
-| 4090-6 | `multiview_no_boost_toys` | Toys | cold=0, infer=0 | 🔄 运行中 |
-| 4090-7 | `multiview_cold2_only_toys` v2 | Toys | cold=2.0, infer=0 | 🔄 修复后重跑 |
+| 5090 | `multiview_no_boost_beauty` | Beauty | cold=0, infer=0 | 🔄 运行中 (不受影响) |
+| 4090-0 | `tfidf_cold2_beauty` v2 | Beauty | cold=2.0 | ❌ 磁盘满 |
+| 4090-1 | `tfidf_llm_cold2_beauty` v2 | Beauty | cold=2.0 | ❌ 磁盘满 |
+| 4090-2 | `multiview_cold2_only_beauty` v2 | Beauty | cold=2.0, infer=0 | ❌ 磁盘满 |
+| 4090-3 | `tfidf_cold2_toys` v2 | Toys | cold=2.0 | ❌ 磁盘满 |
+| 4090-4 | `unified_standard_beauty` | Beauty | Toys 参数 | ❌ 磁盘满 |
+| 4090-5 | `tfidf_llm_cold2_toys` v2 | Toys | cold=2.0 | ❌ 磁盘满 |
+| 4090-6 | `multiview_no_boost_toys` | Toys | cold=0, infer=0 | ❌ 磁盘满 |
+| 4090-7 | `multiview_cold2_only_toys` v2 | Toys | cold=2.0, infer=0 | ❌ 磁盘满 |
 
-### 预期验证
+### 待办
+
+1. **清理 4090 机器磁盘空间**
+2. **重启 8 个失败的实验**
+
+### 预期验证 (实验完成后)
 
 1. **cold_boost 真实效果**: 修复后 TF-IDF/TF-IDF+LLM + cold=2.0 是否有提升
 2. **Multi-view 纯架构贡献**: no_boost 实验结果
