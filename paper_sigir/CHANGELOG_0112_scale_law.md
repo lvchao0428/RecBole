@@ -291,14 +291,14 @@ LLMs do capture richer semantics when properly preserved.
 | 4090-5 | `exp_fair_tfidf_llm_cold2_toys` | Toys | TF-IDF+LLM + cold=2.0 | 🔄 运行中 |
 | 4090-6 | `exp_fair_multiview_no_boost_toys` | Toys | Multi-view 无 boost | 🔄 运行中 |
 
-### 待运行 (需要 GPU 2, 3, 4, 7)
+### 第二批运行 (0112 21:xx 启动)
 
 | GPU | 实验 | 数据集 | 目的 | 状态 |
 |-----|------|--------|------|------|
-| 4090-2 | `exp_fair_multiview_no_boost_beauty` | Beauty | Multi-view 无 boost | ⏳ 待运行 |
-| 4090-3 | `exp_fair_multiview_cold2_only_beauty` | Beauty | Multi-view cold=2 only | ⏳ 待运行 |
-| 4090-4 | `exp_fair_tfidf_cold2_toys` | Toys | TF-IDF + cold=2.0 | ⏳ 待运行 |
-| 4090-7 | `exp_fair_multiview_cold2_only_toys` | Toys | Multi-view cold=2 only | ⏳ 待运行 |
+| 5090 | `exp_fair_multiview_no_boost_beauty` | Beauty | Multi-view 无 boost | 🔄 运行中 |
+| 4090-2 | `exp_fair_multiview_cold2_only_beauty` | Beauty | Multi-view cold=2 only | 🔄 运行中 |
+| 4090-3 | `exp_fair_tfidf_cold2_toys` | Toys | TF-IDF + cold=2.0 | 🔄 运行中 |
+| 4090-7 | `exp_fair_multiview_cold2_only_toys` | Toys | Multi-view cold=2 only | 🔄 运行中 |
 
 ### 对比矩阵
 
