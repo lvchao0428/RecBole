@@ -341,3 +341,97 @@ GPU_ID=X nohup bash experiments/exp_fair_multiview_cold2_only_toys.sh > fair_mv_
 | 5 | exp_fair_tfidf_llm_cold2_toys | ✅ RUNNING | v3 |
 | 6 | exp_fair_multiview_no_boost_toys | ✅ RUNNING | v2 |
 | 7 | exp_fair_multiview_cold2_only_toys | ✅ RUNNING | v3 |
+
+---
+
+# 0113 验证总结与新计划
+
+## ✅ Toys 数据集验证完成
+
+### 层级验证 (Hit@10 指标)
+
+| 模型 | MRR@10 | Hit@10 | Hit_new@10 | 状态 |
+|------|--------|--------|------------|------|
+| 50ep (ID only) | 0.0249 | 0.0597 | 0.0191 | baseline |
+| TF-IDF | 0.0373 | 0.0654 | 0.0183 | +49.8% MRR |
+| TF-IDF+LLM | 0.0371 | 0.0666 | 0.0184 | Hit > TF-IDF |
+| Multi-view 7B | 0.0376 | 0.0695 | 0.0203 | **最优** |
+
+**结论：Multi-view > TF-IDF+LLM > TF-IDF >> 50ep ✅**
+
+### Scale Law 验证 (Hit_new@10 指标)
+
+| Model Size | Hit@10 | Hit_new@10 | Recall_new@20 | 趋势 |
+|------------|--------|------------|---------------|------|
+| 7B | 0.0667 | 0.0201 | 0.0235 | - |
+| 14B | 0.0671 | 0.0202 | 0.0238 | ↑ |
+| 32B | **0.0680** | **0.0208** | **0.0241** | ↑↑ |
+
+**结论：Scale Law 在长尾指标成立 32B > 14B > 7B ✅**
+
+### Toys 最优参数配置
+
+```yaml
+# Standard 配置 (推荐用于 Scale Law 验证)
+cold_start_align_boost: 2.0
+cold_start_align_threshold: 10
+inference_cold_text_boost: 1.0
+alignment_weight: 0.10
+temperature: 0.05
+
+# Aggressive 配置 (推荐用于最佳整体性能)
+cold_start_align_boost: 2.5
+inference_cold_text_boost: 1.5
+```
+
+**详细文档：`paper_sigir/TOYS_OPTIMAL_PARAMS.md`**
+
+---
+
+## ❌ Beauty Scale Law 问题持续
+
+### 已尝试方案
+
+| 方案 | 7B | 14B | 32B | Scale Law |
+|------|-----|-----|-----|-----------|
+| Standard (cold=2.0, infer=1.0) | 0.0167 | 0.0167 | 0.0166 | ❌ 持平 |
+| Aggressive (cold=2.5, infer=1.5) | **0.0181** | 0.0182 | 0.0181 | ❌ 持平 |
+| 14B + infer=2.0 | - | 0.0180 | - | ❌ 反向 |
+
+**问题：提高 inference_cold_text_boost 没有帮助**
+
+### 新假设：Low Boost + High Align
+
+> **核心思路**：大模型语义更丰富，不需要过度放大冷启动权重，
+> 而是需要更强的对齐来充分利用语义信息
+
+| 参数 | Aggressive | Low Boost (新) |
+|------|------------|----------------|
+| cold_start_align_boost | 2.5 | 1.5 ↓ |
+| inference_cold_text_boost | 1.5 | 0.5 ↓↓ |
+| alignment_weight | 0.10 | 0.15 ↑ |
+
+### 新增实验
+
+| GPU | 实验 | 预期 |
+|-----|------|------|
+| 4 | exp_beauty_14b_low_boost | Hit_new > 0.0181 |
+| 5 | exp_beauty_32b_low_boost | Hit_new > 14B |
+
+### 成功标准
+
+```
+Hit_new@10: 32B low_boost > 14B low_boost > 7B aggressive (0.0181)
+```
+
+**详细方案：`paper_sigir/BEAUTY_SCALE_LAW_PLAN.md`**
+
+---
+
+## 执行命令
+
+```bash
+# Beauty Scale Law 专项实验
+GPU_ID=4 nohup bash experiments/exp_beauty_14b_low_boost.sh > beauty_14b_low_boost.log 2>&1 &
+GPU_ID=5 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boost.log 2>&1 &
+```
