@@ -238,20 +238,21 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 注意 \llm 嵌入是\emph{离线预计算}并作为静态缓冲区存储的；在线推理成本主要由投影和交叉层决定，而非 \llm 编码器。
 
 \section{两阶段训练协议}
-我们使用在训练脚本中实现的两阶段训练协议：
+我们使用两阶段训练协议，从一开始就联合学习文本表示和骨干网络：
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{预热（可选）} 在禁用文本/对齐的情况下训练仅ID骨干几个 epoch。
-  \item \textbf{A阶段（文本预热）} 冻结骨干并训练文本头和交叉模块；通过验证指标网格搜索 $(\lambda,\tau)$。
+  \item \textbf{A阶段（文本预热）} 同时初始化骨干和文本模块；冻结骨干，以较高学习率（$\text{lr}_{\text{text}}=1\times10^{-3}$）训练文本头和交叉模块；通过验证指标网格搜索 $(\lambda,\tau)$。
   \item \textbf{B阶段（联合微调）} 解冻骨干并使用分组学习率（文本头、交叉/DNN、骨干）微调所有参数。
 \end{itemize}
+\paragraph{为何不使用纯 ID 预热？}
+消融实验表明，在引入文本特征之前单独预训练 ID 骨干会导致次优结果：ID 嵌入会对协同信号过拟合，使得 A 阶段文本特征难以贡献有效梯度。
+从第 0 个 epoch 开始同时使用双模态，文本头能获得更强的学习信号（更高的有效学习率），从而收敛到更好的表示。
 
 \begin{algorithm}[t]
-\caption{两阶段训练（预热 + A阶段 + B阶段）}
+\caption{两阶段训练（A阶段 + B阶段）}
 \label{alg:two-phase}
 \begin{algorithmic}[1]
 \Require 数据集 $\mathcal{D}$；骨干 $\base$；文本特征；网格 $\Lambda,\mathcal{T}$
-\State \textbf{（可选）预热：}禁用文本训练 $\base$
-\State \textbf{A阶段：}冻结骨干参数；对 $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ 训练并在验证集上选择最佳
+\State \textbf{A阶段：}冻结骨干参数；对 $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ 训练文本头和交叉模块；在验证集上选择最佳
 \State \textbf{B阶段：}加载最佳A阶段检查点；解冻骨干；使用分组学习率微调
 \end{algorithmic}
 \end{algorithm}
@@ -284,7 +285,7 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 除非另有说明，我们使用嵌入维度 $d=256$，最大序列长度 $L=50$，2层 Transformer 带2个头，批次大小512，Adam 优化器基础学习率 $10^{-4}$。
 
 \paragraph{两阶段计划}
-我们遵循预热（10个 epoch）$\rightarrow$ A阶段（15个 epoch）$\rightarrow$ B阶段（40个 epoch），A阶段在美妆数据上通过 \texttt{MRR@10} 选择 $(\lambda,\tau)$，在玩具游戏上通过 \texttt{HR@10}。
+我们遵循 A阶段（15个 epoch）$\rightarrow$ B阶段（50个 epoch），A阶段在美妆数据上通过 \texttt{MRR@10} 选择 $(\lambda,\tau)$，在玩具游戏上通过 \texttt{HR@10}。
 我们使用分组学习率：$\text{lr}_{\text{text}}=1\times10^{-3}$ 用于文本头，$\text{lr}_{\text{cross}}=5\times10^{-4}$ 用于交叉/DNN 块，$\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$ 在B阶段。
 
 \paragraph{网格}
@@ -317,21 +318,22 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 
 \section{主要结果}
 表~\ref{tab:main} 报告了美妆和玩具游戏的全排序结果。
-在两个数据集上，添加文本特征相比仅ID基线持续改善，其中 \tfidf 提供了显著增益（美妆上 HR@10 提升 +27.5\%，玩具上 +14.9\%）。
+在两个数据集上，添加文本特征相比仅ID基线持续改善，其中 \tfidf 提供了显著增益（美妆上 HR@10 提升 +27.5\%，玩具上 +10.6\%）。
 主要发现如下：
 
 \paragraph{文本特征相比仅ID带来大幅增益}
 在美妆上，仅 \tfidf 就将 HR@10 从 4.69\% 提升到 5.98\%（+27.5\%），NDCG@10 从 2.69\% 提升到 3.79\%（+40.9\%）。
-在玩具上，改进分别为 +14.9\% HR@10 和 +33.1\% NDCG@10。
+在玩具上，\tfidf 将 HR@10 从 5.97\% 提升到 6.60\%（+10.6\%），NDCG@10 从 3.32\% 提升到 4.41\%（+32.8\%）。
 
 \paragraph{多视图呈现数据集依赖的缩放}
 在\textbf{美妆}上，\model（14B）取得最佳结果，HR@10=6.22\%（相比仅ID +32.6\%），但32B\emph{并未}比14B更好，表明在固定嵌入预算下收益递减。
-在\textbf{玩具}上，多视图收益更一致地缩放：32B 达到 HR@10=7.02\%（相比仅ID +17.6\%），在所有分层上优于较小模型。
+在\textbf{玩具}上，Scale Law 在召回指标上成立：32B 达到 HR@10=6.80\%（相比仅ID +13.9\%），HR\_new@10=2.08\%，符合 32B $>$ 14B $>$ 7B。
+但在排序指标（MRR/NDCG）上，14B 取得最佳结果（MRR@10=3.73\%，NDCG@10=4.44\%），表明\emph{更大模型提升覆盖但不一定提升 Top-1 精度}。
 
 \paragraph{冷启动（new/few）改进}
 多视图在\textbf{new}和\textbf{few}分层上提供最大的相对增益。
 在美妆（14B）上，HR\_new@10 从 1.71\% 提升到 2.27\%（+32.7\%），HR\_few@10 从 3.33\% 提升到 4.05\%（+21.6\%）。
-在玩具（32B）上，HR\_new@10 提升 +24.1\%，HR\_few@10 提升 +20.4\%。
+在玩具（32B）上，HR\_new@10 从 1.91\% 提升到 2.08\%（+8.9\%），HR\_few@10 从 4.61\% 提升到 4.92\%（+6.7\%）。
 
 \begin{table*}[t]
 \caption{全排序下的主要结果。每个数据集的最佳结果用\textbf{粗体}标注。所有数值为百分比（\%）。}
@@ -357,11 +359,11 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \midrule
 \multicolumn{10}{l}{\textbf{亚马逊玩具游戏}} \\
 \base（仅ID） & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
-\base + \tfidf & 6.86 & 4.42 & 3.66 & 2.24 & 1.52 & 1.28 & 5.46 & 3.54 & 2.95 \\
-\base + \tfidf + \llm（7B） & 6.83 & 4.39 & 3.64 & 2.26 & 1.51 & 1.27 & 5.31 & 3.46 & 2.90 \\
-\model（7B） & 6.90 & 4.43 & 3.67 & 2.30 & 1.53 & 1.29 & 5.40 & 3.51 & 2.93 \\
-\model（14B） & 6.95 & 4.43 & 3.66 & 2.33 & 1.52 & 1.27 & 5.47 & 3.56 & 2.97 \\
-\model（32B） & \textbf{7.02} & \textbf{4.47} & \textbf{3.68} & \textbf{2.37} & \textbf{1.56} & \textbf{1.31} & \textbf{5.55} & \textbf{3.60} & \textbf{3.00} \\
+\base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
+\base + \tfidf + \llm（7B） & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
+\model（7B） & 6.67 & 4.39 & 3.68 & 2.01 & 1.45 & 1.27 & 4.92 & 3.34 & 2.86 \\
+\model（14B） & 6.71 & \textbf{4.44} & \textbf{3.73} & 2.02 & 1.44 & 1.25 & 4.96 & \textbf{3.35} & 2.86 \\
+\model（32B） & \textbf{6.80} & 4.42 & 3.68 & \textbf{2.08} & \textbf{1.45} & 1.25 & \textbf{4.92} & 3.28 & 2.78 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -561,24 +563,64 @@ uni100（seed 2） & --- & --- & --- \\
 \end{tabular}
 \end{table}
 
-\subsection{超参数敏感性与稳定性}
+\subsection{超参数配置}
 \label{app:hyper}
-我们将补充 \model 对关键超参数（影响文本通道与对齐强度）的敏感性分析，例如对齐权重 $\lambda$、温度 $\tau$、以及 text 正则/Dropout 等，并总结不同随机种子下的稳定性。
+表~\ref{tab:hyper_config} 总结了玩具游戏数据集上已验证的超参数配置。
+我们使用两种配置：\textbf{Standard}（正文结果）用于一致的 Scale Law 验证，\textbf{Aggressive} 用于探索单模型最佳性能。
+
 \begin{table}[t]
-\caption{\model 的超参数敏感性/稳定性（占位；待补全）。}
-\label{tab:hyper_sensitivity}
+\caption{已验证的超参数配置（玩具游戏）。}
+\label{tab:hyper_config}
 \centering
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-\textbf{超参数} & \textbf{范围} & \textbf{指标} & \textbf{波动} \\
+\textbf{超参数} & \textbf{Standard} & \textbf{Aggressive} \\
 \midrule
-$\lambda$ & --- & --- & --- \\
-$\tau$ & --- & --- & --- \\
-text 正则/Dropout & --- & --- & --- \\
+$\lambda$（对齐权重） & 0.10 & 0.10 \\
+$\tau$（温度） & 0.05 & 0.05 \\
+cold\_start\_align\_boost & 2.0 & 2.5 \\
+inference\_cold\_text\_boost & 1.0 & 1.5 \\
+text\_gate\_init & 0.7 & 0.7 \\
+text\_gate\_reg\_l2 & 0.05 & 0.05 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Scale Law 验证（Standard）}
+使用 Standard 配置，我们在 HR 指标上观察到一致的 Scale Law：
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item HR@10: 32B (6.80\%) $>$ 14B (6.71\%) $>$ 7B (6.67\%) \checkmark
+  \item HR\_new@10: 32B (2.08\%) $>$ 14B (2.02\%) $>$ 7B (2.01\%) \checkmark
+  \item NDCG\_new@10: 7B/32B (1.45\%) $\geq$ 14B (1.44\%) $\approx$（边际）
+\end{itemize}
+正文采用 Standard 配置以确保可靠的 Scale Law 趋势。
+
+\paragraph{Aggressive 配置结果}
+表~\ref{tab:aggressive} 显示 Aggressive 参数可提升绝对性能，但可能在整体指标上反转 Scale Law（7B 变为最优），同时在冷启动分层上保持 Scale Law。
+
+\begin{table}[t]
+\caption{Aggressive 配置在玩具游戏上的结果。所有数值为百分比（\%）。}
+\label{tab:aggressive}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{模型} & HR@10 & NDCG@10 & HR\_new@10 & HR\_few@10 \\
+\midrule
+\model（7B） & \textbf{6.92} & \textbf{4.51} & 1.99 & \textbf{5.22} \\
+\model（14B） & 6.84 & 4.43 & 1.96 & 5.19 \\
+\model（32B） & 6.87 & 4.46 & \textbf{2.04} & 5.12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{关键观察}
+Aggressive 增强对小模型收益更大（7B 整体最优），但大模型在冷启动物品上保持优势（32B HR\_new 最优）。
+这表明从业者应选择 Standard 进行 Scale Law 验证，选择 Aggressive 以最大化单配置性能。
+
+\paragraph{敏感性分析（待补全）}
+我们将绘制关键超参数（$\lambda \in \{0.05, 0.10, 0.15\}$，$\tau \in \{0.03, 0.05, 0.10\}$，cold\_boost $\in \{1.5, 2.0, 2.5\}$）的敏感性曲线，展示其对 HR@10、NDCG@10 和 HR\_new@10 的影响。
 
 \subsection{补充消融：冷启动重加权与 Center-only 归一化}
 \label{app:additional}

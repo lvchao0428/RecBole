@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# exp_ablation_toys_nowhiten_standard.sh - Toys 消融: 移除 Whitening (Standard 参数)
+#
+# 目的：验证 Whitening 对最终性能的贡献 (RQ3)
+# 基准：Toys 7B Standard (HR@10=6.67%, MRR@10=3.68%)
+# 配置：使用 Standard 参数 (cold=2.0, infer=1.0)，禁用 Whitening
+#
+# 重要：消融实验必须使用正文核心参数 (Standard)，以便与正文对比
+#
+# 对应 main.tex 中的 RQ3: Whitening ablation
+# 预期：性能下降，因为 whitening 去除冗余/各向同性
+#
+
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+GPU_ID=${GPU_ID:-0}
+echo "========================================="
+echo "Ablation: Toys 7B - No Whitening (Standard)"
+echo "Using GPU: $GPU_ID"
+echo "========================================="
+echo "  - use_whitening: false (禁用 Whitening)"
+echo "  - cold_start_align_boost: 2.0 (Standard)"
+echo "  - inference_cold_text_boost: 1.0 (Standard)"
+echo ""
+
+python scripts/two_phase_train.py \
+  --model SASRecAlignMultiViewV2 \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "sasrec_align_multi_view_v2_toys_stratified_7b_squeeze_nowhiten.yaml" \
+  --gpu_id $GPU_ID \
+  --phase_a_grid \
+  --align_grid "0.10" \
+  --tau_grid "0.05" \
+  --backbone_burnin_epochs 0 \
+  --burnin_eval_step 2 \
+  --phase_a_epochs 20 \
+  --phase_a_eval_step 1 \
+  --phase_a_valid_metric "MRR@10" \
+  --metric_baseline 0.0249 \
+  --metric_gain_threshold 0.01 \
+  --lr_text_head 2e-3 \
+  --lr_dnn_cross 5e-4 \
+  --phase_a_text_gate_reg_l2 0.01 \
+  --phase_b_alignment_weight 0.10 \
+  --phase_b_text_gate_reg_l2 0.03 \
+  --phase_b_text_weight 1.0 \
+  --phase_a_auto_to_b \
+  --phase_b_epochs 40 \
+  --backbone_lr_scale 0.1 \
+  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0}" \
+  --checkpoint_dir ./saved/exp_ablation_toys_nowhiten_standard \
+  --seed 2025 \
+  --variant_features "sasrec,multiview_v2,7b,toys,ablation,nowhiten,standard" \
+  --watchdog_disable \
+  --save
+
+echo "✅ Done! Check: saved/exp_ablation_toys_nowhiten_standard/"
+

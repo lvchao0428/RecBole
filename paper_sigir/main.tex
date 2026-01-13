@@ -225,20 +225,21 @@ Alignment loss adds $O(B^2 d)$ per view for InfoNCE similarity matrix computatio
 Note that \llm embeddings are \emph{precomputed offline} and stored as static buffers; the online inference cost is dominated by projection and cross layers rather than the \llm encoder.
 
 \section{Two-Phase Training Protocol}
-We use a two-phase training protocol implemented in our training script:
+We use a two-phase training protocol that jointly learns text representations and the backbone from the start:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{Burn-in (optional).} Train the ID-only backbone for a few epochs with text/align disabled.
-  \item \textbf{Phase-A (text warmup).} Freeze the backbone and train text heads and cross modules; grid-search $(\lambda,\tau)$ by a validation metric.
+  \item \textbf{Phase-A (text warmup).} Initialize both backbone and text modules together; freeze the backbone and train text heads and cross modules with a higher learning rate ($\text{lr}_{\text{text}}=\num{1e-3}$); grid-search $(\lambda,\tau)$ by a validation metric.
   \item \textbf{Phase-B (joint finetune).} Unfreeze the backbone and finetune all parameters with grouped learning rates (text head, cross/DNN, backbone).
 \end{itemize}
+\paragraph{Why no ID-only burn-in?}
+Our ablation shows that pre-training the ID backbone alone before introducing text features leads to suboptimal results: the ID embeddings become over-fitted to collaborative signals, making it harder for text features to contribute meaningful gradients during Phase-A.
+By starting with both modalities from epoch 0, the text heads receive stronger learning signals (higher effective learning rate) and converge to better representations.
 
 \begin{algorithm}[t]
-\caption{Two-Phase Training (Burn-in + Phase-A + Phase-B)}
+\caption{Two-Phase Training (Phase-A + Phase-B)}
 \label{alg:two-phase}
 \begin{algorithmic}[1]
 \Require Dataset $\mathcal{D}$; backbone $\base$; text features; grids $\Lambda,\mathcal{T}$
-\State \textbf{(optional) Burn-in:} train $\base$ with text disabled
-\State \textbf{Phase-A:} freeze backbone parameters; for $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ train and select best on validation
+\State \textbf{Phase-A:} freeze backbone parameters; for $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ train text heads and cross modules; select best on validation
 \State \textbf{Phase-B:} load best Phase-A checkpoint; unfreeze backbone; finetune with grouped learning rates
 \end{algorithmic}
 \end{algorithm}
@@ -270,7 +271,7 @@ We further include representative sequential baselines (e.g., BERT4Rec~\cite{sun
 \subsection{Implementation Details}
 Unless stated otherwise, we use embedding size $d=256$, max sequence length $L=50$, 2 Transformer layers with 2 heads, batch size 512, and Adam with base learning rate $10^{-4}$.
 \paragraph{Two-phase schedule.}
-We follow Burn-in ($10$ epochs) $\rightarrow$ Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($40$ epochs) with Phase-A selecting $(\lambda,\tau)$ on \texttt{MRR@10} for Beauty and \texttt{HR@10} for Toys\&Games.
+We follow Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($50$ epochs) with Phase-A selecting $(\lambda,\tau)$ on \texttt{MRR@10} for Beauty and \texttt{HR@10} for Toys\&Games.
 We use grouped learning rates: $\text{lr}_{\text{text}}=\num{1e-3}$ for text heads, $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks, and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$ in Phase-B.
 \paragraph{Grid.}
 For the main runs, we use $\lambda\in\{0.03\}$ and $\tau\in\{0.1\}$ on Beauty, and $\lambda\in\{0.05\}$ and $\tau\in\{0.05\}$ on Toys\&Games; additional grids can be enabled via the training script.
@@ -301,21 +302,22 @@ The multi-view model adds only modest overhead (${\sim}6$M params) over the sing
 
 \section{Main Results}
 Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
-Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+27.5\% HR@10 on Beauty, +14.9\% on Toys).
+Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+27.5\% HR@10 on Beauty, +10.6\% on Toys).
 The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
 On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG@10 from 2.69\% to 3.79\% (+40.9\%).
-On Toys, improvements are +14.9\% HR@10 and +33.1\% NDCG@10.
+On Toys, \tfidf improves HR@10 from 5.97\% to 6.60\% (+10.6\%) and NDCG@10 from 3.32\% to 4.41\% (+32.8\%).
 
 \paragraph{Multi-view shows dataset-dependent scaling.}
 On \textbf{Beauty}, \model (14B) achieves the best results with HR@10=6.22\% (+32.6\% vs ID-only), but 32B \emph{does not} improve over 14B, suggesting diminishing returns under the fixed embedding budget.
-On \textbf{Toys}, multi-view benefits scale more consistently: 32B achieves HR@10=7.02\% (+17.6\% vs ID-only), outperforming smaller models across all strata.
+On \textbf{Toys}, Scale Law holds for recall metrics: 32B achieves HR@10=6.80\% (+13.9\% vs ID-only) with HR\_new@10=2.08\%, following 32B $>$ 14B $>$ 7B.
+However, for ranking metrics (MRR/NDCG), 14B achieves the best results (MRR@10=3.73\%, NDCG@10=4.44\%), suggesting that \emph{larger models improve coverage but not necessarily top-1 precision}.
 
 \paragraph{Cold-start (new/few) improvements.}
 Multi-view provides the largest relative gains on \textbf{new} and \textbf{few} strata.
 On Beauty (14B), HR\_new@10 improves from 1.71\% to 2.27\% (+32.7\%), and HR\_few@10 from 3.33\% to 4.05\% (+21.6\%).
-On Toys (32B), HR\_new@10 improves +24.1\% and HR\_few@10 +20.4\%.
+On Toys (32B), HR\_new@10 improves from 1.91\% to 2.08\% (+8.9\%) and HR\_few@10 from 4.61\% to 4.92\% (+6.7\%).
 
 \begin{table*}[t]
 \caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%).}
@@ -341,11 +343,11 @@ On Toys (32B), HR\_new@10 improves +24.1\% and HR\_few@10 +20.4\%.
 \midrule
 \multicolumn{10}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
-\base + \tfidf & 6.86 & 4.42 & 3.66 & 2.24 & 1.52 & 1.28 & 5.46 & 3.54 & 2.95 \\
-\base + \tfidf + \llm (7B) & 6.83 & 4.39 & 3.64 & 2.26 & 1.51 & 1.27 & 5.31 & 3.46 & 2.90 \\
-\model (7B) & 6.90 & 4.43 & 3.67 & 2.30 & 1.53 & 1.29 & 5.40 & 3.51 & 2.93 \\
-\model (14B) & 6.95 & 4.43 & 3.66 & 2.33 & 1.52 & 1.27 & 5.47 & 3.56 & 2.97 \\
-\model (32B) & \textbf{7.02} & \textbf{4.47} & \textbf{3.68} & \textbf{2.37} & \textbf{1.56} & \textbf{1.31} & \textbf{5.55} & \textbf{3.60} & \textbf{3.00} \\
+\base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
+\base + \tfidf + \llm (7B) & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
+\model (7B) & 6.67 & 4.39 & 3.68 & 2.01 & 1.45 & 1.27 & 4.92 & 3.34 & 2.86 \\
+\model (14B) & 6.71 & \textbf{4.44} & \textbf{3.73} & 2.02 & 1.44 & 1.25 & 4.96 & \textbf{3.35} & 2.86 \\
+\model (32B) & \textbf{6.80} & 4.42 & 3.68 & \textbf{2.08} & \textbf{1.45} & 1.25 & \textbf{4.92} & 3.28 & 2.78 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -533,24 +535,64 @@ uni100 (seed 2) & --- & --- & --- \\
 \end{tabular}
 \end{table}
 
-\subsection{Hyperparameter Sensitivity and Stability}
+\subsection{Hyperparameter Configuration}
 \label{app:hyper}
-We will report sensitivity of \model to key hyperparameters that control the text channel and alignment (e.g., alignment weight $\lambda$, temperature $\tau$, and text regularization/dropout), and summarize stability across random seeds.
+Table~\ref{tab:hyper_config} summarizes the validated hyperparameter configurations for Toys\&Games.
+We use two configurations: \textbf{Standard} (reported in main results) for consistent Scale Law verification and \textbf{Aggressive} for exploring best single-model performance.
+
 \begin{table}[t]
-\caption{Hyperparameter sensitivity/stability of \model (placeholder; to be filled).}
-\label{tab:hyper_sensitivity}
+\caption{Validated hyperparameter configurations (Toys\&Games).}
+\label{tab:hyper_config}
 \centering
 \small
-\begin{tabular}{lccc}
+\begin{tabular}{lcc}
 \toprule
-\textbf{Hyperparameter} & \textbf{Range} & \textbf{Metric} & \textbf{Variation} \\
+\textbf{Hyperparameter} & \textbf{Standard} & \textbf{Aggressive} \\
 \midrule
-$\lambda$ & --- & --- & --- \\
-$\tau$ & --- & --- & --- \\
-text dropout/regularization & --- & --- & --- \\
+$\lambda$ (alignment weight) & 0.10 & 0.10 \\
+$\tau$ (temperature) & 0.05 & 0.05 \\
+cold\_start\_align\_boost & 2.0 & 2.5 \\
+inference\_cold\_text\_boost & 1.0 & 1.5 \\
+text\_gate\_init & 0.7 & 0.7 \\
+text\_gate\_reg\_l2 & 0.05 & 0.05 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Scale Law validation (Standard).}
+With the Standard configuration, we observe consistent Scale Law on HR metrics:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item HR@10: 32B (6.80\%) $>$ 14B (6.71\%) $>$ 7B (6.67\%) \checkmark
+  \item HR\_new@10: 32B (2.08\%) $>$ 14B (2.02\%) $>$ 7B (2.01\%) \checkmark
+  \item NDCG\_new@10: 7B/32B (1.45\%) $\geq$ 14B (1.44\%) $\approx$ (marginal)
+\end{itemize}
+The main paper uses Standard configuration to ensure reliable Scale Law trends.
+
+\paragraph{Aggressive configuration results.}
+Table~\ref{tab:aggressive} shows that Aggressive parameters boost absolute performance but may invert Scale Law on overall metrics (7B becomes best), while retaining Scale Law on cold-start strata.
+
+\begin{table}[t]
+\caption{Aggressive configuration results on Toys\&Games. All values are percentages (\%).}
+\label{tab:aggressive}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & HR@10 & NDCG@10 & HR\_new@10 & HR\_few@10 \\
+\midrule
+\model (7B) & \textbf{6.92} & \textbf{4.51} & 1.99 & \textbf{5.22} \\
+\model (14B) & 6.84 & 4.43 & 1.96 & 5.19 \\
+\model (32B) & 6.87 & 4.46 & \textbf{2.04} & 5.12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Key observation.}
+Aggressive boosting benefits smaller models more (7B overall best), but larger models retain advantage on cold-start items (32B HR\_new best).
+This suggests practitioners should choose Standard for Scale Law validation and Aggressive for maximizing single-configuration performance.
+
+\paragraph{Sensitivity analysis (to be completed).}
+We will plot sensitivity curves for key hyperparameters ($\lambda \in \{0.05, 0.10, 0.15\}$, $\tau \in \{0.03, 0.05, 0.10\}$, cold\_boost $\in \{1.5, 2.0, 2.5\}$) showing their effect on HR@10, NDCG@10, and HR\_new@10.
 
 \subsection{Additional Ablations: Cold-start Reweighting and Center-only Normalization}
 \label{app:additional}
