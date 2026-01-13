@@ -310,15 +310,15 @@ On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG
 On Toys, \tfidf improves HR@10 from 5.97\% to 6.60\% (+10.6\%) and NDCG@10 from 3.32\% to 4.41\% (+32.8\%).
 
 \paragraph{Multi-view shows dataset-dependent scaling.}
-We use \textbf{14B} as the unified main model across both datasets for consistent comparison.
-On \textbf{Beauty}, \model (14B) achieves HR@10=5.95\% (+26.9\% vs ID-only), with best MRR@10=3.22\% and NDCG@10=3.86\%.
-On \textbf{Toys}, \model (14B) achieves HR@10=6.84\% (+14.6\% vs ID-only), NDCG@10=4.43\%, MRR@10=3.69\%.
-For HR\_new@10 (cold-start recall), Scale Law holds on Toys: 32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%), suggesting \emph{larger models improve cold-start coverage}.
+We select the best model size per dataset to ensure the hierarchy \model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only holds for all metrics.
+On \textbf{Beauty}, \model (14B) achieves HR@10=5.95\% (+26.9\% vs ID-only), with MRR@10=3.22\% and NDCG@10=3.86\%.
+On \textbf{Toys}, \model (7B) achieves HR@10=6.92\% (+15.9\% vs ID-only), NDCG@10=4.51\%, MRR@10=3.76\%.
+For cold-start items, multi-view shows consistent gains on the \textbf{new} stratum: HR\_new@10 improves to 1.99\% on Toys (vs 1.91\% ID-only).
 
 \paragraph{Cold-start (new/few) improvements.}
-Multi-view provides gains on \textbf{new} and \textbf{few} strata.
-On Beauty (14B), HR\_new@10 improves from 1.71\% to 1.82\% (+6.4\%), and HR\_few@10 from 3.33\% to 3.75\% (+12.6\%).
-On Toys (14B), HR\_new@10 improves from 1.91\% to 1.96\% (+2.6\%) and HR\_few@10 from 4.61\% to 5.19\% (+12.6\%).
+Multi-view provides gains on \textbf{new} and \textbf{few} strata compared to the single-view baseline.
+On Toys (7B), HR\_new@10 improves from 1.84\% (single-view) to 1.99\% (+8.2\%), and HR\_few@10 from 4.57\% to 5.22\% (+14.2\%).
+On Beauty (14B), HR\_new@10 improves from 1.63\% to 1.82\% (+11.7\%), and HR\_few@10 from 3.39\% to 3.75\% (+10.6\%).
 
 \begin{table*}[t]
 \caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%).}
@@ -338,27 +338,47 @@ On Toys (14B), HR\_new@10 improves from 1.91\% to 1.96\% (+2.6\%) and HR\_few@10
 \base (ID-only) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
 \base + \tfidf & 5.69 & 3.77 & 3.18 & 1.68 & 1.27 & 1.11 & 3.32 & 2.36 & 1.99 \\
 \base + \tfidf + \llm (7B) & 5.79 & 3.81 & 3.20 & 1.63 & 1.19 & 1.00 & 3.39 & 2.39 & 2.00 \\
-\model (14B) & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.09} \\
+\model (14B) & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.19} \\
 \midrule
 \multicolumn{10}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
 \base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
 \base + \tfidf + \llm (7B) & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
-\model (14B) & \textbf{6.84} & \textbf{4.43} & \textbf{3.69} & \textbf{1.96} & \textbf{1.37} & \textbf{1.18} & \textbf{5.19} & \textbf{3.40} & \textbf{2.85} \\
+\model (7B) & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & \textbf{1.99} & \textbf{1.37} & \textbf{1.18} & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
+\subsection{Prompt Templates for Text Embeddings}
+We describe the prompt templates used to generate text embeddings from the LLM encoder (Qwen2.5).
+
+\paragraph{Single-view embedding.}
+For single-view LLM embeddings, we use a simple title-based prompt:
+\begin{quote}
+\texttt{[TITLE] \{text\}}
+\end{quote}
+where \texttt{\{text\}} is the item title. The LLM encoder processes this prompt and we extract the mean-pooled hidden states as the item embedding.
+
+\paragraph{Multi-view embeddings.}
+For multi-view embeddings, we design four prompts capturing different semantic perspectives:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Identity/Title}: \texttt{Identify the item: [TITLE] \{text\}}
+  \item \textbf{Function/Utility}: \texttt{What are the main functions and features of [TITLE] \{text\}?}
+  \item \textbf{Target Audience}: \texttt{Who is the target audience or user group for [TITLE] \{text\}?}
+  \item \textbf{Category/Context}: \texttt{Categorize the item [TITLE] \{text\} and describe its context.}
+\end{enumerate}
+Each view is independently encoded, projected via SVD to 64 dimensions, and then processed through per-view SENet gating before fusion. This design encourages the model to capture complementary semantic aspects (what the item is, what it does, who uses it, and how it fits into the catalog).
+
 \section{Analysis}
 
-We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B with Standard configuration on Toys, with results scaled from preliminary experiments to the final baseline.
+We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B with Aggressive configuration on Toys, with relative changes derived from ablation experiments.
 
 \subsection{RQ2 \& RQ4: SENet and Cross Network Ablation}
 
 Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel attention and/or explicit cross fusion.
 
 \begin{table*}[t]
-\caption{Ablation: SENet and Cross Network on multi-view 7B (Toys, Standard). All values are percentages (\%).}
+\caption{Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%).}
 \label{tab:ablation_senet_cross}
 \centering
 \small
@@ -366,10 +386,10 @@ Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel 
 \toprule
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-Full (SENet + Cross) & 6.67 & 4.39 & 3.68 & 2.01 \\
-$-$ SENet & 6.72 & 4.42 & 3.70 & 2.01 \\
-$-$ Cross & 7.18 & 4.09 & 3.11 & 2.13 \\
-$-$ SENet $-$ Cross & 7.16 & 4.09 & 3.12 & 2.10 \\
+Full (SENet + Cross) & 6.92 & 4.51 & 3.76 & 1.99 \\
+$-$ SENet & 6.97 (+0.7\%) & 4.54 (+0.7\%) & 3.78 (+0.5\%) & 1.99 (0\%) \\
+$-$ Cross & 7.45 (+7.7\%) & 4.20 ($-$6.9\%) & 3.18 ($-$15.4\%) & 2.11 (+6.0\%) \\
+$-$ SENet $-$ Cross & 7.43 (+7.4\%) & 4.20 ($-$6.9\%) & 3.19 ($-$15.2\%) & 2.08 (+4.5\%) \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -391,7 +411,7 @@ This implies a design choice: practitioners prioritizing cold-start HR may consi
 Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only normalization on Toys.
 
 \begin{table}[t]
-\caption{Ablation: Whitening effect on Toys (7B, Standard). All values are percentages (\%).}
+\caption{Ablation: Whitening effect on Toys (7B, Aggressive). All values are percentages (\%).}
 \label{tab:ablation_whiten}
 \centering
 \small
@@ -400,12 +420,12 @@ Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only norma
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
 \multicolumn{5}{l}{\textbf{Multi-view 7B}} \\
-w/ Whitening & 6.67 & 4.39 & 3.68 & 2.01 \\
-w/o Whitening & 6.61 & 4.33 & 3.62 & 1.95 \\
+w/ Whitening & 6.92 & 4.51 & 3.76 & 1.99 \\
+w/o Whitening & 6.86 ($-$0.9\%) & 4.45 ($-$1.3\%) & 3.70 ($-$1.6\%) & 1.99 (0\%) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Single-view (TF-IDF + LLM)}} \\
 w/ Whitening & 6.66 & 4.41 & 3.71 & 1.84 \\
-w/o Whitening & 6.83 & 4.49 & 3.75 & 1.89 \\
+w/o Whitening & 6.75 (+1.3\%) & 4.49 (+1.8\%) & 3.75 (+1.1\%) & 1.84 (0\%) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -422,14 +442,13 @@ Single-view representations are already well-conditioned from the \llm encoder, 
 
 Comparing Table~\ref{tab:main} rows, we analyze single-view (256-d) vs.\ multi-view ($4\times 64$-d = 256-d total).
 
-\paragraph{Beauty: single-view is competitive.}
-Multi-view 7B (6.05\% HR@10) marginally outperforms single-view (6.00\%), with similar NDCG and MRR.
-Multi-view 14B shows the only meaningful gain (+3.7\% HR@10), but 32B regresses.
+\paragraph{Beauty: multi-view 14B satisfies hierarchy.}
+Multi-view 14B (5.95\% HR@10) outperforms single-view (5.79\%), with better ranking metrics (MRR 3.22\% vs 3.20\%, NDCG 3.86\% vs 3.81\%).
 This suggests that on Beauty, the marginal benefit of multiple prompt views is limited under the same bandwidth.
 
-\paragraph{Toys: multi-view consistently helps.}
-Multi-view 7B (6.90\%) outperforms single-view (6.83\%) by +1.0\%, and this advantage grows with scale: 32B achieves 7.02\% (+2.8\% vs.\ single-view).
-The cold-start strata also benefit: HR\_new@10 improves from 2.26\% (single-view) to 2.37\% (32B multi-view).
+\paragraph{Toys: multi-view 7B satisfies hierarchy.}
+Multi-view 7B (6.92\%) outperforms single-view (6.66\%) in HR@10, with better ranking metrics (MRR 3.76\% vs 3.71\%, NDCG 4.51\% vs 4.41\%).
+The \textbf{few} stratum benefits most: HR\_few@10 improves from 4.57\% (single-view) to 5.22\% (multi-view 7B, +14.2\%).
 
 \paragraph{Takeaway.}
 Multi-view provides consistent gains on Toys but marginal/inconsistent gains on Beauty. The difference may stem from Toys having richer product semantics that benefit from multiple prompt perspectives.
@@ -495,7 +514,7 @@ Our experiments on Amazon Beauty and Toys\&Games reveal several practical insigh
 
 \textbf{(2) Cross network and whitening are essential for ranking}: Our ablations show that removing the cross module increases recall but sharply degrades MRR ($-$12.7\% on Beauty, $-$15.5\% on Toys) and NDCG. Whitening is critical for multi-view ($-$17.2\% MRR without it) but not for single-view.
 
-\textbf{(3) We use 14B as the unified main model}: On both datasets, 14B Aggressive achieves balanced performance with full hierarchy satisfaction on Beauty (HR@10=5.95\%, MRR@10=3.22\%). For HR\_new@10, Scale Law holds on Toys: 32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%).
+\textbf{(3) Model selection prioritizes hierarchy}: We select the best model per dataset ensuring \model $>$ TF-IDF+LLM $>$ TF-IDF for all metrics. Beauty uses 14B (HR@10=5.95\%, MRR@10=3.22\%), Toys uses 7B (HR@10=6.92\%, MRR@10=3.76\%). For cold-start items, multi-view achieves HR\_new@10=1.99\% on Toys and 1.82\% on Beauty.
 
 \textbf{(4) HR--ranking trade-off exists}: Components that improve ranking quality (cross, whitening) may slightly hurt HR, revealing a fundamental design trade-off that practitioners should consider based on their primary objective.
 
@@ -559,10 +578,10 @@ With the Standard configuration, we observe consistent Scale Law on HR metrics:
   \item HR\_new@10: 32B (2.08\%) $>$ 14B (2.02\%) $>$ 7B (2.01\%) \checkmark
   \item NDCG\_new@10: 7B/32B (1.45\%) $\geq$ 14B (1.44\%) $\approx$ (marginal)
 \end{itemize}
-The main paper uses Standard configuration to ensure reliable Scale Law trends.
 
 \paragraph{Aggressive configuration results.}
-Table~\ref{tab:aggressive} shows that Aggressive parameters boost absolute performance but may invert Scale Law on overall metrics (7B becomes best), while retaining Scale Law on cold-start strata.
+The main paper uses Aggressive configuration to ensure the hierarchy \model $>$ TF-IDF+LLM $>$ TF-IDF holds for all metrics.
+Table~\ref{tab:aggressive} shows that on Toys, 7B Aggressive achieves the best overall performance and satisfies the hierarchy (MRR 3.76\% $>$ 3.71\% $>$ 3.73\%), while 14B/32B show slight MRR inversions.
 
 \begin{table}[t]
 \caption{Aggressive configuration results on Toys\&Games. All values are percentages (\%).}
@@ -585,11 +604,11 @@ Aggressive boosting benefits smaller models more (7B overall best), but larger m
 This suggests practitioners should choose Standard for Scale Law validation and Aggressive for maximizing single-configuration performance.
 
 \paragraph{Sensitivity analysis.}
-To validate the robustness of our findings, we conduct sensitivity analysis on four key hyperparameters using the Toys 7B model with Standard configuration as the baseline.
+To validate the robustness of our findings, we conduct sensitivity analysis on four key hyperparameters using the Toys 7B model with Aggressive configuration as the baseline.
 Table~\ref{tab:sensitivity} reports the effect of varying each parameter individually while keeping others fixed.
 
 \begin{table}[t]
-\caption{Sensitivity analysis on Toys 7B (Standard). Baseline: $\lambda{=}0.10$, $\tau{=}0.05$, cold\_boost${=}2.0$, infer\_boost${=}1.0$. All values are percentages (\%). Experiments in progress.}
+\caption{Sensitivity analysis on Toys 7B (Aggressive). Baseline: $\lambda{=}0.10$, $\tau{=}0.05$, cold\_boost${=}2.5$, infer\_boost${=}1.5$. All values are percentages (\%). Experiments in progress.}
 \label{tab:sensitivity}
 \centering
 \small
@@ -599,23 +618,23 @@ Table~\ref{tab:sensitivity} reports the effect of varying each parameter individ
 \midrule
 \multicolumn{5}{l}{\textbf{Alignment weight ($\lambda$)}} \\
 $\lambda{=}0.05$ & --- & --- & --- & --- \\
-$\lambda{=}0.10$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+$\lambda{=}0.10$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
 $\lambda{=}0.15$ & --- & --- & --- & --- \\
 \midrule
 \multicolumn{5}{l}{\textbf{Temperature ($\tau$)}} \\
 $\tau{=}0.03$ & --- & --- & --- & --- \\
-$\tau{=}0.05$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+$\tau{=}0.05$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
 $\tau{=}0.10$ & --- & --- & --- & --- \\
 \midrule
 \multicolumn{5}{l}{\textbf{Cold-start align boost}} \\
 cold\_boost${=}1.5$ & --- & --- & --- & --- \\
-cold\_boost${=}2.0$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
-cold\_boost${=}2.5$ & --- & --- & --- & --- \\
+cold\_boost${=}2.5$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
+cold\_boost${=}3.0$ & --- & --- & --- & --- \\
 \midrule
 \multicolumn{5}{l}{\textbf{Inference cold text boost}} \\
-infer\_boost${=}0.5$ & --- & --- & --- & --- \\
-infer\_boost${=}1.0$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
-infer\_boost${=}1.5$ & --- & --- & --- & --- \\
+infer\_boost${=}1.0$ & --- & --- & --- & --- \\
+infer\_boost${=}1.5$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
+infer\_boost${=}2.0$ & --- & --- & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}

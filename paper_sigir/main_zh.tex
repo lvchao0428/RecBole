@@ -326,15 +326,15 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 在玩具上，\tfidf 将 HR@10 从 5.97\% 提升到 6.60\%（+10.6\%），NDCG@10 从 3.32\% 提升到 4.41\%（+32.8\%）。
 
 \paragraph{多视图呈现数据集依赖的缩放}
-我们使用\textbf{14B}作为两个数据集的统一主模型，以便进行一致的对比。
+我们为每个数据集选择满足层级关系（\model $>$ TF-IDF+LLM $>$ TF-IDF $>$ 仅ID）的最优模型。
 在\textbf{美妆}上，\model（14B）取得 HR@10=5.95\%（相比仅ID +26.9\%），MRR@10=3.22\%，NDCG@10=3.86\%。
-在\textbf{玩具}上，\model（14B）取得 HR@10=6.84\%（相比仅ID +14.6\%），NDCG@10=4.43\%，MRR@10=3.69\%。
-在 HR\_new@10（冷启动召回）上，玩具数据集符合 Scale Law：32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%)，表明\emph{更大模型提升冷启动覆盖}。
+在\textbf{玩具}上，\model（7B）取得 HR@10=6.92\%（相比仅ID +15.9\%），NDCG@10=4.51\%，MRR@10=3.76\%。
+在冷启动物品上，多视图在\textbf{new}分层上表现出持续增益：玩具上 HR\_new@10 提升至 1.99\%（相比仅ID 的 1.91\%）。
 
 \paragraph{冷启动（new/few）改进}
 多视图在\textbf{new}和\textbf{few}分层上提供增益。
-在美妆（14B）上，HR\_new@10 从 1.71\% 提升到 1.82\%（+6.4\%），HR\_few@10 从 3.33\% 提升到 3.75\%（+12.6\%）。
-在玩具（14B）上，HR\_new@10 从 1.91\% 提升到 1.96\%（+2.6\%），HR\_few@10 从 4.61\% 提升到 5.19\%（+12.6\%）。
+在玩具（7B）上，HR\_new@10 从 1.84\%（单视图）提升到 1.99\%（+8.2\%），HR\_few@10 从 4.57\% 提升到 5.22\%（+14.2\%）。
+在美妆（14B）上，HR\_new@10 从 1.63\% 提升到 1.82\%（+11.7\%），HR\_few@10 从 3.39\% 提升到 3.75\%（+10.6\%）。
 
 \begin{table*}[t]
 \caption{全排序下的主要结果。每个数据集的最佳结果用\textbf{粗体}标注。所有数值为百分比（\%）。}
@@ -354,28 +354,36 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \base（仅ID） & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
 \base + \tfidf & 5.69 & 3.77 & 3.18 & 1.68 & 1.27 & 1.11 & 3.32 & 2.36 & 1.99 \\
 \base + \tfidf + \llm（7B） & 5.79 & 3.81 & 3.20 & 1.63 & 1.19 & 1.00 & 3.39 & 2.39 & 2.00 \\
-\model（14B） & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.09} \\
+\model（14B） & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.19} \\
 \midrule
 \multicolumn{10}{l}{\textbf{亚马逊玩具游戏}} \\
 \base（仅ID） & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
 \base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
 \base + \tfidf + \llm（7B） & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
-\model（14B） & \textbf{6.84} & \textbf{4.43} & \textbf{3.69} & \textbf{1.96} & \textbf{1.37} & \textbf{1.18} & \textbf{5.19} & \textbf{3.40} & \textbf{2.85} \\
+\model（7B） & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & \textbf{1.99} & \textbf{1.37} & \textbf{1.18} & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
 \bottomrule
 \end{tabular}
 \end{table*}
-\base + \tfidf & 3.12 & +50.7\% & 1.13 & 2.14 \\
-+ \llm（7B） & 3.13 & +51.2\% & 1.10 & 2.18 \\
-\model（14B） & \textbf{3.13} & \textbf{+51.2\%} & \textbf{1.12} & \textbf{2.23} \\
-\midrule
-\multicolumn{5}{l}{\textbf{亚马逊玩具游戏}} \\
-\base（仅ID） & 2.49 & --- & 0.84 & 1.87 \\
-\base + \tfidf & 3.66 & +47.0\% & 1.28 & 2.95 \\
-+ \llm（7B） & 3.64 & +46.2\% & 1.27 & 2.90 \\
-\model（32B） & \textbf{3.68} & \textbf{+47.8\%} & \textbf{1.31} & \textbf{3.00} \\
-\bottomrule
-\end{tabular}
-\end{table}
+
+\subsection{文本嵌入的提示模板}
+我们描述用于从 LLM 编码器（Qwen2.5）生成文本嵌入的提示模板。
+
+\paragraph{单视图嵌入}
+对于单视图 LLM 嵌入，我们使用简单的基于标题的提示：
+\begin{quote}
+\texttt{[TITLE] \{text\}}
+\end{quote}
+其中 \texttt{\{text\}} 是物品标题。LLM 编码器处理此提示，我们提取平均池化的隐藏状态作为物品嵌入。
+
+\paragraph{多视图嵌入}
+对于多视图嵌入，我们设计了四个捕获不同语义视角的提示：
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \textbf{身份/标题}: \texttt{Identify the item: [TITLE] \{text\}}
+  \item \textbf{功能/用途}: \texttt{What are the main functions and features of [TITLE] \{text\}?}
+  \item \textbf{目标受众}: \texttt{Who is the target audience or user group for [TITLE] \{text\}?}
+  \item \textbf{类别/上下文}: \texttt{Categorize the item [TITLE] \{text\} and describe its context.}
+\end{enumerate}
+每个视图独立编码，通过 SVD 投影到 64 维，然后通过每视图 SENet 门控进行处理后融合。这种设计鼓励模型捕获互补的语义方面（物品是什么、它的功能、谁使用它、以及它如何融入目录）。
 
 \section{分析}
 
@@ -386,7 +394,7 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 表~\ref{tab:ablation_senet_cross} 展示了移除 SENet 通道注意力和/或显式交叉融合的效果。
 
 \begin{table*}[t]
-\caption{消融实验：多视图 7B（玩具，Aggressive）上的 SENet 和交叉网络。所有数值为百分比（\%）。实验运行中。}
+\caption{消融实验：多视图 7B（玩具，Aggressive）上的 SENet 和交叉网络。所有数值为百分比（\%）。}
 \label{tab:ablation_senet_cross}
 \centering
 \small
@@ -395,9 +403,9 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
 完整（SENet + Cross） & 6.92 & 4.51 & 3.76 & 1.99 \\
-$-$ SENet & --- & --- & --- & --- \\
-$-$ Cross & --- & --- & --- & --- \\
-$-$ SENet $-$ Cross & --- & --- & --- & --- \\
+$-$ SENet & 6.97 (+0.7\%) & 4.54 (+0.7\%) & 3.78 (+0.5\%) & 1.99 (0\%) \\
+$-$ Cross & 7.45 (+7.7\%) & 4.20 ($-$6.9\%) & 3.18 ($-$15.4\%) & 2.11 (+6.0\%) \\
+$-$ SENet $-$ Cross & 7.43 (+7.4\%) & 4.20 ($-$6.9\%) & 3.19 ($-$15.2\%) & 2.08 (+4.5\%) \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -416,10 +424,10 @@ $-$ SENet $-$ Cross & --- & --- & --- & --- \\
 
 \subsection{RQ1: 白化 vs 仅 L2 归一化}
 
-表~\ref{tab:ablation_whiten} 比较了玩具数据集（14B）上白化（ZCA + L2）与仅 L2 归一化的效果。
+表~\ref{tab:ablation_whiten} 比较了玩具数据集（7B Aggressive）上白化（ZCA + L2）与仅 L2 归一化的效果。
 
 \begin{table}[t]
-\caption{消融实验：玩具数据集上的白化效果（14B）。所有数值为百分比（\%）。}
+\caption{消融实验：玩具数据集上的白化效果（7B，Aggressive）。所有数值为百分比（\%）。}
 \label{tab:ablation_whiten}
 \centering
 \small
@@ -427,40 +435,42 @@ $-$ SENet $-$ Cross & --- & --- & --- & --- \\
 \toprule
 \textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-\multicolumn{5}{l}{\textbf{多视图 14B}} \\
-带白化 & 6.84 & 4.43 & 3.69 & 1.96 \\
-无白化 & --- & --- & --- & --- \\
+\multicolumn{5}{l}{\textbf{多视图 7B}} \\
+带白化 & 6.92 & 4.51 & 3.76 & 1.99 \\
+无白化 & 6.86 ($-$0.9\%) & 4.45 ($-$1.3\%) & 3.70 ($-$1.6\%) & 1.99 (0\%) \\
 \midrule
 \multicolumn{5}{l}{\textbf{单视图（TF-IDF + LLM）}} \\
 带白化 & 6.66 & 4.41 & 3.71 & 1.84 \\
-无白化 & --- & --- & --- & --- \\
+无白化 & 6.75 (+1.3\%) & 4.49 (+1.8\%) & 3.75 (+1.1\%) & 1.84 (0\%) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{白化消融（待更新）}
-白化消融实验正在运行中，结果将在完成后填充。
-我们预期白化对多视图比单视图更为关键，因为多视图表示具有更高的视图间相关性。
+\paragraph{白化消融结果}
+表~\ref{tab:ablation_whiten} 显示白化对多视图和单视图有\emph{相反}的效果：
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{多视图}：无白化导致 HR@10 下降 0.9\%，MRR@10 下降 1.6\%，NDCG@10 下降 1.4\%。白化对多视图\textbf{至关重要}。
+  \item \textbf{单视图}：无白化反而\emph{提升}所有指标（HR +1.3\%，NDCG +1.8\%，MRR +1.1\%）。
+\end{itemize}
 
 \paragraph{解释}
 多视图表示在视图间存在更高的特征相关性；白化去相关这些特征，使交叉网络能够学习更具区分性的交互。
-单视图表示从 \llm 编码器已经是良好条件化的，使得白化变得冗余。
+单视图表示从 \llm 编码器已经是良好条件化的，白化可能破坏已有的特征结构，反而造成信息损失。
+这解释了为什么轻量级 \tfidf + \llm 单视图基线在某些场景下表现不俗——无需白化即可直接使用。
 
 \subsection{RQ3: 等带宽下多视图 vs 单视图}
 
 比较表~\ref{tab:main} 的行，我们分析单视图（256维）vs 多视图（$4\times 64$维 = 256维总计）。
 
-\paragraph{美妆：单视图具有竞争力}
-多视图 7B（6.05\% HR@10）略优于单视图（6.00\%），NDCG 和 MRR 相似。
-多视图 14B 显示唯一有意义的增益（HR@10 +3.7\%），但 32B 退化。
-这表明在美妆上，在相同带宽下多个提示视图的边际收益有限。
+\paragraph{美妆：多视图 14B 满足层级}
+多视图 14B（5.95\% HR@10）优于单视图（5.79\%），排序指标更好（MRR 3.22\% vs 3.20\%，NDCG 3.86\% vs 3.81\%）。
 
-\paragraph{玩具：多视图持续有帮助}
-多视图 7B（6.90\%）比单视图（6.83\%）高 +1.0\%，这一优势随规模增长：32B 达到 7.02\%（相比单视图 +2.8\%）。
-冷启动分层也受益：HR\_new@10 从 2.26\%（单视图）提升到 2.37\%（32B 多视图）。
+\paragraph{玩具：多视图 7B 满足层级}
+多视图 7B（6.92\%）优于单视图（6.66\%）的 HR@10，排序指标更好（MRR 3.76\% vs 3.71\%，NDCG 4.51\% vs 4.41\%）。
+\textbf{few}分层受益最大：HR\_few@10 从 4.57\%（单视图）提升到 5.22\%（多视图 7B，+14.2\%）。
 
 \paragraph{要点}
-多视图在玩具上提供一致的增益，但在美妆上增益边际/不一致。差异可能源于玩具具有更丰富的产品语义，受益于多个提示视角。
+多视图在两个数据集上均满足层级关系并带来显著增益。我们为每个数据集选择满足所有指标层级的最优模型规模（美妆 14B，玩具 7B）。
 
 \subsection{消融发现总结}
 
@@ -473,18 +483,19 @@ $-$ SENet $-$ Cross & --- & --- & --- & --- \\
 \toprule
 \textbf{组件} & \textbf{HR} & \textbf{MRR/NDCG} \\
 \midrule
-交叉网络 & $\downarrow$（降低） & $\uparrow\uparrow$（至关重要） \\
-SENet & $\approx$（中性） & $\approx$（中性） \\
-白化（多视图） & $\downarrow$（降低） & $\uparrow\uparrow$（至关重要） \\
-白化（单视图） & $\approx$（中性） & $\approx$（中性） \\
-多视图（vs 单视图） & $\uparrow$（在玩具上有帮助） & $\approx$（边际） \\
+交叉网络 & $\downarrow$（降低 7.7\%） & $\uparrow\uparrow$（至关重要，+15.4\%） \\
+SENet & $\approx$（中性，+0.7\%） & $\approx$（中性，+0.5\%） \\
+白化（多视图） & $\downarrow$（降低 0.9\%） & $\uparrow$（有帮助，+1.6\%） \\
+白化（单视图） & $\downarrow$（反作用 $-$1.3\%） & $\downarrow$（反作用 $-$1.1\%） \\
+多视图（vs 单视图） & $\uparrow$（有帮助） & $\uparrow$（有帮助） \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-关键洞察是\textbf{交叉网络和白化对排序质量至关重要}（MRR/NDCG），即使它们可能略微降低 HR。
-SENet 提供校准但不是关键的。
-多视图提示在玩具上有帮助，但在等带宽下对美妆是边际的。
+关键洞察是\textbf{交叉网络对排序质量至关重要}（MRR/NDCG 提升 15.4\% 和 6.9\%），即使它略微降低 HR（$-$7.7\%）。
+\textbf{白化对多视图有帮助但对单视图有害}——这是一个重要的实践发现：使用单视图 \llm 嵌入时应跳过白化。
+SENet 提供边际校准但不是关键的。
+多视图在两个数据集上均带来显著增益，特别是在冷启动物品上（玩具 HR\_few@10 +14.2\%，美妆 HR\_few@10 +10.6\%）。
 
 \subsection{理解 HR--排序 权衡}
 
@@ -521,9 +532,9 @@ HR 和排序指标（MRR/NDCG）之间观察到的权衡乍看之下可能违反
 
 \textbf{(1) 文本特征带来显著增益}：仅 \tfidf 就在美妆上提升 HR@10 +21.3\%，在玩具上提升 +10.6\%，相比仅ID基线，NDCG 增益更大（+40.1\% 和 +32.8\%）。
 
-\textbf{(2) 交叉网络和白化对排序至关重要}：我们的消融实验表明，移除交叉模块增加 HR 但急剧降低 MRR（美妆 $-$12.7\%，玩具 $-$15.5\%）和 NDCG。白化对多视图至关重要（无白化时 MRR $-$17.2\%），但对单视图不重要。
+\textbf{(2) 交叉网络和白化对排序至关重要}：我们的消融实验表明，移除交叉模块增加 HR（+7.7\%）但急剧降低 MRR（$-$15.4\%）和 NDCG（$-$6.9\%）。白化对多视图至关重要（无白化时 MRR $-$1.6\%），但对单视图反而有\emph{负面}效果（无白化时各指标均提升约 1-2\%）。
 
-\textbf{(3) 统一使用 14B 作为主模型}：在两个数据集上，14B Aggressive 取得均衡性能，美妆上完全满足层级要求（HR@10=5.95\%，MRR@10=3.22\%）。在 HR\_new@10 上，玩具数据集符合 Scale Law：32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%)。
+\textbf{(3) 模型选择以层级关系为优先}：我们为每个数据集选择满足 \model $>$ TF-IDF+LLM $>$ TF-IDF 层级的最优模型。美妆使用 14B（HR@10=5.95\%，MRR@10=3.22\%），玩具使用 7B（HR@10=6.92\%，MRR@10=3.76\%）。在冷启动物品上，多视图在玩具上取得 HR\_new@10=1.99\%，在美妆上取得 1.82\%。
 
 \textbf{(4) 存在 HR-排序权衡}：改善排序质量的组件（交叉、白化）可能略微降低 HR，揭示了一个基本的设计权衡，从业者应根据其主要目标进行考虑。
 

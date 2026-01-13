@@ -247,24 +247,24 @@ GPU_ID=4 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boo
 # - temperature: 0.05
 
 # 4090-5: Toys 7B - No SENet (消融 RQ2)
-GPU_ID=5 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet.log 2>&1 &  # [READY] 脚本已创建
+GPU_ID=5 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet.log 2>&1 &  # [HOLD] 暂停
 
 # 4090-6: Toys 7B - No Cross (消融 RQ4)
-GPU_ID=6 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross.log 2>&1 &  # [READY] 脚本已创建
+GPU_ID=6 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross.log 2>&1 &  # [HOLD] 暂停
 
 # 4090-7: Toys 7B - No Whiten (消融 RQ1)
-GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_nowhiten.log 2>&1 &  # [READY] 脚本已创建
+GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_nowhiten.log 2>&1 &  # [HOLD] 暂停
 
 # ============================================================
-# 消融实验脚本状态 (0113 更新)
+# 消融实验脚本状态 (0113 更新) - ⏸️ 全部暂停
 # ============================================================
-# ✅ 1. exp_ablation_toys_nosenet.sh - 移除 SENet [已创建]
-# ✅ 2. exp_ablation_toys_nocross.sh - 移除 Cross Network [已创建]
-# ✅ 3. exp_ablation_toys_nowhiten.sh - 移除 Whitening [已创建]
-# ⏳ 4. exp_ablation_toys_nosenet_nocross.sh - 同时移除 SENet + Cross [待创建]
-# ⏳ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [待创建]
-# ⏳ 6. exp_ablation_beauty_nocross.sh - Beauty 版本 [待创建]
-# ⏳ 7. exp_ablation_beauty_nowhiten.sh - Beauty 版本 [待创建]
+# ⏸️ 1. exp_ablation_toys_nosenet.sh - 移除 SENet [HOLD]
+# ⏸️ 2. exp_ablation_toys_nocross.sh - 移除 Cross Network [HOLD]
+# ⏸️ 3. exp_ablation_toys_nowhiten.sh - 移除 Whitening [HOLD]
+# ⏸️ 4. exp_ablation_toys_nosenet_nocross.sh - 同时移除 SENet + Cross [HOLD]
+# ⏸️ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [HOLD]
+# ⏸️ 6. exp_ablation_beauty_nocross.sh - Beauty 版本 [HOLD]
+# ⏸️ 7. exp_ablation_beauty_nowhiten.sh - Beauty 版本 [HOLD]
 # ============================================================
 
 # ============================================================
@@ -291,11 +291,11 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # 4090-4: Beauty 32B Low Boost [PENDING]
 #         cold=1.5, infer=0.5, align=0.15
 #
-# 4090-5: Toys 消融 - No SENet [READY]
+# 4090-5: Toys 消融 - No SENet [HOLD] 暂停
 #
-# 4090-6: Toys 消融 - No Cross [READY]
+# 4090-6: Toys 消融 - No Cross [HOLD] 暂停
 #
-# 4090-7: Toys 消融 - No Whiten [READY]
+# 4090-7: Toys 消融 - No Whiten [HOLD] 暂停
 #
 # ============================================================
 # 执行命令:
@@ -373,22 +373,23 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # 0113 晚 - 消融实验重跑 (配置已修复: false → False)
 # ============================================================
 #
-# 当前运行:
+# 状态: ✅ 暂停 (0113 - 暂时先不做)
+#
 # 4090-0: Toys No SENet 重跑
-GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v2.log 2>&1 &  # [RUNNING]
+GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v2.log 2>&1 &  # [HOLD]
 
 # 4090-1: Toys No Cross 重跑
-GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v2.log 2>&1 &  # [RUNNING]
+GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v2.log 2>&1 &  # [HOLD]
 
 # 4090-2: Toys No SENet + No Cross 重跑
-GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v2.log 2>&1 &  # [RUNNING]
+GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v2.log 2>&1 &  # [HOLD]
 
 # ============================================================
-# 尚未创建的消融脚本 (Beauty 版本)
+# 尚未创建的消融脚本 (Beauty 版本) - 暂停
 # ============================================================
-# ⏳ exp_ablation_beauty_nocross.sh - Beauty 无 Cross
-# ⏳ exp_ablation_beauty_nowhiten.sh - Beauty 无 Whitening
-# ⏳ exp_ablation_beauty_nosenet_nocross.sh - Beauty 无 SENet + 无 Cross
+# ⏸️ exp_ablation_beauty_nocross.sh - Beauty 无 Cross
+# ⏸️ exp_ablation_beauty_nowhiten.sh - Beauty 无 Whitening
+# ⏸️ exp_ablation_beauty_nosenet_nocross.sh - Beauty 无 SENet + 无 Cross
 
 # ============================================================
 # 0113 晚 - 敏感性分析实验 (优先级最高 - 论文必需) ✅ 脚本已全部创建
@@ -405,21 +406,21 @@ GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_
 
 # --- λ (alignment_weight) 敏感性 ---
 # 4090-3: λ=0.05 (弱对齐, 预期 HR↑ MRR↓)
-GPU_ID=3 nohup bash experiments/exp_sensitivity_lambda_005.sh > sensitivity_lambda_005.log 2>&1 &  # [READY] ✅
+GPU_ID=3 nohup bash experiments/exp_sensitivity_lambda_005.sh > sensitivity_lambda_005.log 2>&1 &  # [RUNNING]
 
 # 4090-4: λ=0.15 (强对齐, 预期 HR↓ MRR↑)
-GPU_ID=4 nohup bash experiments/exp_sensitivity_lambda_015.sh > sensitivity_lambda_015.log 2>&1 &  # [READY] ✅
+GPU_ID=4 nohup bash experiments/exp_sensitivity_lambda_015.sh > sensitivity_lambda_015.log 2>&1 &  # [RUNNING]
 
 # --- τ (temperature) 敏感性 ---
 # 4090-5: τ=0.03 (锐利对比学习, 预期 HR_new↑)
-GPU_ID=5 nohup bash experiments/exp_sensitivity_tau_003.sh > sensitivity_tau_003.log 2>&1 &  # [READY] ✅
+GPU_ID=5 nohup bash experiments/exp_sensitivity_tau_003.sh > sensitivity_tau_003.log 2>&1 &  # [RUNNING]
 
 # 4090-6: τ=0.10 (平滑对比学习, 预期 HR_new↓)
-GPU_ID=6 nohup bash experiments/exp_sensitivity_tau_010.sh > sensitivity_tau_010.log 2>&1 &  # [READY] ✅
+GPU_ID=6 nohup bash experiments/exp_sensitivity_tau_010.sh > sensitivity_tau_010.log 2>&1 &  # [RUNNING]
 
 # --- cold_boost 敏感性 ---
 # 4090-7: cold=1.5 (低冷启动权重, 预期 HR_new↓)
-GPU_ID=7 nohup bash experiments/exp_sensitivity_cold_15.sh > sensitivity_cold_15.log 2>&1 &  # [READY] ✅
+GPU_ID=7 nohup bash experiments/exp_sensitivity_cold_15.sh > sensitivity_cold_15.log 2>&1 &  # [RUNNING]
 
 # 5090-0: cold=2.5 (高冷启动权重, 预期 HR_new↑)
 GPU_ID=0 nohup bash experiments/exp_sensitivity_cold_25.sh > sensitivity_cold_25.log 2>&1 &  # [READY] ✅
@@ -456,17 +457,3 @@ GPU_ID=4 nohup bash experiments/exp_sensitivity_infer_15.sh > sensitivity_infer_
 #
 # ============================================================
 
-# ============================================================
-# GPU 分配总结 (0113 晚最新)
-# ============================================================
-#
-# 4090-0: Toys NoSENet 重跑 (Aggressive) [RUNNING]
-# 4090-1: Toys NoCross 重跑 (Aggressive) [RUNNING]
-# 4090-2: Toys NoSENet+NoCross 重跑 (Aggressive) [RUNNING]
-# 4090-3: Toys NoSENet Standard [PENDING]
-# 4090-4: Toys NoCross Standard [PENDING]
-# 4090-5: Toys NoWhiten Standard [PENDING]
-# 4090-6: (空闲)
-# 4090-7: (空闲)
-#
-# ============================================================
