@@ -214,17 +214,17 @@ GPU_ID=5 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boo
 
 # --- Toys Scale Law 完整验证 (重点实验 ⭐) ---
 # 4090-0: Toys 14B Aggressive (Scale Law 验证)
-GPU_ID=0 nohup bash experiments/exp_multiview_toys_14b_aggressive.sh > mv_toys_14b_aggressive.log 2>&1 &  # [DONE] ✅ HR=6.84, MRR=3.69, NDCG=4.43
+GPU_ID=0 nohup bash experiments/exp_multiview_toys_14b_aggressive.sh > mv_toys_14b_aggressive.log 2>&1 &  # [RUNNING] ⭐ 重点
 
 # 4090-1: Toys 32B Aggressive (Scale Law 完整验证)
-GPU_ID=1 nohup bash experiments/exp_multiview_toys_32b_aggressive.sh > mv_toys_32b_aggressive.log 2>&1 &  # [DONE] ✅ HR=6.87, MRR=3.71, NDCG=4.46
+GPU_ID=1 nohup bash experiments/exp_multiview_toys_32b_aggressive.sh > mv_toys_32b_aggressive.log 2>&1 &  # [RUNNING] ⭐ 重点
 
 # --- Beauty Scale Law 专项 (Low Boost + High Align) ---
-# 4090-0: Beauty 14B Low Boost (重新分配)
-GPU_ID=0 nohup bash experiments/exp_beauty_14b_low_boost.sh > beauty_14b_low_boost.log 2>&1 &  # [RUNNING] ⭐ 新分配
+# 4090-3: Beauty 14B Low Boost
+GPU_ID=3 nohup bash experiments/exp_beauty_14b_low_boost.sh > beauty_14b_low_boost.log 2>&1 &  # [PENDING]
 
-# 4090-1: Beauty 32B Low Boost (重新分配)
-GPU_ID=1 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boost.log 2>&1 &  # [RUNNING] ⭐ 新分配
+# 4090-4: Beauty 32B Low Boost
+GPU_ID=4 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boost.log 2>&1 &  # [PENDING]
 
 # ============================================================
 # 0113 消融实验复跑计划 (用最佳参数: cold=2.5, infer=1.5)
@@ -258,63 +258,59 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # ============================================================
 # 消融实验脚本状态 (0113 更新)
 # ============================================================
-# 消融实验脚本状态 (✅ 14B 主模型确认 - 2026-01-13 最终版)
-# ============================================================
-#
-# 🔑 最终决定 (统一主模型):
-#    主模型: 14B Aggressive (cold=2.5, infer=1.5)
-#    敏感性分析: 7B 和 32B
-#    HR_new Scale Law: Toys 上报告 (32B > 7B > 14B)
-#
-# --- Aggressive 参数版本 (当前运行中 - 正文消融) ---
-# ⏳ 1. exp_ablation_toys_nosenet.sh - 移除 SENet [GPU5 运行中] ✅ 正确
-# ⏳ 2. exp_ablation_toys_nocross.sh - 移除 Cross [GPU6 运行中] ✅ 正确
-# ⏳ 3. exp_ablation_toys_nowhiten.sh - 移除 Whiten [GPU7 运行中] ✅ 正确
-# ⏳ 4. exp_ablation_toys_nosenet_nocross.sh - SENet+Cross [待跑] ✅ Aggressive
-#
-# --- Standard 参数版本 (备用 - 敏感性分析) ---
-# 📦 已创建备用，暂不需要
-#
-# ✅ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [已创建] ⭐ 5090 新分配
+# ✅ 1. exp_ablation_toys_nosenet.sh - 移除 SENet [已创建]
+# ✅ 2. exp_ablation_toys_nocross.sh - 移除 Cross Network [已创建]
+# ✅ 3. exp_ablation_toys_nowhiten.sh - 移除 Whitening [已创建]
+# ⏳ 4. exp_ablation_toys_nosenet_nocross.sh - 同时移除 SENet + Cross [待创建]
+# ⏳ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [待创建]
 # ⏳ 6. exp_ablation_beauty_nocross.sh - Beauty 版本 [待创建]
 # ⏳ 7. exp_ablation_beauty_nowhiten.sh - Beauty 版本 [待创建]
 # ============================================================
 
 # ============================================================
-# 0113 GPU 分配总结 (✅ 14B 统一主模型版)
+# 0113 GPU 分配总结 (最新)
 # ============================================================
 # 
-# 🔑 最终决定 - 14B Aggressive 作为统一主模型:
+# 🔥 重点实验 (Scale Law 验证):
+# 4090-0: Toys 14B Aggressive [RUNNING] ⭐
+# 4090-1: Toys 32B Aggressive [RUNNING] ⭐
 #
-#    ┌─────────────────────────────────────────────────────┐
-#    │ 数据集  │ HR@10  │ MRR@10 │ NDCG@10 │ 层级满足     │
-#    ├─────────────────────────────────────────────────────┤
-#    │ Toys    │ 6.84   │ 3.69   │ 4.43    │ ⚠️ MRR微低   │
-#    │ Beauty  │ 5.95   │ 3.22   │ 3.86    │ ✅ 全满足    │
-#    └─────────────────────────────────────────────────────┘
+# 可用卡: 5090 (1张), 4090: 2,3,4,5,6,7 (6张)
 #
-# 📊 敏感性分析 (7B/32B 对比):
-#    - HR_new Scale Law (Toys): 32B (2.04) > 7B (1.99) > 14B (1.96) ✅
-#    - 7B 整体指标最高 (HR=6.92, MRR=3.76) 但 Beauty 不满足层级
-#    - 32B 在 HR_new 上最优，适合 cold-start 场景
+# --- 当前分配 ---
 #
-# --- 当前运行状态 (2026-01-13 更新) ---
+# 5090-0: Beauty 7B Low Boost (完整对比基线) [READY] ✅ 脚本已创建
+#         cold=1.5, infer=0.5, align=0.15
 #
-# 4090-0: Toys 消融 - No SENet + No Cross (Aggressive) [RUNNING] ✅
-# 4090-1: Beauty 7B Low Boost [RUNNING] ✅
-# 4090-2: Toys 7B Final [RUNNING]
-# 4090-3: Beauty 14B Low Boost [RUNNING] ✅
-# 4090-4: Beauty 32B Low Boost [RUNNING] ✅
-# 4090-5: Toys 消融 - No SENet [RUNNING] ✅ Aggressive
-# 4090-6: Toys 消融 - No Cross [RUNNING] ✅ Aggressive
-# 4090-7: Toys 消融 - No Whiten [RUNNING] ✅ Aggressive
+# 4090-2: Toys 7B 复跑 (最终参数: cold=2.0, infer=1.0) [READY]
+#         用于论文表格数据
 #
-# --- 5090 新分配 ---
+# 4090-3: Beauty 14B Low Boost [PENDING]
+#         cold=1.5, infer=0.5, align=0.15
 #
-# 🔥 5090: Beauty 消融 - No SENet (14B Aggressive) [RUNNING] ⭐
-#          脚本: exp_ablation_beauty_nosenet.sh
-#          配置: sasrec_align_multi_view_v2_stratified_14b.yaml
-#          目的: RQ2 - SENet 门控在 Beauty 上的效果
+# 4090-4: Beauty 32B Low Boost [PENDING]
+#         cold=1.5, infer=0.5, align=0.15
+#
+# 4090-5: Toys 消融 - No SENet [READY]
+#
+# 4090-6: Toys 消融 - No Cross [READY]
+#
+# 4090-7: Toys 消融 - No Whiten [READY]
+#
+# ============================================================
+# 执行命令:
+# ============================================================
+#
+# # 5090
+# GPU_ID=0 nohup bash experiments/exp_beauty_7b_low_boost.sh > beauty_7b_low_boost.log 2>&1 &
+#
+# # 4090
+# GPU_ID=2 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > toys_7b_final.log 2>&1 &
+# GPU_ID=3 nohup bash experiments/exp_beauty_14b_low_boost.sh > beauty_14b_low_boost.log 2>&1 &
+# GPU_ID=4 nohup bash experiments/exp_beauty_32b_low_boost.sh > beauty_32b_low_boost.log 2>&1 &
+# GPU_ID=5 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet.log 2>&1 &
+# GPU_ID=6 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross.log 2>&1 &
+# GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_nowhiten.log 2>&1 &
 #
 # ============================================================
 
@@ -336,5 +332,64 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # - 添加 --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0}"
 # - checkpoint_dir 改为 ./saved/phase_runs_*_final
 # - variant_features 添加 "final" 标签
+#
+# ============================================================
+
+# ============================================================
+# 0113 晚 - 实验结论更新
+# ============================================================
+#
+# 📊 Beauty Low Boost 实验结果 (cold=1.5, infer=0.5, align=0.15):
+# | Model | Hit@10 | MRR@10 | Hit_new@10 |
+# |-------|--------|--------|------------|
+# | 7B    | 0.0608 | 0.0326 | 0.0187     |
+# | 14B   | 0.0608 | 0.0324 | 0.0178     |
+# | 32B   | 0.0608 | 0.0324 | 0.0184     |
+#
+# ❌ Beauty Scale Law 仍未成立: 7B > 32B > 14B (Hit_new@10)
+#    Low Boost + High Align 策略未能解决 Beauty Scale Law 问题
+#
+# 📊 Toys 消融实验结果:
+# | 消融 | Hit@10 | MRR@10 | 状态 |
+# |------|--------|--------|------|
+# | nosenet | 0.0667 | 0.0368 | ❌ 配置未生效 (与 baseline 相同) |
+# | nocross | 0.0667 | 0.0368 | ❌ 配置未生效 (与 baseline 相同) |
+# | nowhiten | 0.0691 | 0.0377 | ✅ 有效 (HR↑, MRR↑) |
+#
+# 🐛 BUG 发现: --config_dict 中 'false' (小写) 无法被 ast.literal_eval 解析
+#    已修复: 所有脚本中的 false → False
+#
+# ============================================================
+
+# ============================================================
+# 0113 晚 - 消融实验重跑 (配置已修复)
+# ============================================================
+#
+# 需要重跑的实验 (配置中 false 已修复为 False):
+#
+# 5090-0: Toys No SENet 重跑
+GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v2.log 2>&1 &  # [PENDING]
+
+# 4090-1: Toys No Cross 重跑
+GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v2.log 2>&1 &  # [PENDING]
+
+# 4090-2: Toys No SENet + No Cross 重跑
+GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v2.log 2>&1 &  # [PENDING]
+
+# 4090-3: Beauty No SENet 重跑 (配置已修复)
+GPU_ID=3 nohup bash experiments/exp_ablation_beauty_nosenet.sh > ablation_beauty_nosenet_v2.log 2>&1 &  # [PENDING]
+
+# ============================================================
+# 0113 晚 - GPU 分配 (5090 空闲, 4090: 1-7 空闲)
+# ============================================================
+#
+# 5090-0: Toys No SENet 重跑 [PENDING]
+# 4090-1: Toys No Cross 重跑 [PENDING]
+# 4090-2: Toys No SENet + No Cross 重跑 [PENDING]
+# 4090-3: Beauty No SENet 重跑 [PENDING]
+# 4090-4: (空闲)
+# 4090-5: (空闲)
+# 4090-6: (空闲)
+# 4090-7: (空闲)
 #
 # ============================================================

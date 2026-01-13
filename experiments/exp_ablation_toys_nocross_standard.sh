@@ -49,7 +49,7 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0, 'use_cross': false}" \
+  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0, 'use_cross': False}" \
   --checkpoint_dir ./saved/exp_ablation_toys_nocross_standard \
   --seed 2025 \
   --variant_features "sasrec,multiview_v2,7b,toys,ablation,nocross,standard" \
