@@ -298,8 +298,10 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 #    - 7B 整体指标最高 (HR=6.92, MRR=3.76) 但 Beauty 不满足层级
 #    - 32B 在 HR_new 上最优，适合 cold-start 场景
 #
-# --- 当前运行状态 (ps aux | grep python) ---
+# --- 当前运行状态 (2026-01-13 更新) ---
 #
+# 4090-0: Toys 消融 - No SENet + No Cross (Aggressive) [RUNNING] ✅
+# 4090-1: Beauty 7B Low Boost [RUNNING] ✅
 # 4090-2: Toys 7B Final [RUNNING]
 # 4090-3: Beauty 14B Low Boost [RUNNING] ✅
 # 4090-4: Beauty 32B Low Boost [RUNNING] ✅
@@ -307,14 +309,12 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # 4090-6: Toys 消融 - No Cross [RUNNING] ✅ Aggressive
 # 4090-7: Toys 消融 - No Whiten [RUNNING] ✅ Aggressive
 #
-# --- 当前运行 (GPU 0, 1 已启动) ---
+# --- 5090 新分配 ---
 #
-# 🔥 4090-0: Toys 消融 - No SENet + No Cross (Aggressive) [RUNNING] ✅
-#            脚本: exp_ablation_toys_nosenet_nocross.sh
-#
-# 🔥 4090-1: Beauty 7B Low Boost [RUNNING] ✅
-#            脚本: exp_beauty_7b_low_boost.sh
-#            用于 Beauty 7B/14B/32B 完整敏感性分析
+# 🔥 5090: Beauty 消融 - No SENet (14B Aggressive) [RUNNING] ⭐
+#          脚本: exp_ablation_beauty_nosenet.sh
+#          配置: sasrec_align_multi_view_v2_stratified_14b.yaml
+#          目的: RQ2 - SENet 门控在 Beauty 上的效果
 #
 # ============================================================
 
