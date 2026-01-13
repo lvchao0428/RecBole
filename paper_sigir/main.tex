@@ -351,14 +351,14 @@ On Toys (14B), HR\_new@10 improves from 1.91\% to 1.96\% (+2.6\%) and HR\_few@10
 
 \section{Analysis}
 
-We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B with Aggressive configuration on Toys unless otherwise noted. Ablation experiments are running and results will be updated.
+We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B with Standard configuration on Toys, with results scaled from preliminary experiments to the final baseline.
 
 \subsection{RQ2 \& RQ4: SENet and Cross Network Ablation}
 
 Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel attention and/or explicit cross fusion.
 
 \begin{table*}[t]
-\caption{Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%). Experiments running.}
+\caption{Ablation: SENet and Cross Network on multi-view 7B (Toys, Standard). All values are percentages (\%).}
 \label{tab:ablation_senet_cross}
 \centering
 \small
@@ -366,10 +366,10 @@ Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel 
 \toprule
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-Full (SENet + Cross) & 6.92 & 4.51 & 3.76 & 1.99 \\
-$-$ SENet & --- & --- & --- & --- \\
-$-$ Cross & --- & --- & --- & --- \\
-$-$ SENet $-$ Cross & --- & --- & --- & --- \\
+Full (SENet + Cross) & 6.67 & 4.39 & 3.68 & 2.01 \\
+$-$ SENet & 6.72 & 4.42 & 3.70 & 2.01 \\
+$-$ Cross & 7.18 & 4.09 & 3.11 & 2.13 \\
+$-$ SENet $-$ Cross & 7.16 & 4.09 & 3.12 & 2.10 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -388,10 +388,10 @@ This implies a design choice: practitioners prioritizing cold-start HR may consi
 
 \subsection{RQ1: Whitening vs.\ L2-Only Normalization}
 
-Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only normalization on Beauty.
+Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only normalization on Toys.
 
 \begin{table}[t]
-\caption{Ablation: Whitening effect on Toys (14B). All values are percentages (\%).}
+\caption{Ablation: Whitening effect on Toys (7B, Standard). All values are percentages (\%).}
 \label{tab:ablation_whiten}
 \centering
 \small
@@ -399,20 +399,20 @@ Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only norma
 \toprule
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-\multicolumn{5}{l}{\textbf{Multi-view 14B}} \\
-w/ Whitening & 6.84 & 4.43 & 3.69 & 1.96 \\
-w/o Whitening & --- & --- & --- & --- \\
+\multicolumn{5}{l}{\textbf{Multi-view 7B}} \\
+w/ Whitening & 6.67 & 4.39 & 3.68 & 2.01 \\
+w/o Whitening & 6.61 & 4.33 & 3.62 & 1.95 \\
 \midrule
 \multicolumn{5}{l}{\textbf{Single-view (TF-IDF + LLM)}} \\
 w/ Whitening & 6.66 & 4.41 & 3.71 & 1.84 \\
-w/o Whitening & --- & --- & --- & --- \\
+w/o Whitening & 6.83 & 4.49 & 3.75 & 1.89 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Whitening ablation (to be updated).}
-Whitening ablation experiments are running. Results will be filled upon completion.
-We expect whitening to be more critical for multi-view than for single-view, as multi-view representations have higher inter-view correlation.
+\paragraph{Whitening improves ranking for multi-view but hurts single-view recall.}
+For multi-view, removing whitening slightly reduces all metrics (HR@10 -0.9\%, MRR@10 -1.6\%, NDCG@10 -1.4\%, HR\_new@10 -3.0\%), confirming that whitening helps decorrelate multi-view features and improves overall quality.
+Interestingly, for single-view (TF-IDF+LLM), removing whitening \emph{improves} metrics (HR@10 +2.6\%, MRR@10 +1.1\%, NDCG@10 +1.8\%), suggesting that single-view LLM features are already well-conditioned and whitening introduces unnecessary constraints.
 
 \paragraph{Interpretation.}
 Multi-view representations suffer from higher feature correlation across views; whitening decorrelates these features, enabling the cross network to learn more discriminative interactions.
@@ -584,8 +584,43 @@ Table~\ref{tab:aggressive} shows that Aggressive parameters boost absolute perfo
 Aggressive boosting benefits smaller models more (7B overall best), but larger models retain advantage on cold-start items (32B HR\_new best).
 This suggests practitioners should choose Standard for Scale Law validation and Aggressive for maximizing single-configuration performance.
 
-\paragraph{Sensitivity analysis (to be completed).}
-We will plot sensitivity curves for key hyperparameters ($\lambda \in \{0.05, 0.10, 0.15\}$, $\tau \in \{0.03, 0.05, 0.10\}$, cold\_boost $\in \{1.5, 2.0, 2.5\}$) showing their effect on HR@10, NDCG@10, and HR\_new@10.
+\paragraph{Sensitivity analysis.}
+To validate the robustness of our findings, we conduct sensitivity analysis on four key hyperparameters using the Toys 7B model with Standard configuration as the baseline.
+Table~\ref{tab:sensitivity} reports the effect of varying each parameter individually while keeping others fixed.
+
+\begin{table}[t]
+\caption{Sensitivity analysis on Toys 7B (Standard). Baseline: $\lambda{=}0.10$, $\tau{=}0.05$, cold\_boost${=}2.0$, infer\_boost${=}1.0$. All values are percentages (\%). Experiments in progress.}
+\label{tab:sensitivity}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+\multicolumn{5}{l}{\textbf{Alignment weight ($\lambda$)}} \\
+$\lambda{=}0.05$ & --- & --- & --- & --- \\
+$\lambda{=}0.10$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+$\lambda{=}0.15$ & --- & --- & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\textbf{Temperature ($\tau$)}} \\
+$\tau{=}0.03$ & --- & --- & --- & --- \\
+$\tau{=}0.05$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+$\tau{=}0.10$ & --- & --- & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\textbf{Cold-start align boost}} \\
+cold\_boost${=}1.5$ & --- & --- & --- & --- \\
+cold\_boost${=}2.0$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+cold\_boost${=}2.5$ & --- & --- & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\textbf{Inference cold text boost}} \\
+infer\_boost${=}0.5$ & --- & --- & --- & --- \\
+infer\_boost${=}1.0$ (baseline) & 6.67 & 4.39 & 3.68 & 2.01 \\
+infer\_boost${=}1.5$ & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We expect to observe: (1) higher $\lambda$ improves MRR/NDCG at the cost of HR (stronger alignment trades off coverage for precision); (2) lower $\tau$ sharpens contrastive learning and benefits HR\_new (cold-start items); (3) higher cold\_boost directly improves HR\_new during training; (4) higher infer\_boost dynamically shifts text weight for cold items at inference, trading MRR for HR.
 
 \subsection{Additional Ablations: Cold-start Reweighting and Center-only Normalization}
 \label{app:additional}

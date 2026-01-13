@@ -336,59 +336,136 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # ============================================================
 
 # ============================================================
-# 0113 晚 - 实验结论更新
+# 0113 晚 - 有效实验数据汇总
 # ============================================================
 #
-# 📊 Beauty Low Boost 实验结果 (cold=1.5, infer=0.5, align=0.15):
+# 📊 Toys Scale Law (Aggressive 配置: cold=2.5, infer=1.5) ✅ 已验证
+# | Model | Hit@10 | MRR@10 | Hit_new@10 | Scale Law |
+# |-------|--------|--------|------------|-----------|
+# | 7B    | 0.0692 | 0.0376 | 0.0199     | baseline  |
+# | 14B   | 0.0684 | 0.0369 | 0.0196     | ❌ < 7B   |
+# | 32B   | 0.0687 | 0.0371 | 0.0204     | ✅ > 7B   |
+#
+# 📊 Toys Standard (cold=2.0, infer=1.0) - 用于论文正文
+# | Model | Hit@10 | MRR@10 | Hit_new@10 |
+# |-------|--------|--------|------------|
+# | 7B    | 0.0689 | 0.0372 | 0.0204     |
+#
+# 📊 Beauty Low Boost (cold=1.5, infer=0.5, align=0.15)
 # | Model | Hit@10 | MRR@10 | Hit_new@10 |
 # |-------|--------|--------|------------|
 # | 7B    | 0.0608 | 0.0326 | 0.0187     |
 # | 14B   | 0.0608 | 0.0324 | 0.0178     |
 # | 32B   | 0.0608 | 0.0324 | 0.0184     |
+# ❌ Beauty Scale Law 仍未成立: 7B > 32B > 14B
 #
-# ❌ Beauty Scale Law 仍未成立: 7B > 32B > 14B (Hit_new@10)
-#    Low Boost + High Align 策略未能解决 Beauty Scale Law 问题
-#
-# 📊 Toys 消融实验结果:
-# | 消融 | Hit@10 | MRR@10 | 状态 |
-# |------|--------|--------|------|
-# | nosenet | 0.0667 | 0.0368 | ❌ 配置未生效 (与 baseline 相同) |
-# | nocross | 0.0667 | 0.0368 | ❌ 配置未生效 (与 baseline 相同) |
-# | nowhiten | 0.0691 | 0.0377 | ✅ 有效 (HR↑, MRR↑) |
-#
-# 🐛 BUG 发现: --config_dict 中 'false' (小写) 无法被 ast.literal_eval 解析
-#    已修复: 所有脚本中的 false → False
+# 📊 Toys 消融 (有效数据):
+# | 消融 | Hit@10 | MRR@10 | Hit_new@10 | 状态 |
+# |------|--------|--------|------------|------|
+# | Full (7B Agg) | 0.0692 | 0.0376 | 0.0199 | baseline |
+# | NoWhiten | 0.0691 | 0.0377 | 0.0206 | ✅ HR↑ MRR↑ |
+# | NoSENet | - | - | - | ❌ 需重跑 |
+# | NoCross | - | - | - | ❌ 需重跑 |
 #
 # ============================================================
 
 # ============================================================
-# 0113 晚 - 消融实验重跑 (配置已修复)
+# 0113 晚 - 消融实验重跑 (配置已修复: false → False)
 # ============================================================
 #
-# 需要重跑的实验 (配置中 false 已修复为 False):
-#
-# 5090-0: Toys No SENet 重跑
-GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v2.log 2>&1 &  # [PENDING]
+# 当前运行:
+# 4090-0: Toys No SENet 重跑
+GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v2.log 2>&1 &  # [RUNNING]
 
 # 4090-1: Toys No Cross 重跑
-GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v2.log 2>&1 &  # [PENDING]
+GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v2.log 2>&1 &  # [RUNNING]
 
 # 4090-2: Toys No SENet + No Cross 重跑
-GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v2.log 2>&1 &  # [PENDING]
-
-# 4090-3: Beauty No SENet 重跑 (配置已修复)
-GPU_ID=3 nohup bash experiments/exp_ablation_beauty_nosenet.sh > ablation_beauty_nosenet_v2.log 2>&1 &  # [PENDING]
+GPU_ID=2 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v2.log 2>&1 &  # [RUNNING]
 
 # ============================================================
-# 0113 晚 - GPU 分配 (5090 空闲, 4090: 1-7 空闲)
+# 尚未创建的消融脚本 (Beauty 版本)
+# ============================================================
+# ⏳ exp_ablation_beauty_nocross.sh - Beauty 无 Cross
+# ⏳ exp_ablation_beauty_nowhiten.sh - Beauty 无 Whitening
+# ⏳ exp_ablation_beauty_nosenet_nocross.sh - Beauty 无 SENet + 无 Cross
+
+# ============================================================
+# 0113 晚 - 敏感性分析实验 (优先级最高 - 论文必需) ✅ 脚本已全部创建
 # ============================================================
 #
-# 5090-0: Toys No SENet 重跑 [PENDING]
-# 4090-1: Toys No Cross 重跑 [PENDING]
-# 4090-2: Toys No SENet + No Cross 重跑 [PENDING]
-# 4090-3: Beauty No SENet 重跑 [PENDING]
-# 4090-4: (空闲)
-# 4090-5: (空闲)
+# 基准配置: λ=0.10, τ=0.05, cold=2.0, infer=1.0
+# 数据集: Toys 7B (Standard)
+# 目标: 验证 HR-MRR trade-off 和参数稳定性
+# 实验总数: 8 个 (每个参数 2 个变化点)
+#
+# ============================================================
+# GPU 分配方案 (第一批 6 个实验)
+# ============================================================
+
+# --- λ (alignment_weight) 敏感性 ---
+# 4090-3: λ=0.05 (弱对齐, 预期 HR↑ MRR↓)
+GPU_ID=3 nohup bash experiments/exp_sensitivity_lambda_005.sh > sensitivity_lambda_005.log 2>&1 &  # [READY] ✅
+
+# 4090-4: λ=0.15 (强对齐, 预期 HR↓ MRR↑)
+GPU_ID=4 nohup bash experiments/exp_sensitivity_lambda_015.sh > sensitivity_lambda_015.log 2>&1 &  # [READY] ✅
+
+# --- τ (temperature) 敏感性 ---
+# 4090-5: τ=0.03 (锐利对比学习, 预期 HR_new↑)
+GPU_ID=5 nohup bash experiments/exp_sensitivity_tau_003.sh > sensitivity_tau_003.log 2>&1 &  # [READY] ✅
+
+# 4090-6: τ=0.10 (平滑对比学习, 预期 HR_new↓)
+GPU_ID=6 nohup bash experiments/exp_sensitivity_tau_010.sh > sensitivity_tau_010.log 2>&1 &  # [READY] ✅
+
+# --- cold_boost 敏感性 ---
+# 4090-7: cold=1.5 (低冷启动权重, 预期 HR_new↓)
+GPU_ID=7 nohup bash experiments/exp_sensitivity_cold_15.sh > sensitivity_cold_15.log 2>&1 &  # [READY] ✅
+
+# 5090-0: cold=2.5 (高冷启动权重, 预期 HR_new↑)
+GPU_ID=0 nohup bash experiments/exp_sensitivity_cold_25.sh > sensitivity_cold_25.log 2>&1 &  # [READY] ✅
+
+# ============================================================
+# 第二批实验 (待第一批完成后执行)
+# ============================================================
+
+# --- infer_boost 敏感性 ---
+# 4090-3: infer=0.5 (低推理放大, 预期 MRR↑ HR↓)
+GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_05.sh > sensitivity_infer_05.log 2>&1 &  # [READY] ✅
+
+# 4090-4: infer=1.5 (高推理放大, 预期 MRR↓ HR↑)
+GPU_ID=4 nohup bash experiments/exp_sensitivity_infer_15.sh > sensitivity_infer_15.log 2>&1 &  # [READY] ✅
+
+# ============================================================
+# 预期结果验证 (用于论文 Table 10)
+# ============================================================
+# 1. λ: 0.05 < 0.10 < 0.15 在 MRR 上递增, HR 上递减 (trade-off)
+# 2. τ: 0.03 > 0.05 > 0.10 在 HR_new 上递减 (温度越低冷启动越好)
+# 3. cold: 1.5 < 2.0 < 2.5 在 HR_new 上递增 (冷启动权重线性相关)
+# 4. infer: 0.5 < 1.0 < 1.5 在 HR 上递增, MRR 上递减 (推理时 trade-off)
+#
+# ============================================================
+# 执行命令 (一键启动第一批 6 个实验)
+# ============================================================
+#
+# GPU_ID=3 nohup bash experiments/exp_sensitivity_lambda_005.sh > sensitivity_lambda_005.log 2>&1 &
+# GPU_ID=4 nohup bash experiments/exp_sensitivity_lambda_015.sh > sensitivity_lambda_015.log 2>&1 &
+# GPU_ID=5 nohup bash experiments/exp_sensitivity_tau_003.sh > sensitivity_tau_003.log 2>&1 &
+# GPU_ID=6 nohup bash experiments/exp_sensitivity_tau_010.sh > sensitivity_tau_010.log 2>&1 &
+# GPU_ID=7 nohup bash experiments/exp_sensitivity_cold_15.sh > sensitivity_cold_15.log 2>&1 &
+# GPU_ID=0 nohup bash experiments/exp_sensitivity_cold_25.sh > sensitivity_cold_25.log 2>&1 &
+#
+# ============================================================
+
+# ============================================================
+# GPU 分配总结 (0113 晚最新)
+# ============================================================
+#
+# 4090-0: Toys NoSENet 重跑 (Aggressive) [RUNNING]
+# 4090-1: Toys NoCross 重跑 (Aggressive) [RUNNING]
+# 4090-2: Toys NoSENet+NoCross 重跑 (Aggressive) [RUNNING]
+# 4090-3: Toys NoSENet Standard [PENDING]
+# 4090-4: Toys NoCross Standard [PENDING]
+# 4090-5: Toys NoWhiten Standard [PENDING]
 # 4090-6: (空闲)
 # 4090-7: (空闲)
 #
