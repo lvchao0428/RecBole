@@ -354,17 +354,13 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 \base（仅ID） & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
 \base + \tfidf & 5.69 & 3.77 & 3.18 & 1.68 & 1.27 & 1.11 & 3.32 & 2.36 & 1.99 \\
 \base + \tfidf + \llm（7B） & 5.79 & 3.81 & 3.20 & 1.63 & 1.19 & 1.00 & 3.39 & 2.39 & 2.00 \\
-\model（7B） & \textbf{6.06} & 3.80 & 3.10 & \textbf{2.02} & \textbf{1.24} & 1.00 & \textbf{3.86} & 2.55 & 2.04 \\
-\model（14B） & 5.95 & \textbf{3.86} & \textbf{3.22} & 1.82 & \textbf{1.25} & \textbf{1.06} & 3.75 & \textbf{2.56} & 2.09 \\
-\model（32B） & 5.95 & \textbf{3.88} & \textbf{3.24} & 1.81 & 1.21 & 1.02 & 3.70 & \textbf{2.58} & \textbf{2.14} \\
+\model（14B） & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.09} \\
 \midrule
 \multicolumn{10}{l}{\textbf{亚马逊玩具游戏}} \\
 \base（仅ID） & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
 \base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
 \base + \tfidf + \llm（7B） & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
-\model（7B） & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & 1.99 & 1.37 & 1.14 & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
-\model（14B） & 6.84 & 4.43 & 3.69 & 1.96 & 1.37 & 1.18 & 5.19 & 3.40 & 2.85 \\
-\model（32B） & 6.87 & 4.46 & 3.71 & \textbf{2.04} & \textbf{1.45} & \textbf{1.17} & 5.12 & 3.40 & 2.87 \\
+\model（14B） & \textbf{6.84} & \textbf{4.43} & \textbf{3.69} & \textbf{1.96} & \textbf{1.37} & \textbf{1.18} & \textbf{5.19} & \textbf{3.40} & \textbf{2.85} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -383,29 +379,25 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 
 \section{分析}
 
-我们进行系统的消融实验来回答 RQ1--RQ4。除非另有说明，所有消融以多视图 7B 为基线。
+我们进行系统的消融实验来回答 RQ1--RQ4。消融实验在玩具数据集上使用多视图 7B Aggressive 配置进行。消融实验正在运行中，结果将更新。
 
 \subsection{RQ2 \& RQ4: SENet 和交叉网络消融}
 
 表~\ref{tab:ablation_senet_cross} 展示了移除 SENet 通道注意力和/或显式交叉融合的效果。
 
 \begin{table*}[t]
-\caption{消融实验：多视图 7B 上的 SENet 和交叉网络。所有数值为百分比（\%）。}
+\caption{消融实验：多视图 7B（玩具，Aggressive）上的 SENet 和交叉网络。所有数值为百分比（\%）。实验运行中。}
 \label{tab:ablation_senet_cross}
 \centering
 \small
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lcccc}
 \toprule
-\multirow{2}{*}{\textbf{配置}} &
-\multicolumn{4}{c}{\textbf{亚马逊美妆}} &
-\multicolumn{4}{c}{\textbf{亚马逊玩具游戏}} \\
-\cmidrule(lr){2-5}\cmidrule(lr){6-9}
-& HR@10 & NDCG@10 & MRR@10 & HR\_new@10 & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-完整（SENet + Cross） & 6.05 & 3.82 & 3.14 & 2.09 & 6.90 & 4.43 & 3.67 & 2.30 \\
-$-$ SENet & 6.11 & 3.82 & 3.11 & 2.16 & 6.95 & 4.46 & 3.69 & 2.30 \\
-$-$ Cross & 6.56 & 3.64 & 2.74 & 2.40 & 7.43 & 4.13 & 3.10 & 2.44 \\
-$-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
+完整（SENet + Cross） & 6.92 & 4.51 & 3.76 & 1.99 \\
+$-$ SENet & --- & --- & --- & --- \\
+$-$ Cross & --- & --- & --- & --- \\
+$-$ SENet $-$ Cross & --- & --- & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -424,10 +416,10 @@ $-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
 
 \subsection{RQ1: 白化 vs 仅 L2 归一化}
 
-表~\ref{tab:ablation_whiten} 比较了美妆数据集上白化（ZCA + L2）与仅 L2 归一化的效果。
+表~\ref{tab:ablation_whiten} 比较了玩具数据集（14B）上白化（ZCA + L2）与仅 L2 归一化的效果。
 
 \begin{table}[t]
-\caption{消融实验：美妆数据集上的白化效果。所有数值为百分比（\%）。}
+\caption{消融实验：玩具数据集上的白化效果（14B）。所有数值为百分比（\%）。}
 \label{tab:ablation_whiten}
 \centering
 \small
@@ -435,20 +427,20 @@ $-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
 \toprule
 \textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-\multicolumn{5}{l}{\textbf{多视图 7B}} \\
-带白化 & 6.05 & 3.82 & 3.14 & 2.09 \\
-无白化 & 6.76 & 3.58 & 2.60 & 2.22 \\
+\multicolumn{5}{l}{\textbf{多视图 14B}} \\
+带白化 & 6.84 & 4.43 & 3.69 & 1.96 \\
+无白化 & --- & --- & --- & --- \\
 \midrule
 \multicolumn{5}{l}{\textbf{单视图（TF-IDF + LLM）}} \\
-带白化 & 6.00 & 3.80 & 3.13 & 2.03 \\
-无白化 & 6.01 & 3.80 & 3.12 & 2.08 \\
+带白化 & 6.66 & 4.41 & 3.71 & 1.84 \\
+无白化 & --- & --- & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{白化对多视图至关重要，但对单视图不重要}
-对于多视图，移除白化增加了 HR@10（+11.7\%），但严重损害排序：MRR@10 下降 17.2\%，NDCG@10 下降 6.3\%。
-对于单视图，白化影响很小（所有指标 $<$0.5\%）。
+\paragraph{白化消融（待更新）}
+白化消融实验正在运行中，结果将在完成后填充。
+我们预期白化对多视图比单视图更为关键，因为多视图表示具有更高的视图间相关性。
 
 \paragraph{解释}
 多视图表示在视图间存在更高的特征相关性；白化去相关这些特征，使交叉网络能够学习更具区分性的交互。

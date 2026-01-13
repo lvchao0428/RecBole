@@ -275,7 +275,7 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten.sh > ablation_toys_no
 # --- Standard 参数版本 (备用 - 敏感性分析) ---
 # 📦 已创建备用，暂不需要
 #
-# ⏳ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [待创建]
+# ✅ 5. exp_ablation_beauty_nosenet.sh - Beauty 版本 [已创建] ⭐ 5090 新分配
 # ⏳ 6. exp_ablation_beauty_nocross.sh - Beauty 版本 [待创建]
 # ⏳ 7. exp_ablation_beauty_nowhiten.sh - Beauty 版本 [待创建]
 # ============================================================

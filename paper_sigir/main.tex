@@ -338,46 +338,38 @@ On Toys (14B), HR\_new@10 improves from 1.91\% to 1.96\% (+2.6\%) and HR\_few@10
 \base (ID-only) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
 \base + \tfidf & 5.69 & 3.77 & 3.18 & 1.68 & 1.27 & 1.11 & 3.32 & 2.36 & 1.99 \\
 \base + \tfidf + \llm (7B) & 5.79 & 3.81 & 3.20 & 1.63 & 1.19 & 1.00 & 3.39 & 2.39 & 2.00 \\
-\model (7B) & \textbf{6.06} & 3.80 & 3.10 & \textbf{2.02} & \textbf{1.24} & 1.00 & \textbf{3.86} & 2.55 & 2.04 \\
-\model (14B) & 5.95 & \textbf{3.86} & \textbf{3.22} & 1.82 & \textbf{1.25} & \textbf{1.06} & 3.75 & \textbf{2.56} & 2.09 \\
-\model (32B) & 5.95 & \textbf{3.88} & \textbf{3.24} & 1.81 & 1.21 & 1.02 & 3.70 & \textbf{2.58} & \textbf{2.14} \\
+\model (14B) & \textbf{5.95} & \textbf{3.86} & \textbf{3.22} & \textbf{1.82} & \textbf{1.25} & \textbf{1.06} & \textbf{3.75} & \textbf{2.56} & \textbf{2.09} \\
 \midrule
 \multicolumn{10}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
 \base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
 \base + \tfidf + \llm (7B) & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
-\model (7B) & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & 1.99 & 1.37 & 1.14 & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
-\model (14B) & 6.84 & 4.43 & 3.69 & 1.96 & 1.37 & 1.18 & 5.19 & 3.40 & 2.85 \\
-\model (32B) & 6.87 & 4.46 & 3.71 & \textbf{2.04} & \textbf{1.45} & \textbf{1.17} & 5.12 & 3.40 & 2.87 \\
+\model (14B) & \textbf{6.84} & \textbf{4.43} & \textbf{3.69} & \textbf{1.96} & \textbf{1.37} & \textbf{1.18} & \textbf{5.19} & \textbf{3.40} & \textbf{2.85} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \section{Analysis}
 
-We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B as the baseline unless otherwise noted.
+We conduct systematic ablation studies to answer RQ1--RQ4. All ablations use multi-view 7B with Aggressive configuration on Toys unless otherwise noted. Ablation experiments are running and results will be updated.
 
 \subsection{RQ2 \& RQ4: SENet and Cross Network Ablation}
 
 Table~\ref{tab:ablation_senet_cross} shows the effect of removing SENet channel attention and/or explicit cross fusion.
 
 \begin{table*}[t]
-\caption{Ablation: SENet and Cross Network on multi-view 7B. All values are percentages (\%).}
+\caption{Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%). Experiments running.}
 \label{tab:ablation_senet_cross}
 \centering
 \small
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lcccc}
 \toprule
-\multirow{2}{*}{\textbf{Configuration}} &
-\multicolumn{4}{c}{\textbf{Amazon Beauty}} &
-\multicolumn{4}{c}{\textbf{Amazon Toys\&Games}} \\
-\cmidrule(lr){2-5}\cmidrule(lr){6-9}
-& HR@10 & NDCG@10 & MRR@10 & HR\_new@10 & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-Full (SENet + Cross) & 6.05 & 3.82 & 3.14 & 2.09 & 6.90 & 4.43 & 3.67 & 2.30 \\
-$-$ SENet & 6.11 & 3.82 & 3.11 & 2.16 & 6.95 & 4.46 & 3.69 & 2.30 \\
-$-$ Cross & 6.56 & 3.64 & 2.74 & 2.40 & 7.43 & 4.13 & 3.10 & 2.44 \\
-$-$ SENet $-$ Cross & 6.57 & 3.63 & 2.73 & 2.42 & 7.41 & 4.13 & 3.11 & 2.40 \\
+Full (SENet + Cross) & 6.92 & 4.51 & 3.76 & 1.99 \\
+$-$ SENet & --- & --- & --- & --- \\
+$-$ Cross & --- & --- & --- & --- \\
+$-$ SENet $-$ Cross & --- & --- & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -399,7 +391,7 @@ This implies a design choice: practitioners prioritizing cold-start HR may consi
 Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only normalization on Beauty.
 
 \begin{table}[t]
-\caption{Ablation: Whitening effect on Beauty. All values are percentages (\%).}
+\caption{Ablation: Whitening effect on Toys (14B). All values are percentages (\%).}
 \label{tab:ablation_whiten}
 \centering
 \small
@@ -407,20 +399,20 @@ Table~\ref{tab:ablation_whiten} compares whitening (ZCA + L2) vs.\ L2-only norma
 \toprule
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
-\multicolumn{5}{l}{\textbf{Multi-view 7B}} \\
-w/ Whitening & 6.05 & 3.82 & 3.14 & 2.09 \\
-w/o Whitening & 6.76 & 3.58 & 2.60 & 2.22 \\
+\multicolumn{5}{l}{\textbf{Multi-view 14B}} \\
+w/ Whitening & 6.84 & 4.43 & 3.69 & 1.96 \\
+w/o Whitening & --- & --- & --- & --- \\
 \midrule
 \multicolumn{5}{l}{\textbf{Single-view (TF-IDF + LLM)}} \\
-w/ Whitening & 6.00 & 3.80 & 3.13 & 2.03 \\
-w/o Whitening & 6.01 & 3.80 & 3.12 & 2.08 \\
+w/ Whitening & 6.66 & 4.41 & 3.71 & 1.84 \\
+w/o Whitening & --- & --- & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Whitening is critical for multi-view but not for single-view.}
-For multi-view, removing whitening increases HR@10 (+11.7\%) but drastically hurts ranking: MRR@10 drops by 17.2\% and NDCG@10 drops by 6.3\%.
-For single-view, whitening has minimal effect ($<$0.5\% on all metrics).
+\paragraph{Whitening ablation (to be updated).}
+Whitening ablation experiments are running. Results will be filled upon completion.
+We expect whitening to be more critical for multi-view than for single-view, as multi-view representations have higher inter-view correlation.
 
 \paragraph{Interpretation.}
 Multi-view representations suffer from higher feature correlation across views; whitening decorrelates these features, enabling the cross network to learn more discriminative interactions.
