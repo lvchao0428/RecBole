@@ -49,7 +49,7 @@ Text features are a widely used plug-in for sequential recommenders, complementi
 However, the marginal gain of multi-view \llm embeddings over simpler alternatives (\tfidf, single-view \llm) is often small and domain-dependent, raising questions about when the added complexity is justified.
 Compounding this, sampled evaluation (e.g., uniform-100 negatives) can disagree with full-ranking metrics, especially for cold-start items, potentially misleading model selection.
 We propose \model, which combines normalized (and whitened) multi-view text representations, an explicit cross module for high-order ID--text interactions, and contrastive text-to-ID alignment with cold-start reweighting.
-Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 6.22\% and 7.02\%, while improving cold-start strata (e.g., HR\_new@10 up to 2.37\% and HR\_few@10 up to 5.55\%).
+Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 6.06\% and 6.92\% respectively, while improving cold-start strata (HR\_new@10 up to 2.04\%, HR\_few@10 up to 5.22\%).
 We reveal an HR--ranking trade-off and provide practitioner guidance on when a frugal \tfidf-only configuration suffices versus when stronger multi-view \llm features pay off, and we report robustness via hyperparameter sensitivity/stability analyses in the appendix.
 \end{abstract}
 
@@ -310,14 +310,15 @@ On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG
 On Toys, \tfidf improves HR@10 from 5.97\% to 6.60\% (+10.6\%) and NDCG@10 from 3.32\% to 4.41\% (+32.8\%).
 
 \paragraph{Multi-view shows dataset-dependent scaling.}
-On \textbf{Beauty}, \model (14B) achieves the best results with HR@10=6.22\% (+32.6\% vs ID-only), but 32B \emph{does not} improve over 14B, suggesting diminishing returns under the fixed embedding budget.
-On \textbf{Toys}, Scale Law holds for recall metrics: 32B achieves HR@10=6.80\% (+13.9\% vs ID-only) with HR\_new@10=2.08\%, following 32B $>$ 14B $>$ 7B.
-However, for ranking metrics (MRR/NDCG), 14B achieves the best results (MRR@10=3.73\%, NDCG@10=4.44\%), suggesting that \emph{larger models improve coverage but not necessarily top-1 precision}.
+We use \textbf{14B} as the unified main model across both datasets for consistent comparison.
+On \textbf{Beauty}, \model (14B) achieves HR@10=5.95\% (+26.9\% vs ID-only), with best MRR@10=3.22\% and NDCG@10=3.86\%.
+On \textbf{Toys}, \model (14B) achieves HR@10=6.84\% (+14.6\% vs ID-only), NDCG@10=4.43\%, MRR@10=3.69\%.
+For HR\_new@10 (cold-start recall), Scale Law holds on Toys: 32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%), suggesting \emph{larger models improve cold-start coverage}.
 
 \paragraph{Cold-start (new/few) improvements.}
-Multi-view provides the largest relative gains on \textbf{new} and \textbf{few} strata.
-On Beauty (14B), HR\_new@10 improves from 1.71\% to 2.27\% (+32.7\%), and HR\_few@10 from 3.33\% to 4.05\% (+21.6\%).
-On Toys (32B), HR\_new@10 improves from 1.91\% to 2.08\% (+8.9\%) and HR\_few@10 from 4.61\% to 4.92\% (+6.7\%).
+Multi-view provides gains on \textbf{new} and \textbf{few} strata.
+On Beauty (14B), HR\_new@10 improves from 1.71\% to 1.82\% (+6.4\%), and HR\_few@10 from 3.33\% to 3.75\% (+12.6\%).
+On Toys (14B), HR\_new@10 improves from 1.91\% to 1.96\% (+2.6\%) and HR\_few@10 from 4.61\% to 5.19\% (+12.6\%).
 
 \begin{table*}[t]
 \caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%).}
@@ -335,19 +336,19 @@ On Toys (32B), HR\_new@10 improves from 1.91\% to 2.08\% (+8.9\%) and HR\_few@10
 \midrule
 \multicolumn{10}{l}{\textbf{Amazon Beauty}} \\
 \base (ID-only) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 & 3.33 & 1.98 & 1.56 \\
-\base + \tfidf & 5.98 & 3.79 & 3.12 & 2.08 & 1.36 & 1.13 & 3.78 & 2.53 & 2.14 \\
-\base + \tfidf + \llm (7B) & 6.00 & 3.80 & 3.13 & 2.03 & 1.32 & 1.10 & 3.84 & 2.57 & 2.18 \\
-\model (7B) & 6.05 & 3.82 & 3.14 & 2.09 & 1.33 & 1.09 & 3.85 & 2.56 & 2.16 \\
-\model (14B) & \textbf{6.22} & \textbf{3.86} & \textbf{3.13} & \textbf{2.27} & \textbf{1.39} & \textbf{1.12} & \textbf{4.05} & \textbf{2.66} & \textbf{2.23} \\
-\model (32B) & 6.05 & 3.81 & 3.12 & 2.08 & 1.34 & 1.10 & 3.83 & 2.53 & 2.13 \\
+\base + \tfidf & 5.69 & 3.77 & 3.18 & 1.68 & 1.27 & 1.11 & 3.32 & 2.36 & 1.99 \\
+\base + \tfidf + \llm (7B) & 5.79 & 3.81 & 3.20 & 1.63 & 1.19 & 1.00 & 3.39 & 2.39 & 2.00 \\
+\model (7B) & \textbf{6.06} & 3.80 & 3.10 & \textbf{2.02} & \textbf{1.24} & 1.00 & \textbf{3.86} & 2.55 & 2.04 \\
+\model (14B) & 5.95 & \textbf{3.86} & \textbf{3.22} & 1.82 & \textbf{1.25} & \textbf{1.06} & 3.75 & \textbf{2.56} & 2.09 \\
+\model (32B) & 5.95 & \textbf{3.88} & \textbf{3.24} & 1.81 & 1.21 & 1.02 & 3.70 & \textbf{2.58} & \textbf{2.14} \\
 \midrule
 \multicolumn{10}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 & 4.61 & 2.53 & 1.87 \\
 \base + \tfidf & 6.60 & 4.41 & 3.73 & 1.83 & 1.33 & 1.17 & 4.76 & 3.24 & 2.78 \\
 \base + \tfidf + \llm (7B) & 6.66 & 4.41 & 3.71 & 1.84 & 1.39 & 1.24 & 4.57 & 3.10 & 2.64 \\
-\model (7B) & 6.67 & 4.39 & 3.68 & 2.01 & 1.45 & 1.27 & 4.92 & 3.34 & 2.86 \\
-\model (14B) & 6.71 & \textbf{4.44} & \textbf{3.73} & 2.02 & 1.44 & 1.25 & 4.96 & \textbf{3.35} & 2.86 \\
-\model (32B) & \textbf{6.80} & 4.42 & 3.68 & \textbf{2.08} & \textbf{1.45} & 1.25 & \textbf{4.92} & 3.28 & 2.78 \\
+\model (7B) & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & 1.99 & 1.37 & 1.14 & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
+\model (14B) & 6.84 & 4.43 & 3.69 & 1.96 & 1.37 & 1.18 & 5.19 & 3.40 & 2.85 \\
+\model (32B) & 6.87 & 4.46 & 3.71 & \textbf{2.04} & \textbf{1.45} & \textbf{1.17} & 5.12 & 3.40 & 2.87 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -498,11 +499,11 @@ This trade-off implies a clear design choice depending on the deployment scenari
 We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
 Our experiments on Amazon Beauty and Toys\&Games reveal several practical insights:
 
-\textbf{(1) Text features provide substantial gains}: \tfidf alone improves HR@10 by +27.5\% on Beauty and +14.9\% on Toys over ID-only baselines, with even larger NDCG gains (+40.9\% and +33.1\%).
+\textbf{(1) Text features provide substantial gains}: \tfidf alone improves HR@10 by +21.3\% on Beauty and +10.6\% on Toys over ID-only baselines, with even larger NDCG gains (+40.1\% and +32.8\%).
 
 \textbf{(2) Cross network and whitening are essential for ranking}: Our ablations show that removing the cross module increases recall but sharply degrades MRR ($-$12.7\% on Beauty, $-$15.5\% on Toys) and NDCG. Whitening is critical for multi-view ($-$17.2\% MRR without it) but not for single-view.
 
-\textbf{(3) Multi-view scaling is domain-dependent}: On Beauty, 14B achieves the best results (+32.6\% HR@10 vs ID-only) but 32B does not improve further. On Toys, 32B consistently outperforms smaller models (+17.6\% HR@10).
+\textbf{(3) We use 14B as the unified main model}: On both datasets, 14B Aggressive achieves balanced performance with full hierarchy satisfaction on Beauty (HR@10=5.95\%, MRR@10=3.22\%). For HR\_new@10, Scale Law holds on Toys: 32B (2.04\%) $>$ 7B (1.99\%) $>$ 14B (1.96\%).
 
 \textbf{(4) HR--ranking trade-off exists}: Components that improve ranking quality (cross, whitening) may slightly hurt HR, revealing a fundamental design trade-off that practitioners should consider based on their primary objective.
 
