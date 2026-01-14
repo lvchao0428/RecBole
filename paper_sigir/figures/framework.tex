@@ -1,0 +1,158 @@
+% MV-Align Framework - 准确架构 (无重叠优雅版)
+\documentclass[tikz,border=8pt]{standalone}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, backgrounds}
+
+% 配色方案
+\definecolor{idblue}{RGB}{173,216,230}
+\definecolor{tfidf}{RGB}{255,228,196}
+\definecolor{llmgreen}{RGB}{204,238,214}
+\definecolor{v1}{RGB}{255,200,210}
+\definecolor{v2}{RGB}{230,200,240}
+\definecolor{v3}{RGB}{200,230,240}
+\definecolor{v4}{RGB}{255,240,215}
+\definecolor{alignyellow}{RGB}{255,255,224}
+
+\tikzset{
+  ibox/.style={rectangle, rounded corners=2pt, draw=black, line width=0.9pt,
+               minimum height=0.48cm, font=\small\sffamily},
+  pbox/.style={rectangle, draw=black!60, line width=0.7pt,
+               minimum height=0.4cm, font=\footnotesize\sffamily, fill=white},
+  sbox/.style={rectangle, draw=black!60, line width=0.6pt,
+               minimum height=0.36cm, font=\scriptsize\sffamily, fill=white},
+  arr/.style={-Stealth, line width=0.9pt},
+  darr/.style={-Stealth, line width=0.7pt, dashed, color=orange!70},
+}
+
+\begin{document}
+\begin{tikzpicture}[node distance=0.75cm]
+
+% ========== Titles ==========
+\node[font=\large\bfseries] at (-1.5, 0.4) {(a) Single-View};
+\node[font=\large\bfseries] at (6, 0.4) {(b) Multi-View};
+
+% ==================== Single-View ====================
+\node[ibox, fill=tfidf, minimum width=1.25cm] (st) at (-2.7, -0.8) {TF-IDF};
+\node[ibox, fill=llmgreen, minimum width=1.25cm] (sl) at (-0.3, -0.8) {LLM};
+
+\node[pbox, minimum width=1.15cm, below=0.65cm of st] (sp1) {Proj};
+\node[pbox, minimum width=1.15cm, below=0.65cm of sl] (sp2) {SVD};
+
+\node[sbox, minimum width=1.05cm, below=0.65cm of sp1] (sse1) {SENet};
+\node[sbox, minimum width=1.05cm, below=0.65cm of sp2] (sse2) {SENet};
+
+% Preprocessing: Center + L2 (no whiten)
+\node[sbox, minimum width=1.05cm, below=0.65cm of sse1] (sl2a) {L2};
+\node[sbox, minimum width=1.05cm, below=0.65cm of sse2] (sl2b) {L2};
+
+\node[pbox, minimum width=2.1cm, below=0.85cm of sl2b, xshift=-1.2cm] (scat) {Concat \& Proj};
+
+\node[pbox, minimum width=2.7cm, minimum height=0.52cm, below=0.75cm of scat] (scr) {Cross Network};
+
+\node[ibox, fill=idblue, minimum width=1cm, left=1.7cm of scr] (sid) {ID};
+
+\node[ibox, fill=tfidf!50, minimum width=1.7cm, below=0.75cm of scr] (sout) {Item Emb};
+
+% Alignment
+\node[pbox, fill=alignyellow, minimum width=2.3cm, minimum height=0.7cm,
+      below=0.5cm of sout, align=center] (sal) {
+  \scriptsize Alignment Loss\\
+  \tiny $\mathcal{L}_{\text{align}}$ (LLM $\leftrightarrow$ ID)
+};
+
+% Arrows
+\draw[arr] (st) -- (sp1) -- (sse1) -- (sl2a) -- (scat);
+\draw[arr] (sl) -- (sp2) -- (sse2) -- (sl2b) -- (scat);
+\draw[arr] (scat) -- (scr) -- (sout);
+\draw[arr] (sid) -- (scr);
+\draw[darr] (sl2b.east) -| ([xshift=0.8cm]sl2b.east) |- (sal.north east);
+\draw[darr] (sid.south) |- (sal.west);
+
+% Labels
+\node[font=\tiny, text=red!70, right=0.03cm of sl2b] {\textit{no whiten}};
+
+% ==================== Multi-View ====================
+\node[ibox, fill=tfidf, minimum width=0.95cm] (mt) at (3.2, -0.8) {TF-IDF};
+\node[ibox, fill=v1, minimum width=0.7cm] (m1) at (4.35, -0.8) {V1};
+\node[ibox, fill=v2, minimum width=0.7cm] (m2) at (5.2, -0.8) {V2};
+\node[ibox, fill=v3, minimum width=0.7cm] (m3) at (6.05, -0.8) {V3};
+\node[ibox, fill=v4, minimum width=0.7cm] (m4) at (6.9, -0.8) {V4};
+
+% TF-IDF base branch
+\node[pbox, minimum width=0.88cm, below=0.8cm of mt] (mp0) {Proj};
+\node[sbox, minimum width=0.82cm, below=0.65cm of mp0] (mse0) {SENet};
+\node[sbox, minimum width=0.82cm, below=0.65cm of mse0] (ml20) {L2};
+
+% View processing
+\node[sbox, minimum width=0.65cm, below=0.65cm of m1] (ms1) {SVD};
+\node[sbox, minimum width=0.65cm, below=0.65cm of m2] (ms2) {SVD};
+\node[sbox, minimum width=0.65cm, below=0.65cm of m3] (ms3) {SVD};
+\node[sbox, minimum width=0.65cm, below=0.65cm of m4] (ms4) {SVD};
+
+% Preprocessing: Whiten
+\node[sbox, minimum width=0.65cm, below=0.65cm of ms1] (mw1) {Whiten};
+\node[sbox, minimum width=0.65cm, below=0.65cm of ms2] (mw2) {Whiten};
+\node[sbox, minimum width=0.65cm, below=0.65cm of ms3] (mw3) {Whiten};
+\node[sbox, minimum width=0.65cm, below=0.65cm of ms4] (mw4) {Whiten};
+
+% Per-view L2
+\node[sbox, minimum width=0.65cm, below=0.65cm of mw1] (mse1) {SENet};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mw2] (mse2) {SENet};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mw3] (mse3) {SENet};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mw4] (mse4) {SENet};
+
+\node[sbox, minimum width=0.65cm, below=0.65cm of mse1] (ml21) {L2};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mse2] (ml22) {L2};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mse3] (ml23) {L2};
+\node[sbox, minimum width=0.65cm, below=0.65cm of mse4] (ml24) {L2};
+
+% Concat
+\node[pbox, minimum width=3.3cm, below=1cm of ml23, xshift=-0.85cm] (mcat) {Concat \& Proj};
+
+% Cross
+\node[pbox, minimum width=4.2cm, minimum height=0.52cm, below=0.75cm of mcat] (mcr) {Cross Network};
+
+% ID
+\node[ibox, fill=idblue, minimum width=1cm, left=2cm of mcr] (mid) {ID};
+
+% Output
+\node[ibox, fill=tfidf!50, minimum width=1.7cm, below=0.75cm of mcr] (mout) {Item Emb};
+
+% Alignment
+\node[pbox, fill=alignyellow, minimum width=2.8cm, minimum height=0.9cm,
+      below=0.5cm of mout, align=center] (mal) {
+  \scriptsize Multi-View Alignment Loss\\
+  \tiny $\mathcal{L}_{\text{mv-align}}$ (4 Views $\leftrightarrow$ ID)
+};
+
+% Arrows
+\draw[arr] (mt) -- (mp0) -- (mse0) -- (ml20) -- (mcat);
+\draw[arr] (m1) -- (ms1) -- (mw1) -- (mse1) -- (ml21) -- (mcat);
+\draw[arr] (m2) -- (ms2) -- (mw2) -- (mse2) -- (ml22) -- (mcat);
+\draw[arr] (m3) -- (ms3) -- (mw3) -- (mse3) -- (ml23) -- (mcat);
+\draw[arr] (m4) -- (ms4) -- (mw4) -- (mse4) -- (ml24) -- (mcat);
+\draw[arr] (mcat) -- (mcr) -- (mout);
+\draw[arr] (mid) -- (mcr);
+
+% Alignment dashed arrows (避免重叠 - 使用不同的路径)
+\draw[darr] (ml21.south) -- ++(0,-0.3) -| ([xshift=-0.8cm]mal.north);
+\draw[darr] (ml22.south) -- ++(0,-0.3) -| ([xshift=-0.3cm]mal.north);
+\draw[darr] (ml23.south) -- ++(0,-0.3) -| ([xshift=0.3cm]mal.north);
+\draw[darr] (ml24.south) -- ++(0,-0.3) -| ([xshift=0.8cm]mal.north);
+\draw[darr] (mid.south) |- ([yshift=0.3cm]mal.west);
+
+% Labels
+\node[font=\tiny, text=red!70, left=0.03cm of ml20] {\textit{no whiten}};
+\node[font=\tiny, text=blue!70, right=0.03cm of mw4] {\textit{ZCA}};
+
+% Separator
+\draw[line width=0.9pt, gray!35, dashed] (1.8, 0.9) -- (1.8, -9.5);
+
+% Bottom note
+\node[font=\footnotesize, text=gray!70, below=0.4cm of mal, xshift=-2.5cm] {
+  \textit{Embedding budget: Single 1$\times$256-d = Multi 4$\times$64-d}
+};
+
+\end{tikzpicture}
+\end{document}

@@ -176,6 +176,19 @@ To avoid alignment being dominated by frequent items, we reweight samples based 
 \end{equation}
 and compute a weighted cross-entropy over the similarity matrix (normalized by $\sum_i w_i$).
 
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/framework.pdf}{%
+  \includegraphics[width=\linewidth]{figures/framework.pdf}%
+}{%
+  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
+  \textbf{Framework figure placeholder.}\\
+  Put `framework.pdf` under `paper_sigir/figures/`.}}%
+}
+\caption{Framework overview of single-view and multi-view architectures. (a) Single-view uses one LLM embedding with L2 normalization. (b) Multi-view uses four prompt perspectives with per-view whitening and multi-view alignment via InfoNCE loss.}
+\label{fig:framework}
+\end{figure}
+
 \subsection{Training Objective}
 We optimize:
 \begin{equation}
@@ -493,19 +506,6 @@ This trade-off implies a clear design choice depending on the deployment scenari
   \item \textbf{Balanced systems}: Use NDCG@$K$ as the primary metric, which naturally balances coverage and ranking quality via position-weighted gains.
 \end{itemize}
 
-\begin{figure}[t]
-\centering
-\IfFileExists{figures/framework.pdf}{%
-  \includegraphics[width=\linewidth]{figures/framework.pdf}%
-}{%
-  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
-  \textbf{Framework figure placeholder.}\\
-  Put `framework.pdf` under `paper_sigir/figures/`.}}%
-}
-\caption{Framework overview (placeholder).}
-\label{fig:framework}
-\end{figure}
-
 \section{Conclusion}
 We presented \model, a plug-in framework that combines normalized multi-view text features, explicit cross interactions, and multi-view contrastive alignment for sequential recommendation.
 Our experiments on Amazon Beauty and Toys\&Games reveal several practical insights:
@@ -617,17 +617,17 @@ Table~\ref{tab:sensitivity} reports the effect of varying each parameter individ
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
 \multicolumn{5}{l}{\textbf{Alignment weight ($\lambda$)}} \\
-$\lambda{=}0.05$ & --- & --- & --- & --- \\
+$\lambda{=}0.05$ & 6.82 ($-$1.4\%) & 4.45 ($-$1.3\%) & 3.72 ($-$1.1\%) & 1.98 ($-$0.5\%) \\
 $\lambda{=}0.10$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
-$\lambda{=}0.15$ & --- & --- & --- & --- \\
+$\lambda{=}0.15$ & 6.93 (+0.1\%) & 4.48 ($-$0.7\%) & 3.72 ($-$1.1\%) & 2.04 (+2.5\%) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Temperature ($\tau$)}} \\
-$\tau{=}0.03$ & --- & --- & --- & --- \\
+$\tau{=}0.03$ & 6.94 (+0.3\%) & 4.50 ($-$0.2\%) & 3.75 ($-$0.3\%) & 2.01 (+1.0\%) \\
 $\tau{=}0.05$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
-$\tau{=}0.10$ & --- & --- & --- & --- \\
+$\tau{=}0.10$ & 6.90 ($-$0.3\%) & 4.50 ($-$0.2\%) & 3.76 (0\%) & 2.01 (+1.0\%) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Cold-start align boost}} \\
-cold\_boost${=}1.5$ & --- & --- & --- & --- \\
+cold\_boost${=}1.5$ & 6.90 ($-$0.3\%) & 4.46 ($-$1.1\%) & 3.71 ($-$1.3\%) & 1.95 ($-$2.0\%) \\
 cold\_boost${=}2.5$ (baseline) & 6.92 & 4.51 & 3.76 & 1.99 \\
 cold\_boost${=}3.0$ & --- & --- & --- & --- \\
 \midrule

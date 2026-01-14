@@ -189,6 +189,19 @@ $\mathbf{S}_{ij} = \mathrm{cos}(\mathbf{e}_{i}, \hat{\mathbf{r}}_{j}^{(v)})$ 和
 \end{equation}
 并在相似度矩阵上计算加权交叉熵（由 $\sum_i w_i$ 归一化）。
 
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/framework.pdf}{%
+  \includegraphics[width=\linewidth]{figures/framework.pdf}%
+}{%
+  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
+  \textbf{框架图占位符}\\
+  请将 framework.pdf 放在 paper\_sigir/figures/ 下。}}%
+}
+\caption{单视图与多视图架构概览。(a) 单视图使用一个 LLM 嵌入和 L2 归一化。(b) 多视图使用四个提示视角，每视图白化和多视图对齐（InfoNCE 损失）。}
+\label{fig:framework}
+\end{figure}
+
 \subsection{训练目标}
 我们优化：
 \begin{equation}
@@ -513,19 +526,6 @@ HR 和排序指标（MRR/NDCG）之间观察到的权衡乍看之下可能违反
   \item \textbf{平衡系统}：使用 NDCG@$K$ 作为主要指标，它通过位置加权增益自然地平衡覆盖率和排序质量。
 \end{itemize}
 
-\begin{figure}[t]
-\centering
-\IfFileExists{figures/framework.pdf}{%
-  \includegraphics[width=\linewidth]{figures/framework.pdf}%
-}{%
-  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
-  \textbf{框架图占位符}\\
-  请将 framework.pdf 放在 paper\_sigir/figures/ 下。}}%
-}
-\caption{框架概览（占位符）}
-\label{fig:framework}
-\end{figure}
-
 \section{结论}
 我们提出了 \model，一个结合归一化多视图文本特征、显式交叉交互和多视图对比对齐的序列推荐插件框架。
 我们在亚马逊美妆和玩具游戏上的实验揭示了几个实用洞察：
@@ -623,8 +623,44 @@ text\_gate\_reg\_l2 & 0.05 & 0.05 \\
 Aggressive 增强对小模型收益更大（7B 整体最优），但大模型在冷启动物品上保持优势（32B HR\_new 最优）。
 这表明从业者应选择 Standard 进行 Scale Law 验证，选择 Aggressive 以最大化单配置性能。
 
-\paragraph{敏感性分析（待补全）}
-我们将绘制关键超参数（$\lambda \in \{0.05, 0.10, 0.15\}$，$\tau \in \{0.03, 0.05, 0.10\}$，cold\_boost $\in \{1.5, 2.0, 2.5\}$）的敏感性曲线，展示其对 HR@10、NDCG@10 和 HR\_new@10 的影响。
+\paragraph{敏感性分析}
+为验证发现的稳健性，我们在玩具数据集 7B Aggressive 配置上进行敏感性分析。
+表~\ref{tab:sensitivity} 报告了单独改变每个参数的效果。
+
+\begin{table}[t]
+\caption{敏感性分析（玩具 7B Aggressive）。基线：$\lambda{=}0.10$，$\tau{=}0.05$，cold\_boost${=}2.5$，infer\_boost${=}1.5$。所有数值为百分比（\%）。}
+\label{tab:sensitivity}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+\multicolumn{5}{l}{\textbf{对齐权重 ($\lambda$)}} \\
+$\lambda{=}0.05$ & 6.82 ($-$1.4\%) & 4.45 ($-$1.3\%) & 3.72 ($-$1.1\%) & 1.98 ($-$0.5\%) \\
+$\lambda{=}0.10$ (基线) & 6.92 & 4.51 & 3.76 & 1.99 \\
+$\lambda{=}0.15$ & 6.93 (+0.1\%) & 4.48 ($-$0.7\%) & 3.72 ($-$1.1\%) & 2.04 (+2.5\%) \\
+\midrule
+\multicolumn{5}{l}{\textbf{温度 ($\tau$)}} \\
+$\tau{=}0.03$ & 6.94 (+0.3\%) & 4.50 ($-$0.2\%) & 3.75 ($-$0.3\%) & 2.01 (+1.0\%) \\
+$\tau{=}0.05$ (基线) & 6.92 & 4.51 & 3.76 & 1.99 \\
+$\tau{=}0.10$ & 6.90 ($-$0.3\%) & 4.50 ($-$0.2\%) & 3.76 (0\%) & 2.01 (+1.0\%) \\
+\midrule
+\multicolumn{5}{l}{\textbf{冷启动对齐增强}} \\
+cold\_boost${=}1.5$ & 6.90 ($-$0.3\%) & 4.46 ($-$1.1\%) & 3.71 ($-$1.3\%) & 1.95 ($-$2.0\%) \\
+cold\_boost${=}2.5$ (基线) & 6.92 & 4.51 & 3.76 & 1.99 \\
+cold\_boost${=}3.0$ & --- & --- & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\textbf{推理时冷启动文本增强}} \\
+infer\_boost${=}1.0$ & --- & --- & --- & --- \\
+infer\_boost${=}1.5$ (基线) & 6.92 & 4.51 & 3.76 & 1.99 \\
+infer\_boost${=}2.0$ & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{敏感性分析结论}
+初步结果显示：(1) 更高的 $\lambda$ 略微提升 HR\_new 但降低 MRR（对齐权衡）；(2) $\tau$ 对整体指标影响较小；(3) cold\_boost 直接影响 HR\_new（cold=1.5 时下降 2.0\%）。完整实验正在运行中。
 
 \subsection{补充消融：冷启动重加权与 Center-only 归一化}
 \label{app:additional}
