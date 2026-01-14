@@ -43,7 +43,7 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5, 'eval_args': {'mode': 'uni100', 'order': 'RO'}, 'metrics': ['Recall', 'MRR', 'NDCG', 'Hit', 'Precision']}" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5, 'eval_args': {'mode': 'uni100', 'order': 'RO'}}" \
   --checkpoint_dir ./saved/uni100_toys_7b \
   --seed 2025 \
   --variant_features "sasrec,multiview_v2,7b,agg,toys,uni100" \

@@ -19,9 +19,9 @@ echo "  - Evaluation: uni100 (100 sampled negatives)"
 echo ""
 
 python scripts/two_phase_train.py \
-  --model SASRecAlign \
+  --model SASRec_Align \
   --dataset Amazon_Toys_and_Games \
-  --config_files "sasrec_align_qwen3_toys_stratified.yaml" \
+  --config_files "sasrec_align_toys_qwen3_stratified.yaml" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
@@ -42,7 +42,7 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'eval_args': {'mode': 'uni100', 'order': 'RO'}, 'metrics': ['Recall', 'MRR', 'NDCG', 'Hit', 'Precision']}" \
+  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0, 'eval_args': {'mode': 'uni100', 'order': 'RO'}}" \
   --checkpoint_dir ./saved/uni100_tfidf_llm_toys \
   --seed 2025 \
   --variant_features "sasrec,tfidf,llm,toys,uni100" \
