@@ -452,16 +452,16 @@ GPU_ID=2 nohup bash experiments/exp_sensitivity_cold_30.sh > sensitivity_cold_30
 # 实验配置: 完整二阶段训练 + uni100 评估
 # 预计时间: 各 2-3 小时
 #
-# 待 GPU 3-5 空闲后执行:
+# 0114 已启动:
 
 # 4090-3: Multi-view 7B Aggressive (Toys, Uni100)
-GPU_ID=3 nohup bash experiments/exp_uni100_toys_7b.sh > uni100_toys_7b.log 2>&1 &  # [READY] ✅
+GPU_ID=3 nohup bash experiments/exp_uni100_toys_7b.sh > uni100_toys_7b.log 2>&1 &  # [RUNNING] 🔄
 
 # 4090-4: TF-IDF+LLM (Toys, Uni100)
-GPU_ID=4 nohup bash experiments/exp_uni100_tfidf_llm_toys.sh > uni100_tfidf_llm_toys.log 2>&1 &  # [READY] ✅
+GPU_ID=4 nohup bash experiments/exp_uni100_tfidf_llm_toys.sh > uni100_tfidf_llm_toys.log 2>&1 &  # [RUNNING] 🔄
 
 # 4090-5: TF-IDF (Toys, Uni100)
-GPU_ID=5 nohup bash experiments/exp_uni100_tfidf_toys.sh > uni100_tfidf_toys.log 2>&1 &  # [READY] ✅
+GPU_ID=5 nohup bash experiments/exp_uni100_tfidf_toys.sh > uni100_tfidf_toys.log 2>&1 &  # [RUNNING] 🔄
 
 # ============================================================
 # 预期结果验证 (用于论文 Table 10)
@@ -481,6 +481,74 @@ GPU_ID=5 nohup bash experiments/exp_uni100_tfidf_toys.sh > uni100_tfidf_toys.log
 # GPU_ID=6 nohup bash experiments/exp_sensitivity_tau_010.sh > sensitivity_tau_010.log 2>&1 &
 # GPU_ID=7 nohup bash experiments/exp_sensitivity_cold_15.sh > sensitivity_cold_15.log 2>&1 &
 # GPU_ID=0 nohup bash experiments/exp_sensitivity_cold_25.sh > sensitivity_cold_25.log 2>&1 &
+#
+# ============================================================
+
+# ============================================================
+# 0114 实验状态汇总 (当前)
+# ============================================================
+#
+# 🔄 运行中:
+# - 5090-0: [空闲]
+# - 4090-0: [未知]
+# - 4090-1: infer=0.5 敏感性 [RUNNING]
+# - 4090-2: cold=3.0 敏感性 [RUNNING]
+# - 4090-3: uni100_toys_7b [RUNNING] 🔄
+# - 4090-4: uni100_tfidf_llm_toys [RUNNING] 🔄
+# - 4090-5: uni100_tfidf_toys [RUNNING] 🔄
+# - 4090-6: [空闲]
+# - 4090-7: [空闲]
+#
+# ============================================================
+# 论文数据缺口分析
+# ============================================================
+#
+# ✅ 已完成/运行中:
+# - Table 2 (Main Results): 数据完整 ✅
+# - Table 4 (SENet/Cross Ablation): 数据完整 ✅
+# - Table 5 (Whitening Ablation): 数据完整 ✅
+# - Table 10 (Sensitivity):
+#   - λ: 0.05/0.10/0.15 ✅
+#   - τ: 0.03/0.05/0.10 ✅
+#   - cold: 1.5/2.5 ✅
+#   - infer: 0.5 [RUNNING], 1.5 ✅
+# - Appendix uni100 Sanity Check: [RUNNING] 🔄
+#
+# ⏸️ 暂停/待补充:
+# - 消融实验 (NoSENet, NoCross) 复跑 - 可选
+# - Beauty 消融实验 - 暂停
+#
+# ============================================================
+# 0114 新增实验分配 (空闲: 5090, 4090-6, 4090-7)
+# ============================================================
+#
+# 建议: 敏感性分析已基本完成，可安排消融实验复跑或等待当前实验完成
+#
+# 选项 A: 消融实验复跑 (验证论文 Table 4 数据)
+# 5090-0: Toys NoSENet 复跑
+GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v3.log 2>&1 &  # [可选]
+
+# 4090-6: Toys NoCross 复跑
+GPU_ID=6 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v3.log 2>&1 &  # [可选]
+
+# 4090-7: Toys NoSENet+NoCross 复跑
+GPU_ID=7 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v3.log 2>&1 &  # [可选]
+
+#
+# 选项 B: 等待当前实验完成，再规划下一步
+# - 等 uni100 完成后填充论文 Appendix 数据
+# - 等 infer=0.5 完成后填充 Table 10 最后一行
+#
+# ============================================================
+# 执行命令 (选项 A - 消融实验)
+# ============================================================
+#
+# # 5090
+# GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet.sh > ablation_toys_nosenet_v3.log 2>&1 &
+#
+# # 4090
+# GPU_ID=6 nohup bash experiments/exp_ablation_toys_nocross.sh > ablation_toys_nocross_v3.log 2>&1 &
+# GPU_ID=7 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_toys_nosenet_nocross_v3.log 2>&1 &
 #
 # ============================================================
 

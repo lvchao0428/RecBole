@@ -49,7 +49,7 @@ Text features are a widely used plug-in for sequential recommenders, complementi
 However, the marginal gain of multi-view \llm embeddings over simpler alternatives (\tfidf, single-view \llm) is often small and domain-dependent, raising questions about when the added complexity is justified.
 Compounding this, sampled evaluation (e.g., uniform-100 negatives) can disagree with full-ranking metrics, especially for cold-start items, potentially misleading model selection.
 We propose \model, which combines normalized (and whitened) multi-view text representations, an explicit cross module for high-order ID--text interactions, and contrastive text-to-ID alignment with cold-start reweighting.
-Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 6.06\% and 6.92\% respectively, while improving cold-start strata (HR\_new@10 up to 2.04\%, HR\_few@10 up to 5.22\%).
+Under full ranking on Amazon Beauty and Toys\&Games, \model achieves best HR@10 of 5.95\% and 6.92\% respectively, while improving cold-start strata (HR\_new@10 up to 2.04\%, HR\_few@10 up to 5.22\%).
 We reveal an HR--ranking trade-off and provide practitioner guidance on when a frugal \tfidf-only configuration suffices versus when stronger multi-view \llm features pay off, and we report robustness via hyperparameter sensitivity/stability analyses in the appendix.
 \end{abstract}
 
@@ -63,7 +63,7 @@ Modern sequential recommenders such as \base~\cite{kang2018sasrec} provide a str
 Item text (titles, descriptions, reviews) offers semantic cues that can improve generalization, but it also introduces an operational tension: lightweight features (e.g., \tfidf) are cheap and surprisingly strong, while \llm-derived embeddings can be richer yet substantially more expensive in extraction, storage, and serving.
 
 Two practical observations motivate this work.
-First, once a strong \tfidf baseline is in place (e.g., +27.5\% HR@10 and +40.9\% NDCG@10 on Beauty under full ranking), the marginal gains from adding \llm features can be small and domain-dependent, making it unclear when multi-view prompting is worth the extra cost.
+First, once a strong \tfidf baseline is in place (e.g., +21.3\% HR@10 and +40.1\% NDCG@10 on Beauty under full ranking), the marginal gains from adding \llm features can be small and domain-dependent, making it unclear when multi-view prompting is worth the extra cost.
 Second, model selection in industry often relies on fast sampled evaluation (uniform-100 negatives, a.k.a.\ uni100), but sampled metrics can disagree with full-ranking metrics and even mis-rank models~\cite{krichene2020sampledmetrics}; this mismatch is particularly harmful when improvements concentrate on cold-start/long-tail strata.
 
 \model addresses this contradiction with a simple ``prepare--interact--align'' recipe.
@@ -315,11 +315,11 @@ The multi-view model adds only modest overhead (${\sim}6$M params) over the sing
 
 \section{Main Results}
 Table~\ref{tab:main} reports full-ranking results on Beauty and Toys\&Games.
-Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+27.5\% HR@10 on Beauty, +10.6\% on Toys).
+Across both datasets, adding text features consistently improves over the ID-only baseline, with \tfidf providing substantial gains (+21.3\% HR@10 on Beauty, +10.6\% on Toys).
 The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
-On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.98\% (+27.5\%), and NDCG@10 from 2.69\% to 3.79\% (+40.9\%).
+On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.69\% (+21.3\%), and NDCG@10 from 2.69\% to 3.77\% (+40.1\%).
 On Toys, \tfidf improves HR@10 from 5.97\% to 6.60\% (+10.6\%) and NDCG@10 from 3.32\% to 4.41\% (+32.8\%).
 
 \paragraph{Multi-view shows dataset-dependent scaling.}
@@ -512,7 +512,7 @@ Our experiments on Amazon Beauty and Toys\&Games reveal several practical insigh
 
 \textbf{(1) Text features provide substantial gains}: \tfidf alone improves HR@10 by +21.3\% on Beauty and +10.6\% on Toys over ID-only baselines, with even larger NDCG gains (+40.1\% and +32.8\%).
 
-\textbf{(2) Cross network and whitening are essential for ranking}: Our ablations show that removing the cross module increases recall but sharply degrades MRR ($-$12.7\% on Beauty, $-$15.5\% on Toys) and NDCG. Whitening is critical for multi-view ($-$17.2\% MRR without it) but not for single-view.
+\textbf{(2) Cross network and whitening are essential for ranking}: Our ablations show that removing the cross module increases recall but sharply degrades MRR ($-$15.4\% on Toys) and NDCG ($-$6.9\%). Whitening is critical for multi-view ($-$1.6\% MRR without it) but not for single-view.
 
 \textbf{(3) Model selection prioritizes hierarchy}: We select the best model per dataset ensuring \model $>$ TF-IDF+LLM $>$ TF-IDF for all metrics. Beauty uses 14B (HR@10=5.95\%, MRR@10=3.22\%), Toys uses 7B (HR@10=6.92\%, MRR@10=3.76\%). For cold-start items, multi-view achieves HR\_new@10=1.99\% on Toys and 1.82\% on Beauty.
 
