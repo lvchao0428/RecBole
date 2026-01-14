@@ -285,12 +285,12 @@ Transformer 自注意力层花费 $O(L^2d)$ 计算 $L\times L$ 注意力矩阵�
 我们的评测采用 leave-one-out 的 next-item 设定（每个测试样本只有 1 个 ground-truth），因此 HR@K、Hit@K 与 Recall@K 数值等价；我们在正文中以 HR@K 表示命中/召回，并用 MRR/NDCG 反映靠前位置的排序质量。
 
 \subsection{基线}
-我们比较四种主要配置（对应我们的运行脚本）：
+我们比较四种主要配置：
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{\base（仅ID）} 不带文本/交叉/对齐的纯序列基线。（\texttt{run50epBase\_stratified.sh}）
-  \item \textbf{\base + \tfidf} 使用预计算 \tfidf 嵌入、显式交叉和对齐的轻量级文本基线。（\texttt{two\_phase\_run\_tfidf\_stratified.sh}）
-  \item \textbf{\base + \tfidf + \llm（单视图）} 添加与 \tfidf 拼接的单个 \llm 嵌入（Qwen2.5-7B），使用 SENet 门控和对齐。（\texttt{two\_phase\_run\_tfidf\_llm\_stratified.sh}）
-  \item \textbf{\model（多视图）} \tfidf 基础视图 + 4个多视图 \llm 提示嵌入（身份/功能/受众/类别），带逐视图 SENet、显式交叉和多视图对比对齐。（\texttt{two\_phase\_run\_multiview\_v2\_stratified.sh}）
+  \item \textbf{\base（仅ID）} 不带文本/交叉/对齐的纯序列基线。
+  \item \textbf{\base + \tfidf} 使用预计算 \tfidf 嵌入、显式交叉和对齐的轻量级文本基线。
+  \item \textbf{\base + \tfidf + \llm（单视图）} 添加与 \tfidf 拼接的单个 \llm 嵌入（Qwen2.5-7B），使用 SENet 门控和对齐。
+  \item \textbf{\model（多视图）} \tfidf 基础视图 + 4个多视图 \llm 提示嵌入（身份/功能/受众/类别），带逐视图 SENet、显式交叉和多视图对比对齐。
 \end{itemize}
 我们还包括代表性的序列基线（如 BERT4Rec~\cite{sun2019bert4rec}、S3-Rec~\cite{zhou2020s3rec}）和轻量级文本编码器作为额外比较。
 
