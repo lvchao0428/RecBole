@@ -504,18 +504,35 @@ GPU_ID=5 nohup bash experiments/exp_uni100_tfidf_toys.sh > uni100_tfidf_toys.log
 # ============================================================
 
 # ============================================================
-# 0115 实验状态汇总 (更新)
+# 0115 实验状态汇总 (最新)
 # ============================================================
 #
 # ✅ 已完成:
-# - 敏感性分析: λ, τ, cold, infer 全部完成
+# - 敏感性分析: λ, τ, cold, infer (除 infer=1.0)
 # - Uni100 sanity check: 3个模型全部完成
+# - Toys MV 7B Aggressive ✅
+# - Beauty MV 7B Aggressive ✅
 #
-# 🔄 运行中:
-# - 5090-0: cold=2.5 敏感性 [RUNNING]
+# 🔄 批次0 运行中 (9卡):
+# - 5090-0: exp_tfidf_toys_aggressive.sh (主表 P0)
+# - 4090-0: exp_tfidf_llm_toys_aggressive.sh (主表 P0)
+# - 4090-1: exp_tfidf_beauty_aggressive.sh (主表 P0)
+# - 4090-2: exp_tfidf_llm_beauty_aggressive.sh (主表 P0)
+# - 4090-3: exp_sensitivity_infer_10.sh (敏感性 P1)
+# - 4090-4: exp_seed42_toys_tfidf.sh (Seed P2)
+# - 4090-5: exp_seed42_toys_tfidf_llm.sh (Seed P2)
+# - 4090-6: exp_seed42_toys_mv_7b.sh (Seed P2)
+# - 4090-7: exp_seed2024_toys_tfidf.sh (Seed P2)
 #
-# 📋 空闲 GPU:
-# - 4090-0~7: 全部空闲
+# 📋 批次1 待执行 (8个):
+# - exp_seed2024_toys_tfidf_llm.sh
+# - exp_seed2024_toys_mv_7b.sh
+# - exp_seed42_beauty_tfidf.sh
+# - exp_seed42_beauty_tfidf_llm.sh
+# - exp_seed42_beauty_mv_7b.sh
+# - exp_seed2024_beauty_tfidf.sh
+# - exp_seed2024_beauty_tfidf_llm.sh
+# - exp_seed2024_beauty_mv_7b.sh
 #
 # ============================================================
 # 论文数据缺口分析 (0115 更新)
@@ -579,18 +596,18 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nosenet_nocross.sh > ablation_
 # 配置: cold=2.5, infer=1.5, align=0.10, tau=0.05
 #
 # Toys 主表 Aggressive:
-GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_agg.log 2>&1 &  # [TODO] ⭐⭐⭐
-GPU_ID=1 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &  # [TODO] ⭐⭐⭐
-# Toys MV 7B Aggressive: 已完成 (0111.csv Row 63)
+GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_agg.log 2>&1 &  # [RUNNING] 🔄 5090-0
+GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &  # [RUNNING] 🔄 4090-0
+# Toys MV 7B Aggressive: 已完成 (0111.csv Row 63) ✅
 
 # Beauty 主表 Aggressive:
-GPU_ID=2 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &  # [TODO] ⭐⭐⭐
-GPU_ID=3 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &  # [TODO] ⭐⭐⭐
-# Beauty MV 7B Aggressive: 已完成 (0111.csv Row 51, HR@10=6.07%)
+GPU_ID=1 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &  # [RUNNING] 🔄 4090-1
+GPU_ID=2 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &  # [RUNNING] 🔄 4090-2
+# Beauty MV 7B Aggressive: 已完成 (0111.csv Row 51, HR@10=6.07%) ✅
 
 # ========== 优先级 P1: 敏感性分析补充 ==========
 # 缺失: infer=1.0 (中间点)
-GPU_ID=4 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [TODO] ⭐
+GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [RUNNING] 🔄 4090-3
 
 # ========== 优先级 2: Seed 实验 (验证方差) ==========
 # 目的: 确定主表结果的统计显著性
@@ -598,19 +615,24 @@ GPU_ID=4 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_
 #
 # --- Toys 核心实验复跑 (3 seeds) ---
 # Seed 42
-GPU_ID=1 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &  # [TODO]
-GPU_ID=2 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &  # [TODO]
-GPU_ID=3 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [TODO]
+GPU_ID=4 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &  # [RUNNING] 🔄 4090-4
+GPU_ID=5 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &  # [RUNNING] 🔄 4090-5
+GPU_ID=6 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [RUNNING] 🔄 4090-6
 
 # Seed 2024
-GPU_ID=4 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &  # [TODO]
-GPU_ID=5 nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &  # [TODO]
-GPU_ID=6 nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 &  # [TODO]
+GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &  # [RUNNING] 🔄 4090-7
+GPU_ID=x nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &  # [PENDING] 批次1
+GPU_ID=x nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 &  # [PENDING] 批次1
 
 # --- Beauty 核心实验复跑 (3 seeds) ---
 # Seed 42
-GPU_ID=7 nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 &  # [TODO]
-# Seed 2024 (待 Toys 完成后执行)
+GPU_ID=x nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 &  # [PENDING] 批次1
+GPU_ID=x nohup bash experiments/exp_seed42_beauty_tfidf_llm.sh > seed42_beauty_tfidf_llm.log 2>&1 &  # [PENDING] 批次1
+GPU_ID=x nohup bash experiments/exp_seed42_beauty_mv_7b.sh > seed42_beauty_mv_7b.log 2>&1 &  # [PENDING] 批次1
+# Seed 2024
+GPU_ID=x nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 &  # [PENDING] 批次1
+GPU_ID=x nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 &  # [PENDING] 批次1
+GPU_ID=x nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 &  # [PENDING] 批次1
 
 # ========== Seed 实验脚本模板 ==========
 # 文件: experiments/exp_seed{SEED}_{dataset}_{model}.sh
@@ -787,49 +809,73 @@ GPU_ID=0 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_bo
 #   - exp_tfidf_llm_beauty_with_boost.sh
 #
 # ============================================================
-# 当前 GPU 分配建议 (批次执行) - 0115 更新
+# 当前 GPU 分配 (0115 晚 - 批次0 运行中)
 # ============================================================
 #
-# --- 批次 0: 主表 Aggressive 统一 (最高优先 P0) ⭐⭐⭐ ---
-# 5090-0: exp_tfidf_toys_aggressive.sh (P0, ~1.5h) ⭐ 主表
-# 5090-1: exp_tfidf_llm_toys_aggressive.sh (P0, ~1.5h) ⭐ 主表
-# 4090-0: exp_tfidf_beauty_aggressive.sh (P0, ~1.5h) ⭐ 主表
-# 4090-1: exp_tfidf_llm_beauty_aggressive.sh (P0, ~1.5h) ⭐ 主表
-# 4090-2: exp_sensitivity_infer_10.sh (P1, ~2h) ⭐ 敏感性
+# --- 批次 0: 🔄 运行中 (9卡) ---
+# 5090-0: exp_tfidf_toys_aggressive.sh 🔄
+# 4090-0: exp_tfidf_llm_toys_aggressive.sh 🔄
+# 4090-1: exp_tfidf_beauty_aggressive.sh 🔄
+# 4090-2: exp_tfidf_llm_beauty_aggressive.sh 🔄
+# 4090-3: exp_sensitivity_infer_10.sh 🔄
+# 4090-4: exp_seed42_toys_tfidf.sh 🔄
+# 4090-5: exp_seed42_toys_tfidf_llm.sh 🔄
+# 4090-6: exp_seed42_toys_mv_7b.sh 🔄
+# 4090-7: exp_seed2024_toys_tfidf.sh 🔄
 #
-# 空闲 (4张): 4090-3, 4090-4, 4090-5, 4090-6, 4090-7
-# 可穿插: Seed 实验
-# 4090-3: exp_seed42_toys_tfidf.sh (P2, ~1.5h)
-# 4090-4: exp_seed42_toys_tfidf_llm.sh (P2, ~1.5h)
-# 4090-5: exp_seed42_toys_mv_7b.sh (P2, ~2h)
-# 4090-6: exp_seed2024_toys_tfidf.sh (P2, ~1.5h)
+# 预计完成时间: ~2h
 #
-# --- 批次 1: Toys Seed 补充 (批次0完成后) ---
-# 4090-0: exp_seed2024_toys_tfidf_llm.sh
-# 4090-1: exp_seed2024_toys_mv_7b.sh
-# 4090-2: exp_seed42_beauty_tfidf.sh
-# 4090-3: exp_seed42_beauty_tfidf_llm.sh
-# 4090-4: exp_seed42_beauty_mv_7b.sh
-# 4090-5: exp_seed2024_beauty_tfidf.sh
-# 4090-6: exp_seed2024_beauty_tfidf_llm.sh
-# 4090-7: exp_seed2024_beauty_mv_7b.sh
+# --- 批次 1: 📋 待执行 (批次0完成后) ---
+# 5090-0: exp_seed2024_toys_tfidf_llm.sh
+# 4090-0: exp_seed2024_toys_mv_7b.sh
+# 4090-1: exp_seed42_beauty_tfidf.sh
+# 4090-2: exp_seed42_beauty_tfidf_llm.sh
+# 4090-3: exp_seed42_beauty_mv_7b.sh
+# 4090-4: exp_seed2024_beauty_tfidf.sh
+# 4090-5: exp_seed2024_beauty_tfidf_llm.sh
+# 4090-6: exp_seed2024_beauty_mv_7b.sh
+# 4090-7: 空闲 (可用于其他实验)
 #
 # ============================================================
-# 执行命令 (批次 0 - 9卡并行)
+# 批次 0 执行状态 (0115 启动) 🔄 全部运行中
 # ============================================================
 #
-# # 5090 (2张) - 主表 Aggressive
-# GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_agg.log 2>&1 &
-# GPU_ID=1 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &
+# === 5090 (1张) - 主表 Aggressive ===
+GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_agg.log 2>&1 &  # [RUNNING] 🔄
+
+# === 4090 (8张) - 主表 + 敏感性 + Seed ===
+GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=1 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=2 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=4 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=5 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=6 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &  # [RUNNING] 🔄
+
+# ============================================================
+# 批次 1 待执行 (批次0完成后 ~2h)
+# ============================================================
 #
-# # 4090 (7张) - 主表 + 敏感性 + Seed
-# GPU_ID=0 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &
-# GPU_ID=1 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &
-# GPU_ID=2 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &
-# GPU_ID=3 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &
-# GPU_ID=4 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &
-# GPU_ID=5 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &
-# GPU_ID=6 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &
+# 剩余 Seed 实验:
+# 5090-0: exp_seed2024_toys_tfidf_llm.sh
+# 4090-0: exp_seed2024_toys_mv_7b.sh
+# 4090-1: exp_seed42_beauty_tfidf.sh
+# 4090-2: exp_seed42_beauty_tfidf_llm.sh
+# 4090-3: exp_seed42_beauty_mv_7b.sh
+# 4090-4: exp_seed2024_beauty_tfidf.sh
+# 4090-5: exp_seed2024_beauty_tfidf_llm.sh
+# 4090-6: exp_seed2024_beauty_mv_7b.sh
+#
+# 执行命令 (批次 1):
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 &
+# GPU_ID=1 nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 &
+# GPU_ID=2 nohup bash experiments/exp_seed42_beauty_tfidf_llm.sh > seed42_beauty_tfidf_llm.log 2>&1 &
+# GPU_ID=3 nohup bash experiments/exp_seed42_beauty_mv_7b.sh > seed42_beauty_mv_7b.log 2>&1 &
+# GPU_ID=4 nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 &
+# GPU_ID=5 nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 &
+# GPU_ID=6 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 &
 #
 # ============================================================
 
