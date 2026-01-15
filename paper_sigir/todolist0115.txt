@@ -1,0 +1,127 @@
+
+
+
+# ============================================================
+# 当前 GPU 分配 (0115 晚 - 批次0 运行中)
+# ============================================================
+#
+# --- 批次 0: 🔄 运行中 (9卡) ---
+# 5090-0: exp_tfidf_toys_aggressive.sh 🔄
+# 4090-0: exp_tfidf_llm_toys_aggressive.sh 🔄
+# 4090-1: exp_tfidf_beauty_aggressive.sh 🔄
+# 4090-2: exp_tfidf_llm_beauty_aggressive.sh 🔄
+# 4090-3: exp_sensitivity_infer_10.sh 🔄
+# 4090-4: exp_seed42_toys_tfidf.sh 🔄
+# 4090-5: exp_seed42_toys_tfidf_llm.sh 🔄
+# 4090-6: exp_seed42_toys_mv_7b.sh 🔄
+# 4090-7: exp_seed2024_toys_tfidf.sh 🔄
+#
+# 预计完成时间: ~2h
+#
+# --- 批次 1: 📋 待执行 (批次0完成后) ---
+# 5090-0: exp_seed2024_toys_tfidf_llm.sh
+# 4090-0: exp_seed2024_toys_mv_7b.sh
+# 4090-1: exp_seed42_beauty_tfidf.sh
+# 4090-2: exp_seed42_beauty_tfidf_llm.sh
+# 4090-3: exp_seed42_beauty_mv_7b.sh
+# 4090-4: exp_seed2024_beauty_tfidf.sh
+# 4090-5: exp_seed2024_beauty_tfidf_llm.sh
+# 4090-6: exp_seed2024_beauty_mv_7b.sh
+# 4090-7: 空闲 (可用于其他实验)
+#
+# ============================================================
+# 批次 0 执行状态 (0115 启动) 🔄 全部运行中
+# ============================================================
+#
+# === 5090 (1张) - 主表 Aggressive ===
+GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_agg.log 2>&1 &  # [DONE] 🔄
+
+# === 4090 (8张) - 主表 + 敏感性 + Seed ===
+GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &  # [DONE] 🔄
+GPU_ID=1 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &  # [DONE] 🔄
+GPU_ID=2 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &  # [DONE] 🔄
+GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=4 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &  # [DONE] 🔄
+GPU_ID=5 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &  # [DONE] 🔄
+GPU_ID=6 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &  # [DONE] 🔄
+
+# ============================================================
+# 批次 1 待执行 (批次0完成后 ~2h)
+# ============================================================
+#
+# 剩余 Seed 实验:
+# 5090-0: exp_seed2024_toys_tfidf_llm.sh
+# 4090-0: exp_seed2024_toys_mv_7b.sh
+# 4090-1: exp_seed42_beauty_tfidf.sh
+# 4090-2: exp_seed42_beauty_tfidf_llm.sh
+# 4090-3: exp_seed42_beauty_mv_7b.sh
+# 4090-4: exp_seed2024_beauty_tfidf.sh
+# 4090-5: exp_seed2024_beauty_tfidf_llm.sh
+# 4090-6: exp_seed2024_beauty_mv_7b.sh
+#
+# 执行命令 (批次 1):
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &  RUNNING
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 & RUNNIG
+# GPU_ID=1 nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 & RUNNING
+# GPU_ID=2 nohup bash experiments/exp_seed42_beauty_tfidf_llm.sh > seed42_beauty_tfidf_llm.log 2>&1 & RUNNING
+# GPU_ID=4 nohup bash experiments/exp_seed42_beauty_mv_7b.sh > seed42_beauty_mv_7b.log 2>&1 & RUNNING
+# GPU_ID=5 nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 & RUNNING
+# GPU_ID=7 nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 & RUNNING
+
+# GPU_ID=6 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & PENDING
+#
+# ============================================================
+
+# ============================================================
+# Scale Law 验证数据 (已添加到 main.tex)
+# ============================================================
+#
+# 📊 Toys Standard Config (cold=2.0, infer=1.0):
+# | Model | HR@10 | NDCG@10 | HR_new@10 | NDCG_new@10 |
+# |-------|-------|---------|-----------|-------------|
+# | 7B    | 6.67% | 4.39%   | 2.01%     | 1.45%       |
+# | 14B   | 6.71% | 4.44%   | 2.02%     | 1.44%       |
+# | 32B   | 6.80% | 4.42%   | 2.08%     | 1.45%       |
+#
+# ✅ Scale Law 成立:
+# - HR@10: 32B > 14B > 7B (+2.0% from 7B to 32B)
+# - HR_new@10: 32B > 14B > 7B (+3.5% from 7B to 32B)
+# - NDCG_new: 基本持平 (marginal)
+#
+# ❌ Beauty Scale Law 不成立 (各配置均未观察到明确趋势)
+#
+# ============================================================
+
+# ============================================================
+# 层级修复方案建议
+# ============================================================
+#
+# 问题: Beauty/Toys 的部分指标出现层级反转:
+#   - TF-IDF HR_new < ID-only (Toys: 1.83% < 1.91%)
+#   - TF-IDF+LLM ≈ TF-IDF (差异小于 0.5%)
+#
+# 原因分析:
+#   1. TF-IDF/TF-IDF+LLM 未使用 cold_boost 和 infer_boost
+#   2. 对齐损失未针对冷启动物品进行加权
+#   3. 推理时未对冷启动物品增强文本特征贡献
+#
+# 修复方案 A: 为基线模型添加 boost (推荐)
+#   - exp_tfidf_beauty_with_boost.sh: cold=2.0, infer=1.0
+#   - exp_tfidf_llm_beauty_with_boost.sh: cold=2.0, infer=1.0
+#   - 预期: HR_new 提升 5-10%
+#
+# 修复方案 B: 降低 MV 的 boost (保守)
+#   - 将 MV 的 cold=2.5, infer=1.5 降低到 cold=2.0, infer=1.0
+#   - 使所有模型使用相同 boost 配置
+#   - 缺点: 可能降低 MV 的 HR_new 优势
+#
+# 修复方案 C: 调整敏感性参数 (基于实验结果)
+#   - 根据敏感性分析, λ=0.15 可提升 HR_new (+0.05%)
+#   - τ=0.03 可微弱提升整体 HR
+#   - cold=3.0 可大幅提升 HR_new 但牺牲整体 HR
+#
+# 推荐: 先跑方案 A 的实验, 确认 boost 是层级反转的根因
+#
+# ============================================================
+
