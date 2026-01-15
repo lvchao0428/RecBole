@@ -30,8 +30,8 @@ python scripts/two_phase_train.py \
   --burnin_eval_step 2 \
   --phase_a_epochs 20 \
   --phase_a_eval_step 1 \
-  --phase_a_valid_metric "HR@10" \
-  --metric_baseline 0.0597 \
+  --phase_a_valid_metric "MRR@10" \
+  --metric_baseline 0.0249 \
   --metric_gain_threshold 0.01 \
   --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
