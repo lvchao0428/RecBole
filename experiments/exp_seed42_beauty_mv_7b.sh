@@ -21,7 +21,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_multi_view_v2_stratified_7b.yaml" \
+  --config_files "sasrec_align_multi_view_v2_stratified.yaml" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
