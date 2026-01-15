@@ -172,9 +172,12 @@ Large language models have further expanded this line:
 P5~\cite{geng2022p5} unifies recommendation in a text-to-text
 paradigm, and TALLRec~\cite{bao2023tallrec} aligns LLMs with
 recommendation via instruction tuning. However, these methods
-typically use single-view text representations; our work
-explores \emph{multi-view} \llm embeddings with explicit
-fusion and alignment.
+typically encode item text with a single prompt or
+representation; our work explores \emph{multi-view} \llm
+embeddings via diverse prompt perspectives
+(identity/function/audience/category) with explicit fusion and
+alignment, and we show when this added complexity is justified
+versus simpler alternatives.
 
 \paragraph{Feature interaction and cross networks.}
 Deep \& Cross Network (DCN)~\cite{wang2017dcn} and its
@@ -298,14 +301,21 @@ parameters (per-view whitening), which better preserves view-specific
 semantics than shared whitening across views.
 
 \paragraph{SE-style channel gating.}
-Each whitened view is projected to the backbone dimension and refined by
-an SE-style channel gating (similar to SENet~\cite{hu2018senet} but
-implemented as an MLP over the projected embedding without global pooling):
+We use an SE-style channel gating for adaptive feature
+recalibration, inspired by the channel-wise attention mechanism
+in SENet~\cite{hu2018senet}. While the original SENet applies
+squeeze (global pooling) followed by excitation, our
+implementation directly applies an MLP-based gating over each
+projected embedding, which is more suitable for per-item
+representations (no pooling across items). Each whitened view
+is projected to the backbone dimension $d$ and refined by:
 \begin{align}
   \mathbf{z}_i^{(v)} &= \mathbf{W}_v \mathbf{t}_{w,i}^{(v)} \in \mathbb{R}^d,\\
   \mathbf{r}_i^{(v)} &= \mathbf{z}_i^{(v)} \odot \sigma(\mathrm{MLP}_v(\mathbf{z}_i^{(v)})),
 \end{align}
-where $\mathbf{t}_{w,i}^{(v)}$ is the whitened embedding for item $i$ in view $v$.
+where $\mathbf{t}_{w,i}^{(v)}$ is the whitened embedding for
+item $i$ in view $v$, and $\mathrm{MLP}_v$ is a two-layer
+network with reduction ratio $r$ (typically $r=2$ or $4$).
 We then apply $\ell_2$ normalization:
 \begin{equation}
   \hat{\mathbf{r}}_i^{(v)} = \frac{\mathbf{r}_i^{(v)}}{\lVert \mathbf{r}_i^{(v)} \rVert_2}.
@@ -941,6 +951,8 @@ score distributions, while \model recovers this gap through multi-view fusion.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
+
+\clearpage  % Force new page for appendix
 
 \appendix
 \section{Robustness and Additional Analyses}

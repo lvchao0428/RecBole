@@ -69,8 +69,15 @@ GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf
 # GPU_ID=5 nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 & RUNNING
 # GPU_ID=7 nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 & RUNNING
 
-# GPU_ID=6 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & PENDING
+# 5090
+# GPU_ID=0 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & RUNNING
 #
+# 补充aggressive no-whiten 配置
+# GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > two_phase_run_tfidf_llm_stratified_no_whiten.log 2>&1 &
+# GPU_ID=0 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > two_phase_run_multiview_v2_stratified_no_whiten.log 2>&1 &
+# GPU_ID=0 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > two_phase_run_tfidf_llm_toys_stratified_no_whiten.log 2>&1 &
+# GPU_ID=0 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.log 2>&1 &
+
 # ============================================================
 
 # ============================================================
