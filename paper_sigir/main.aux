@@ -7,94 +7,100 @@
 \citation{kang2018sasrec}
 \citation{sun2019bert4rec}
 \citation{hidasi2015gru4rec}
+\citation{fan2021lightsans}
+\citation{barkan2016item2vec}
+\citation{wang2015cdl}
+\citation{hou2022unisrec}
+\citation{hou2023vqrec}
+\citation{geng2022p5}
+\citation{bao2023tallrec}
 \citation{wang2017dcn}
 \citation{wang2021dcnv2}
-\citation{oord2018cpc}
-\citation{wu2021cl4rec}
-\citation{krichene2020sampledmetrics}
+\citation{hu2018senet}
+\citation{huang2019fibinet}
 \@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{1}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Sequential recommendation.}{1}{section*.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Text-enhanced recommendation.}{1}{section*.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Feature interaction and cross networks.}{1}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Contrastive learning in recommendation.}{1}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Evaluation protocols.}{1}{section*.8}\protected@file@percent }
+\citation{radford2021clip}
+\citation{wang2023kgmvgnn}
+\citation{oord2018cpc}
+\citation{wu2021cl4rec}
+\citation{krichene2020sampledmetrics}
 \citation{wang2021dcnv2}
 \citation{oord2018cpc}
+\@writefile{toc}{\contentsline {paragraph}{Multi-view learning in recommendation.}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Contrastive learning in recommendation.}{2}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evaluation protocols.}{2}{section*.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Research Questions}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Method}{2}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Backbone: SASRec with Text Fusion}{2}{subsection.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Multi-View Text Representations}{2}{subsection.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Explicit Cross Fusion}{2}{subsection.4.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Framework overview of single-view and multi-view architectures. (a) Single-view uses one LLM embedding with L2 normalization. (b) Multi-view uses four prompt perspectives with per-view whitening and multi-view alignment via InfoNCE loss.}}{2}{figure.caption.10}\protected@file@percent }
-\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:framework}{{1}{2}{Framework overview of single-view and multi-view architectures. (a) Single-view uses one LLM embedding with L2 normalization. (b) Multi-view uses four prompt perspectives with per-view whitening and multi-view alignment via InfoNCE loss}{figure.caption.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Multi-View Contrastive Alignment}{2}{subsection.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cold-start reweighting.}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cold-start reweighting.}{2}{section*.10}\protected@file@percent }
 \citation{kang2018sasrec}
-\citation{sun2019bert4rec}
-\citation{zhou2020s3rec}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Framework overview of single-view and multi-view architectures. (a) Single-view uses one LLM embedding with L2 normalization. (b) Multi-view uses four prompt perspectives with per-view whitening and multi-view alignment via InfoNCE loss.}}{3}{figure.caption.11}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:framework}{{1}{3}{Framework overview of single-view and multi-view architectures. (a) Single-view uses one LLM embedding with L2 normalization. (b) Multi-view uses four prompt perspectives with per-view whitening and multi-view alignment via InfoNCE loss}{figure.caption.11}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Training Objective}{3}{subsection.4.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Model Complexity}{3}{subsection.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Space complexity (parameters).}{3}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Space breakdown.}{3}{section*.13}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Time breakdown.}{3}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Two-Phase Training Protocol}{3}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Space complexity (parameters).}{3}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Space breakdown.}{3}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Time breakdown.}{3}{section*.15}\protected@file@percent }
 \@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Two-Phase Training (Phase-A + Phase-B)}}{3}{algorithm.1}\protected@file@percent }
 \newlabel{alg:two-phase}{{1}{3}{Two-Phase Training (Phase-A + Phase-B)}{algorithm.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Why no ID-only burn-in?}{3}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Two-Phase Training Protocol}{3}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why no ID-only burn-in?}{3}{section*.16}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Experiments}{3}{section.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Datasets and Evaluation}{3}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Baselines}{3}{subsection.6.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Parameter and time complexity of model variants. $|I|$: \#items, $L$: sequence length, $d$: hidden size, $d_t$: \textsc  {TF-IDF}\xspace  dim, $d_l$: \textsc  {LLM}\xspace  dim, $V$: \#views, $d_v$: per-view dim.}}{4}{table.caption.12}\protected@file@percent }
-\newlabel{tab:complexity}{{1}{4}{Parameter and time complexity of model variants. $|I|$: \#items, $L$: sequence length, $d$: hidden size, $d_t$: \tfidf dim, $d_l$: \llm dim, $V$: \#views, $d_v$: per-view dim}{table.caption.12}{}}
+\citation{sun2019bert4rec}
+\citation{zhou2020s3rec}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Parameter and time complexity of model variants. $|I|$: \#items, $L$: sequence length, $d$: hidden size, $d_t$: \textsc  {TF-IDF}\xspace  dim, $d_l$: \textsc  {LLM}\xspace  dim, $V$: \#views, $d_v$: per-view dim.}}{4}{table.caption.13}\protected@file@percent }
+\newlabel{tab:complexity}{{1}{4}{Parameter and time complexity of model variants. $|I|$: \#items, $L$: sequence length, $d$: hidden size, $d_t$: \tfidf dim, $d_l$: \llm dim, $V$: \#views, $d_v$: per-view dim}{table.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Baselines}{4}{subsection.6.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Implementation Details}{4}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Two-phase schedule.}{4}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Grid.}{4}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{4}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Parameter counts.}{4}{section*.19}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Trainable parameter counts (Amazon Beauty).}}{4}{table.caption.20}\protected@file@percent }
-\newlabel{tab:params}{{2}{4}{Trainable parameter counts (Amazon Beauty)}{table.caption.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{Two-phase schedule.}{4}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Grid.}{4}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reproducibility.}{4}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Parameter counts.}{4}{section*.20}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Trainable parameter counts (Amazon Beauty).}}{4}{table.caption.21}\protected@file@percent }
+\newlabel{tab:params}{{2}{4}{Trainable parameter counts (Amazon Beauty)}{table.caption.21}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {7}Main Results}{4}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Text features provide large gains over ID-only.}{4}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Multi-view shows dataset-dependent scaling.}{4}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cold-start (new/few) improvements.}{4}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Text features provide large gains over ID-only.}{4}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multi-view shows dataset-dependent scaling.}{4}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cold-start (new/few) improvements.}{4}{section*.24}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Prompt Templates for Text Embeddings}{4}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Single-view embedding.}{4}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Multi-view embeddings.}{4}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}Analysis}{4}{section.8}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Main results under full ranking. Best results per dataset in \textbf  {bold}. All values are percentages (\%).}}{5}{table.caption.24}\protected@file@percent }
-\newlabel{tab:main}{{3}{5}{Main results under full ranking. Best results per dataset in \textbf {bold}. All values are percentages (\%)}{table.caption.24}{}}
+\@writefile{toc}{\contentsline {paragraph}{Single-view embedding.}{4}{section*.26}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Main results under full ranking. Best results per dataset in \textbf  {bold}. All values are percentages (\%).}}{5}{table.caption.25}\protected@file@percent }
+\newlabel{tab:main}{{3}{5}{Main results under full ranking. Best results per dataset in \textbf {bold}. All values are percentages (\%)}{table.caption.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{Multi-view embeddings.}{5}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Analysis}{5}{section.8}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.1}RQ2 \& RQ4: SENet and Cross Network Ablation}{5}{subsection.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cross Network is essential for ranking quality.}{5}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{SENet has minor impact on overall metrics.}{5}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Cold-start analysis.}{5}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cross Network is essential for ranking quality.}{5}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{SENet has minor impact on overall metrics.}{5}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cold-start analysis.}{5}{section*.31}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.2}RQ1: Whitening vs.\ L2-Only Normalization}{5}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Whitening improves ranking for multi-view but hurts single-view recall.}{5}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Interpretation.}{5}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Whitening improves ranking for multi-view but hurts single-view recall.}{5}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Interpretation.}{5}{section*.34}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.3}RQ3: Multi-view vs.\ Single-view Under Equal Bandwidth}{5}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Beauty: multi-view 14B satisfies hierarchy.}{5}{section*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Toys: multi-view 7B satisfies hierarchy.}{5}{section*.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Takeaway.}{5}{section*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Summary of Ablation Findings}{5}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Understanding the HR--Ranking Trade-off}{5}{subsection.8.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Beauty: multi-view 14B satisfies hierarchy.}{5}{section*.35}\protected@file@percent }
 \citation{krichene2020sampledmetrics}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%).}}{6}{table.caption.27}\protected@file@percent }
-\newlabel{tab:ablation_senet_cross}{{4}{6}{Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%)}{table.caption.27}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Ablation: Whitening effect on Toys (7B, Aggressive). All values are percentages (\%).}}{6}{table.caption.31}\protected@file@percent }
-\newlabel{tab:ablation_whiten}{{5}{6}{Ablation: Whitening effect on Toys (7B, Aggressive). All values are percentages (\%)}{table.caption.31}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Summary: component contributions to model performance.}}{6}{table.caption.37}\protected@file@percent }
-\newlabel{tab:ablation_summary}{{6}{6}{Summary: component contributions to model performance}{table.caption.37}{}}
-\@writefile{toc}{\contentsline {paragraph}{Why does this trade-off occur?}{6}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Practitioner guidance.}{6}{section*.39}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%).}}{6}{table.caption.28}\protected@file@percent }
+\newlabel{tab:ablation_senet_cross}{{4}{6}{Ablation: SENet and Cross Network on multi-view 7B (Toys, Aggressive). All values are percentages (\%)}{table.caption.28}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Ablation: Whitening effect on Toys (7B, Aggressive). All values are percentages (\%).}}{6}{table.caption.32}\protected@file@percent }
+\newlabel{tab:ablation_whiten}{{5}{6}{Ablation: Whitening effect on Toys (7B, Aggressive). All values are percentages (\%)}{table.caption.32}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Summary: component contributions to model performance.}}{6}{table.caption.38}\protected@file@percent }
+\newlabel{tab:ablation_summary}{{6}{6}{Summary: component contributions to model performance}{table.caption.38}{}}
+\@writefile{toc}{\contentsline {paragraph}{Toys: multi-view 7B satisfies hierarchy.}{6}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Takeaway.}{6}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Summary of Ablation Findings}{6}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Understanding the HR--Ranking Trade-off}{6}{subsection.8.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why does this trade-off occur?}{6}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Practitioner guidance.}{6}{section*.40}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{6}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}Robustness and Additional Analyses (To Be Filled)}{6}{appendix.A}\protected@file@percent }
-\newlabel{sec:appendix}{{A}{6}{Robustness and Additional Analyses (To Be Filled)}{appendix.A}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Sampled Evaluation Sanity Check (uni100 vs.\ Full Ranking)}{6}{subsection.A.1}\protected@file@percent }
-\newlabel{app:sampled}{{A.1}{6}{Sampled Evaluation Sanity Check (uni100 vs.\ Full Ranking)}{subsection.A.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Protocol.}{6}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What we will report.}{6}{section*.41}\protected@file@percent }
 \bibstyle{ACM-Reference-Format}
 \bibdata{refs}
 \newlabel{tocindent-1}{0pt}
@@ -104,20 +110,26 @@
 \newlabel{tocindent3}{0pt}
 \newlabel{tocindent4}{0pt}
 \newlabel{tocindent5}{0pt}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Sanity check of sampled evaluation vs.\ full ranking (placeholder; to be filled).}}{7}{table.caption.42}\protected@file@percent }
-\newlabel{tab:sampled_sanity}{{7}{7}{Sanity check of sampled evaluation vs.\ full ranking (placeholder; to be filled)}{table.caption.42}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Validated hyperparameter configurations (Toys\&Games).}}{7}{table.caption.43}\protected@file@percent }
-\newlabel{tab:hyper_config}{{8}{7}{Validated hyperparameter configurations (Toys\&Games)}{table.caption.43}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Aggressive configuration results on Toys\&Games. All values are percentages (\%).}}{7}{table.caption.46}\protected@file@percent }
-\newlabel{tab:aggressive}{{9}{7}{Aggressive configuration results on Toys\&Games. All values are percentages (\%)}{table.caption.46}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Sanity check of sampled evaluation vs.\ full ranking (placeholder; to be filled).}}{7}{table.caption.43}\protected@file@percent }
+\newlabel{tab:sampled_sanity}{{7}{7}{Sanity check of sampled evaluation vs.\ full ranking (placeholder; to be filled)}{table.caption.43}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Validated hyperparameter configurations (Toys\&Games).}}{7}{table.caption.44}\protected@file@percent }
+\newlabel{tab:hyper_config}{{8}{7}{Validated hyperparameter configurations (Toys\&Games)}{table.caption.44}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Robustness and Additional Analyses (To Be Filled)}{7}{appendix.A}\protected@file@percent }
+\newlabel{sec:appendix}{{A}{7}{Robustness and Additional Analyses (To Be Filled)}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Sampled Evaluation Sanity Check (uni100 vs.\ Full Ranking)}{7}{subsection.A.1}\protected@file@percent }
+\newlabel{app:sampled}{{A.1}{7}{Sampled Evaluation Sanity Check (uni100 vs.\ Full Ranking)}{subsection.A.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Protocol.}{7}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What we will report.}{7}{section*.42}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Hyperparameter Configuration}{7}{subsection.A.2}\protected@file@percent }
 \newlabel{app:hyper}{{A.2}{7}{Hyperparameter Configuration}{subsection.A.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Scale Law validation (Standard).}{7}{section*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Aggressive configuration results.}{7}{section*.45}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Key observation.}{7}{section*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Sensitivity analysis.}{7}{section*.48}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Sensitivity analysis on Toys 7B (Aggressive). Baseline: $\lambda {=}0.10$, $\tau {=}0.05$, cold${=}2.5$, infer${=}1.5$. All values in \%.}}{7}{table.caption.49}\protected@file@percent }
-\newlabel{tab:sensitivity}{{10}{7}{Sensitivity analysis on Toys 7B (Aggressive). Baseline: $\lambda {=}0.10$, $\tau {=}0.05$, cold${=}2.5$, infer${=}1.5$. All values in \%}{table.caption.49}{}}
+\@writefile{toc}{\contentsline {paragraph}{Scale Law validation (Standard).}{7}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Aggressive configuration results.}{7}{section*.46}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Aggressive configuration results on Toys\&Games. All values are percentages (\%).}}{7}{table.caption.47}\protected@file@percent }
+\newlabel{tab:aggressive}{{9}{7}{Aggressive configuration results on Toys\&Games. All values are percentages (\%)}{table.caption.47}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Sensitivity analysis on Toys 7B (Aggressive). Baseline: $\lambda {=}0.10$, $\tau {=}0.05$, cold${=}2.5$, infer${=}1.5$. All values in \%.}}{7}{table.caption.50}\protected@file@percent }
+\newlabel{tab:sensitivity}{{10}{7}{Sensitivity analysis on Toys 7B (Aggressive). Baseline: $\lambda {=}0.10$, $\tau {=}0.05$, cold${=}2.5$, infer${=}1.5$. All values in \%}{table.caption.50}{}}
+\@writefile{toc}{\contentsline {paragraph}{Key observation.}{7}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sensitivity analysis.}{7}{section*.49}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Additional Ablations: Cold-start Reweighting and Center-only Normalization}{7}{subsection.A.3}\protected@file@percent }
 \newlabel{app:additional}{{A.3}{7}{Additional Ablations: Cold-start Reweighting and Center-only Normalization}{subsection.A.3}{}}
 \newlabel{TotPages}{{7}{7}{}{page.7}{}}
