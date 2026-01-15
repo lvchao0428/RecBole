@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
-# exp_seed2024_toys_tfidf.sh - Seed Experiment: TF-IDF on Toys with seed=2024
+# exp_tfidf_toys_aggressive.sh - TF-IDF on Toys with Aggressive config
 #
-# 目的: 验证主表结果的统计显著性
-# 配置: 与主表一致 (Aggressive: cold=2.5, infer=1.5)
-# seed: 2024
+# 目的: 主表实验 - TF-IDF 使用 Aggressive 参数 (与 MV 对齐)
+# 配置: cold=2.5, infer=1.5, align=0.10, tau=0.05
+# 优先级: P0 - 主表数据统一
 #
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 GPU_ID=${GPU_ID:-0}
 echo "========================================="
-echo "Seed Experiment: TF-IDF on Toys (seed=2024)"
+echo "Main Table: TF-IDF on Toys (Aggressive)"
+echo "cold=2.5, infer=1.5, align=0.10, tau=0.05"
 echo "Using GPU: $GPU_ID"
 echo "========================================="
 
@@ -40,10 +41,11 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/seed2024_toys_tfidf \
-  --seed 2024 \
-  --variant_features "sasrec,tfidf,toys,seed2024" \
+  --checkpoint_dir ./saved/main_tfidf_toys_aggressive \
+  --seed 2025 \
+  --variant_features "sasrec,tfidf,toys,aggressive,main" \
   --watchdog_disable \
   --save
 
-echo "✅ Done! Check: saved/seed2024_toys_tfidf/"
+echo "✅ Done! Check: saved/main_tfidf_toys_aggressive/"
+

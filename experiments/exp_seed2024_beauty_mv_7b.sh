@@ -3,8 +3,8 @@
 # exp_seed2024_beauty_mv_7b.sh - Seed Experiment: Multi-view 7B on Beauty with seed=2024
 #
 # 目的: 验证主表结果的统计显著性
-# 配置: 与主表一致 (cold=2.5, infer=1.5, aggressive)
-# seed: 2024 (常用种子之一)
+# 配置: 与主表一致 (Aggressive: cold=2.5, infer=1.5)
+# seed: 2024
 #
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -14,6 +14,9 @@ echo "========================================="
 echo "Seed Experiment: Multi-view 7B on Beauty (seed=2024)"
 echo "Using GPU: $GPU_ID"
 echo "========================================="
+echo "  - cold_start_align_boost: 2.5 (aggressive)"
+echo "  - inference_cold_text_boost: 1.5 (aggressive)"
+echo ""
 
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
@@ -39,12 +42,11 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5, 'seed': 2024}" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --checkpoint_dir ./saved/seed2024_beauty_mv_7b \
   --seed 2024 \
-  --variant_features "sasrec,multiview_v2,7b,beauty,seed2024" \
+  --variant_features "sasrec,multiview_v2,7b,beauty,agg,seed2024" \
   --watchdog_disable \
   --save
 
 echo "✅ Done! Check: saved/seed2024_beauty_mv_7b/"
-

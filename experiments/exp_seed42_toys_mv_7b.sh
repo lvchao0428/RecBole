@@ -3,8 +3,8 @@
 # exp_seed42_toys_mv_7b.sh - Seed Experiment: Multi-view 7B on Toys with seed=42
 #
 # 目的: 验证主表结果的统计显著性
-# 配置: 与主表一致 (cold=2.5, infer=1.5, aggressive)
-# seed: 42 (常用种子之一)
+# 配置: 与主表一致 (Aggressive: cold=2.5, infer=1.5)
+# seed: 42
 #
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -14,6 +14,9 @@ echo "========================================="
 echo "Seed Experiment: Multi-view 7B on Toys (seed=42)"
 echo "Using GPU: $GPU_ID"
 echo "========================================="
+echo "  - cold_start_align_boost: 2.5 (aggressive)"
+echo "  - inference_cold_text_boost: 1.5 (aggressive)"
+echo ""
 
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
@@ -39,12 +42,11 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5, 'seed': 42}" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --checkpoint_dir ./saved/seed42_toys_mv_7b \
   --seed 42 \
-  --variant_features "sasrec,multiview_v2,7b,toys,seed42" \
+  --variant_features "sasrec,multiview_v2,7b,toys,agg,seed42" \
   --watchdog_disable \
   --save
 
 echo "✅ Done! Check: saved/seed42_toys_mv_7b/"
-

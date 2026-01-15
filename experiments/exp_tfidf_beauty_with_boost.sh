@@ -3,7 +3,7 @@
 # exp_tfidf_beauty_with_boost.sh - TF-IDF with cold-start boost for Beauty
 #
 # 目的: 修复层级反转问题 (TF-IDF HR_new < ID-only)
-# 方案: 为 TF-IDF 添加 cold_boost 和 infer_boost
+# 方案: 为 TF-IDF 添加 cold_boost 和 infer_boost (与 MV 相同配置)
 # 预期: HR_new@10 提升, 满足 TF-IDF > ID-only
 #
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
@@ -14,8 +14,8 @@ echo "========================================="
 echo "TF-IDF with Cold-start Boost (Beauty)"
 echo "Using GPU: $GPU_ID"
 echo "========================================="
-echo "  - cold_start_align_boost: 2.0 (新增)"
-echo "  - inference_cold_text_boost: 1.0 (新增)"
+echo "  - cold_start_align_boost: 2.5 (与 MV 一致)"
+echo "  - inference_cold_text_boost: 1.5 (与 MV 一致)"
 echo "  - 预期: 修复 HR_new 层级反转"
 echo ""
 
@@ -43,12 +43,11 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0}" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --checkpoint_dir ./saved/tfidf_beauty_with_boost \
   --seed 2025 \
-  --variant_features "sasrec,tfidf,beauty,with_boost" \
+  --variant_features "sasrec,tfidf,beauty,agg_boost" \
   --watchdog_disable \
   --save
 
 echo "✅ Done! Check: saved/tfidf_beauty_with_boost/"
-

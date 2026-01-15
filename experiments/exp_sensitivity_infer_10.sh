@@ -3,7 +3,7 @@
 # exp_sensitivity_infer_10.sh - Sensitivity Analysis: inference_cold_text_boost = 1.0
 #
 # 目的: 补充敏感性分析的中间点
-# 基准: λ=0.10, τ=0.05, cold=2.5, infer=1.5
+# 基准: λ=0.10, τ=0.05, cold=2.5, infer=1.5 (Aggressive)
 # 变化: infer=1.5 → 1.0 (中等推理放大)
 # 预期: HR 和 MRR 介于 infer=0.5 和 infer=1.5 之间
 #
@@ -17,7 +17,7 @@ echo "Using GPU: $GPU_ID"
 echo "========================================="
 echo "  - alignment_weight: 0.10 (baseline)"
 echo "  - temperature: 0.05 (baseline)"
-echo "  - cold_start_align_boost: 2.5 (aggressive)"
+echo "  - cold_start_align_boost: 2.5 (aggressive baseline)"
 echo "  - inference_cold_text_boost: 1.5 → 1.0 (中等推理放大)"
 echo ""
 
@@ -48,9 +48,8 @@ python scripts/two_phase_train.py \
   --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0}" \
   --checkpoint_dir ./saved/sensitivity_infer_10 \
   --seed 2025 \
-  --variant_features "sasrec,multiview_v2,7b,toys,infer_10" \
+  --variant_features "sasrec,multiview_v2,7b,toys,agg,infer_10" \
   --watchdog_disable \
   --save
 
 echo "✅ Done! Check: saved/sensitivity_infer_10/"
-

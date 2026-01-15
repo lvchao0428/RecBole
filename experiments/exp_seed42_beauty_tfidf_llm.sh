@@ -3,8 +3,8 @@
 # exp_seed42_beauty_tfidf_llm.sh - Seed Experiment: TF-IDF+LLM on Beauty with seed=42
 #
 # 目的: 验证主表结果的统计显著性
-# 配置: 与主表一致 (cold=2.0, infer=1.0)
-# seed: 42 (常用种子之一)
+# 配置: 与主表一致 (Aggressive: cold=2.5, infer=1.5)
+# seed: 42
 #
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -18,7 +18,8 @@ echo "========================================="
 python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
-  --config_files "sasrec_align_llm_7b_stratified.yaml" \
+  --config_files "sasrec_align_qwen3_stratified.yaml" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
@@ -39,7 +40,6 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0, 'seed': 42}" \
   --checkpoint_dir ./saved/seed42_beauty_tfidf_llm \
   --seed 42 \
   --variant_features "sasrec,tfidf_llm,beauty,seed42" \
@@ -47,4 +47,3 @@ python scripts/two_phase_train.py \
   --save
 
 echo "✅ Done! Check: saved/seed42_beauty_tfidf_llm/"
-
