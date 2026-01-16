@@ -996,12 +996,12 @@ and (ii) uni100 sampled ranking, and quantify agreement between the two protocol
 \caption{Sampled (uni100) vs.\ full-ranking evaluation on Toys. All values in \%.}
 \label{tab:sampled_sanity}
 \centering
-\small
+\scriptsize
 \begin{tabular}{lcccccc}
 \toprule
 & \multicolumn{3}{c}{\textbf{Full Ranking}} & \multicolumn{3}{c}{\textbf{Uni100}} \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-\textbf{Model} & HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
+\textbf{Model} & HR & NDCG & MRR & HR & NDCG & MRR \\
 \midrule
 \model (7B) & 6.92 & 4.51 & 3.76 & 61.81 & 46.93 & 42.29 \\
 TF-IDF+LLM & 6.61 & 4.42 & 3.74 & 61.13 & 45.64 & 40.81 \\
@@ -1078,13 +1078,13 @@ and satisfies the hierarchy (MRR 3.76\% $>$ 3.71\% $>$ 3.73\%),
 while 14B/32B show slight MRR inversions.
 
 \begin{table}[t]
-\caption{Aggressive configuration results on Toys\&Games. All values are percentages (\%).}
+\caption{Aggressive configuration results on Toys\&Games (@10). All values are percentages (\%).}
 \label{tab:aggressive}
 \centering
 \small
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Model} & HR@10 & NDCG@10 & HR\_new@10 & HR\_few@10 \\
+\textbf{Model} & \textbf{HR} & \textbf{NDCG} & \textbf{HR\_new} & \textbf{HR\_few} \\
 \midrule
 \model (7B) & \textbf{6.92} & \textbf{4.51} & 1.99 & \textbf{5.22} \\
 \model (14B) & 6.84 & 4.43 & 1.96 & 5.19 \\
@@ -1242,7 +1242,7 @@ report detailed results for the \textbf{few} $[3,10)$ and
 \model (7B) & \textbf{12.47} & \textbf{8.07} & \textbf{6.71} \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \paragraph{Observations.}
 (1) The hierarchy \model $>$ TF-IDF+LLM $\geq$ TF-IDF $>$ ID-only 
