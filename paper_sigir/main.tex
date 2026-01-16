@@ -774,9 +774,9 @@ removing SE-style channel gating and/or explicit cross fusion.
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
 Full (SE-style + Cross) & 6.92 & 4.51 & 3.76 & 1.99 \\
-$-$ SE-style & 6.97 (+0.7\%) & 4.54 (+0.7\%) & 3.78 (+0.5\%) & 1.99 (0\%) \\
-$-$ Cross & 7.45 (+7.7\%) & 4.20 ($-$6.9\%) & 3.18 ($-$15.4\%) & 2.11 (+6.0\%) \\
-$-$ SE-style $-$ Cross & 7.43 (+7.4\%) & 4.20 ($-$6.9\%) & 3.19 ($-$15.2\%) & 2.08 (+4.5\%) \\
+$-$ SE-style & 6.71 ($-$3.0\%) & 4.39 ($-$2.7\%) & 3.68 ($-$2.1\%) & 2.03 (+2.0\%) \\
+$-$ Cross & 6.67 ($-$3.6\%) & 4.39 ($-$2.7\%) & 3.68 ($-$2.1\%) & 2.01 (+1.0\%) \\
+$-$ SE-style $-$ Cross & 7.00 (+1.2\%) & 4.40 ($-$2.4\%) & 3.60 ($-$4.3\%) & 2.30 (+15.6\%) \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -822,26 +822,26 @@ vs.\ L2-only normalization on Toys.
 \midrule
 \multicolumn{5}{l}{\textbf{Multi-view 7B}} \\
 w/ Whiten & 6.92 & 4.51 & 3.76 & 1.99 \\
-w/o Whiten & 6.91 ($-$0.1\%) & 4.51 (0\%) & 3.77 (+0.3\%) & 2.06 (+3.5\%) \\
+w/o Whiten & 6.76 ($-$2.3\%) & 4.48 ($-$0.7\%) & 3.77 (+0.3\%) & 1.96 ($-$1.5\%) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Single-view (TF-IDF+LLM)}} \\
-w/ Whiten & 6.66 & 4.41 & 3.71 & 1.84 \\
-w/o Whiten & 6.75 (+1.3\%) & 4.49 (+1.8\%) & 3.75 (+1.1\%) & 1.84 \\
+w/ Whiten & 6.61 & 4.42 & 3.74 & 1.96 \\
+w/o Whiten & 6.59 ($-$0.3\%) & 4.41 ($-$0.2\%) & 3.74 (0\%) & 1.93 ($-$1.5\%) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Whitening interacts with cold-start boosting.}
+\paragraph{Whitening improves HR for multi-view.}
 For multi-view under aggressive boosting (infer=1.5), removing
-whitening shows mixed effects: HR@10 decreases marginally ($-$0.1\%),
-while MRR@10 slightly improves (+0.3\%) and HR\_new@10 improves
-(+3.5\%). This suggests that whitening and inference boosting
-may be partially substitutable mechanisms for cold-start
-enhancement---under strong boosting, whitening becomes less
-critical. For single-view (TF-IDF+LLM), removing whitening
-\emph{improves} metrics (HR@10 +1.3\%, MRR@10 +1.1\%, NDCG@10 +1.8\%),
-suggesting that single-view LLM features are already
-well-conditioned and whitening introduces unnecessary constraints.
+whitening reduces HR@10 by 2.3\% (6.92\% $\to$ 6.76\%), while
+MRR@10 slightly improves (+0.3\%) and NDCG@10 decreases marginally
+($-$0.7\%). This reveals a subtle trade-off: whitening primarily
+benefits recall coverage by decorrelating multi-view features,
+though its effect on ranking quality is marginal under strong
+inference boosting. For single-view (TF-IDF+LLM), removing
+whitening has minimal impact (HR@10 $-$0.3\%, NDCG $-$0.2\%,
+MRR 0\%), confirming that single-view LLM features are already
+well-conditioned.
 
 \paragraph{Interpretation.}
 The interaction between whitening and inference boosting
