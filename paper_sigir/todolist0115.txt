@@ -40,10 +40,10 @@ GPU_ID=0 nohup bash experiments/exp_tfidf_toys_aggressive.sh > main_tfidf_toys_a
 GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_aggressive.sh > main_tfidf_llm_toys_agg.log 2>&1 &  # [DONE] 🔄
 GPU_ID=1 nohup bash experiments/exp_tfidf_beauty_aggressive.sh > main_tfidf_beauty_agg.log 2>&1 &  # [DONE] 🔄
 GPU_ID=2 nohup bash experiments/exp_tfidf_llm_beauty_aggressive.sh > main_tfidf_llm_beauty_agg.log 2>&1 &  # [DONE] 🔄
-GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=3 nohup bash experiments/exp_sensitivity_infer_10.sh > sensitivity_infer_10.log 2>&1 &  # [DONE] 🔄
 GPU_ID=4 nohup bash experiments/exp_seed42_toys_tfidf.sh > seed42_toys_tfidf.log 2>&1 &  # [DONE] 🔄
 GPU_ID=5 nohup bash experiments/exp_seed42_toys_tfidf_llm.sh > seed42_toys_tfidf_llm.log 2>&1 &  # [DONE] 🔄
-GPU_ID=6 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [RUNNING] 🔄
+GPU_ID=6 nohup bash experiments/exp_seed42_toys_mv_7b.sh > seed42_toys_mv_7b.log 2>&1 &  # [DONE] 🔄
 GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf.log 2>&1 &  # [DONE] 🔄
 
 # ============================================================
@@ -61,22 +61,37 @@ GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf
 # 4090-6: exp_seed2024_beauty_mv_7b.sh
 #
 # 执行命令 (批次 1):
-# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &  RUNNING
-# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 & RUNNIG
-# GPU_ID=1 nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 & RUNNING
-# GPU_ID=2 nohup bash experiments/exp_seed42_beauty_tfidf_llm.sh > seed42_beauty_tfidf_llm.log 2>&1 & RUNNING
-# GPU_ID=4 nohup bash experiments/exp_seed42_beauty_mv_7b.sh > seed42_beauty_mv_7b.log 2>&1 & RUNNING
-# GPU_ID=5 nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 & RUNNING
-# GPU_ID=7 nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 & RUNNING
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_tfidf_llm.sh > seed2024_toys_tfidf_llm.log 2>&1 &  DONE
+# GPU_ID=0 nohup bash experiments/exp_seed2024_toys_mv_7b.sh > seed2024_toys_mv_7b.log 2>&1 & DONE
+# GPU_ID=1 nohup bash experiments/exp_seed42_beauty_tfidf.sh > seed42_beauty_tfidf.log 2>&1 & DONE
+# GPU_ID=2 nohup bash experiments/exp_seed42_beauty_tfidf_llm.sh > seed42_beauty_tfidf_llm.log 2>&1 & DONE
+# GPU_ID=4 nohup bash experiments/exp_seed42_beauty_mv_7b.sh > seed42_beauty_mv_7b.log 2>&1 & DONE
+# GPU_ID=5 nohup bash experiments/exp_seed2024_beauty_tfidf.sh > seed2024_beauty_tfidf.log 2>&1 & DONE
+# GPU_ID=7 nohup bash experiments/exp_seed2024_beauty_tfidf_llm.sh > seed2024_beauty_tfidf_llm.log 2>&1 & DONE
 
 # 5090
-# GPU_ID=0 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & RUNNING
+# GPU_ID=0 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & DONE
+
+# ============================================================
+# 批次 2: 📋 No-Whiten Ablation (Aggressive配置) - 待执行
+# ============================================================
 #
-# 补充aggressive no-whiten 配置
-# GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > two_phase_run_tfidf_llm_stratified_no_whiten.log 2>&1 &
-# GPU_ID=0 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > two_phase_run_multiview_v2_stratified_no_whiten.log 2>&1 &
-# GPU_ID=0 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > two_phase_run_tfidf_llm_toys_stratified_no_whiten.log 2>&1 &
-# GPU_ID=0 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.log 2>&1 &
+# 目的: 补全论文Table ablation_whiten，验证whitening在aggressive配置下的效果
+# 配置: 所有实验使用Aggressive参数 (cold=2.5, infer=1.5)
+# 论文位置: main.tex line 784-802 (Table ablation_whiten)
+#
+# Beauty数据集 (2个实验):
+GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > logs/beauty_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Beauty no-whiten
+GPU_ID=1 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > logs/beauty_mv_no_whiten.log 2>&1 &  # MV-7B Beauty no-whiten
+
+# Toys数据集 (2个实验):
+GPU_ID=2 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > logs/toys_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Toys no-whiten
+GPU_ID=3 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > logs/toys_mv_no_whiten.log 2>&1 &  # MV-7B Toys no-whiten
+
+# 预期结果:
+# - Beauty MV no-whiten: 预期HR@10下降 (验证whitening必要性)
+# - Toys MV no-whiten: 已有数据 HR@10=6.91 (line 75), 对比with-whiten=6.92
+# - 补全Beauty部分后，论文Table ablation_whiten将完整对称
 
 # ============================================================
 
@@ -132,3 +147,71 @@ GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf
 #
 # ============================================================
 
+# ============================================================
+# 批次 3: 📋 补充Ablation实验 (完善论文) - 待执行
+# ============================================================
+#
+# 目的: 补全论文Appendix承诺的实验 + Beauty的ablation数据
+# 优先级: Tier 1 (必须) > Tier 2 (强烈推荐)
+# 参考文档: paper_sigir/proposed_experiments.md
+#
+
+# --- Tier 1: 必须做 (论文完整性) ---
+
+# 1. Beauty No-Cross (补全Table ablation_senet_cross)
+GPU_ID=4 nohup bash experiments/exp_ablation_beauty_nocross.sh > logs/ablation_beauty_nocross.log 2>&1 &
+# 论文位置: main.tex line 732-751
+# 预期: 验证cross network的HR-MRR trade-off在Beauty上是否成立
+
+# 2. Cold-start Reweighting Ablation (兑现Appendix承诺)
+GPU_ID=5 nohup bash experiments/exp_ablation_no_cold_reweight_toys.sh > logs/ablation_no_cold_reweight.log 2>&1 &
+# 论文位置: main.tex Appendix line 1171-1177
+# 配置: MV-7B Toys, cold_start_align_boost=0.0
+# 预期: 验证cold-start reweighting对new/few strata的影响
+
+# 3. Center-only Normalization (兑现Appendix承诺)
+GPU_ID=6 nohup bash experiments/exp_ablation_center_only_toys.sh > logs/ablation_center_only.log 2>&1 &
+# 论文位置: main.tex Appendix line 1171-1177
+# 配置: MV-7B Toys, 使用center-only而非ZCA whitening
+# 预期: 验证decorrelation (ZCA) vs centering-only的效果差异
+
+# --- Tier 2: 强烈推荐 (修复层级反转) ---
+
+# 4. TF-IDF/TF-IDF+LLM with Boost (修复层级反转问题)
+GPU_ID=7 nohup bash experiments/exp_tfidf_toys_with_boost.sh > logs/tfidf_toys_boost.log 2>&1 &
+# GPU_ID=0 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > logs/tfidf_llm_toys_boost.log 2>&1 &
+# GPU_ID=1 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > logs/tfidf_beauty_boost.log 2>&1 &
+# GPU_ID=2 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > logs/tfidf_llm_beauty_boost.log 2>&1 &
+# 配置: cold=2.5, infer=1.5 (与MV相同)
+# 预期: HR_new@10 应超过ID-only baseline，修复层级反转
+
+# 总计: 批次2 (4个) + 批次3 (7个) = 11个实验
+# GPU需求: 5090 (1张) + 4090 (8张) 可同时运行9个，剩余2个排队
+# 预计完成时间: ~3-4小时
+
+# ============================================================
+# 实验优先级建议 (0116更新)
+# ============================================================
+#
+# 🔴 最高优先级 (立即执行):
+#   1. 批次2: No-Whiten Ablation (4个实验)
+#      - 补全论文Table ablation_whiten
+#      - Beauty数据缺失，必须补充
+#
+# 🟡 高优先级 (本轮完成):
+#   2. Beauty No-Cross
+#   3. Cold-start Reweighting
+#   4. Center-only Normalization
+#      - 兑现Appendix承诺，提升论文完整度
+#
+# 🟢 中优先级 (可选，但强烈推荐):
+#   5. TF-IDF with Boost系列
+#      - 修复层级反转问题
+#      - 确保fair comparison
+#
+# 执行建议:
+#   - 优先跑完批次2 (4个no-whiten)
+#   - 然后跑批次3的Tier 1 (3个)
+#   - 最后根据需要跑Tier 2 (4个boost)
+#
+# ============================================================
