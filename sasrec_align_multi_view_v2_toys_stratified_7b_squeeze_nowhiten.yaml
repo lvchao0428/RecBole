@@ -68,9 +68,9 @@ loss_type: CE
 train_neg_sample_args: null
 
 # ========== NO WHITEN: 使用 center_only 版本 ==========
-item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.center_only.npy
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.no_whiten.npy
 item_text_emb_path_llm: ""
-item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views_center_only
+item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views_no_whiten
 # =====================================================
 
 use_llm: false
