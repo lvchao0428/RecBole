@@ -142,6 +142,15 @@ class SASRecAlign(SequentialRecommender):
         self.cold_start_align_boost = float(config["cold_start_align_boost"]) if "cold_start_align_boost" in config else 0.0
         self.cold_start_align_threshold = int(config["cold_start_align_threshold"]) if "cold_start_align_threshold" in config else 10
         
+        # [Inference Cold Text Boost] 推理时冷启动文本权重增强
+        # 问题: 训练时的 cold_start_align_boost 只影响对齐损失，推理时所有商品使用相同的 text_weight
+        #       导致模型对新品"有能力但不敢推"，HR_new 下降但 MRR_new 提升
+        # 解决: 推理时动态增加低频商品的文本权重
+        # 权重公式: effective_text_weight *= 1.0 + boost * max(0, threshold - popularity) / threshold
+        # - inference_cold_text_boost: 推理增强系数，0.0表示关闭，建议0.5-2.0
+        # 效果: 低频商品推理时获得更强的文本信号，提升 HR_new 而不损害 MRR_frequent
+        self.inference_cold_text_boost = float(config["inference_cold_text_boost"]) if "inference_cold_text_boost" in config else 0.0
+        
         # [IPW] Inverse Propensity Weighting for alignment loss
         # - use_ipw_weighting: 是否启用 IPW 权重（优先于 cold_start_align_boost）
         # - ipw_threshold: 高频阈值，pop >= threshold 时 weight ≈ 1.0（与分层评估 frequent 阈值对齐）
@@ -951,6 +960,17 @@ class SASRecAlign(SequentialRecommender):
         # Normalize around default temp=0.07: temp_scale = 0.07 / temperature
         temp_scale = (0.07 / self.temperature) if self.temperature > 0 else 1.0
         effective_text_weight = alpha * self.text_weight * align_scale * temp_scale
+        
+        # [CHANGE-9] Inference-time cold-start text boost
+        # 给低频商品更强的文本信号，提升 HR_new 而不损害 MRR_frequent
+        # 与 sasrecalignmultiviewv2.py 保持一致
+        if self.inference_cold_text_boost > 0 and all_ids is not None:
+            item_pop = self.item_popularity[all_ids].float()  # [B] or [n_items]
+            threshold = float(self.cold_start_align_threshold)
+            cold_factor = torch.clamp(threshold - item_pop, min=0) / threshold  # [0, 1]
+            cold_boost = 1.0 + self.inference_cold_text_boost * cold_factor  # [1.0, 1.0 + boost]
+            cold_boost = cold_boost.unsqueeze(1).to(item_emb.device)  # [B, 1] or [n_items, 1]
+            effective_text_weight = effective_text_weight * cold_boost
         
         if self.use_cross and self.item_fusion_predictor is not None:
             # Apply SENet if active (amplifier) before cross fusion

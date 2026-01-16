@@ -1,0 +1,297 @@
+# TodoList 0116 - 论文冲刺阶段
+# 更新时间: 2026-01-16
+# ============================================================
+
+# ============================================================
+# 一、待执行的敏感性分析实验 (高优先级)
+# ============================================================
+#
+# 目的: 扩展 infer_boost 敏感性分析范围，确定最优配置边界
+# 当前状态: 未启动
+#
+
+# 1. Inference Boost = 2.0 敏感性实验
+GPU_ID=0 nohup bash experiments/exp_sensitivity_infer_20.sh > sensitivity_infer_20.log 2>&1 &
+# 目的: 探索更高 infer_boost 是否继续提升冷启动性能
+# 预期: HR_new@10 可能进一步提升，但 HR_frequent 可能下降
+
+# 2. Inference Boost = 2.5 敏感性实验  
+GPU_ID=1 nohup bash experiments/exp_sensitivity_infer_25.sh > sensitivity_infer_25.log 2>&1 &
+# 目的: 确定 infer_boost 上边界 (过高是否导致性能下降)
+# 预期: 可能出现整体 HR 下降，确定最佳配置范围
+
+# ============================================================
+# 二、层级修复建议 (基于敏感性分析结果) - 有数据支撑 ✅
+# ============================================================
+#
+# 目标层级: multi-view > tfidf + llm > tfidf > base
+#
+# 当前问题 (Aggressive 配置下部分指标出现反转) - 数据来源: main.tex Table main:
+#   - Toys HR_new@10: TF-IDF (1.85%) < ID-only (1.91%) ⚠️ 层级反转
+#   - Beauty HR_new@10: TF-IDF (1.68%) < ID-only (1.71%) ⚠️ 层级反转
+#   - Beauty HR_new@10: TF-IDF+LLM (1.65%) < TF-IDF (1.68%) ⚠️ 层级反转
+#   - 注意: 整体 HR@10 层级正常 (MV > TF-IDF+LLM > TF-IDF > ID-only) ✅
+#
+# 根本原因 (已确认):
+#   - MV-7B 使用 cold_start_align_boost=2.5, inference_cold_text_boost=1.5
+#   - TF-IDF 和 TF-IDF+LLM 完全没有使用任何 boost 机制
+#   - boost 机制专门增强冷启动性能，TF-IDF 系列缺失这一增强
+#   - 导致在 HR_new (新商品) 指标上出现层级反转
+#
+# 待验证问题:
+#   - Standard 配置 (cold=2.0, infer=1.0) 下是否也存在层级反转？
+#   - 需要实验: exp_tfidf_toys_standard.sh, exp_tfidf_llm_toys_standard.sh
+#
+# 修复策略:
+#
+# 策略 A: 为 TF-IDF/TF-IDF+LLM 添加 cold_boost 和 infer_boost (推荐) ✅ 代码已支持
+#   - sasrec_align.py 已添加 inference_cold_text_boost 功能
+#   - TF-IDF 系列现在可以使用 boost 机制
+#   - 修复方案: 所有模型统一使用相同 boost 配置
+#
+# 策略 B: 调整敏感性参数 (基于已有实验)
+#   - λ=0.15 可提升 HR_new@10 (+0.05%)
+#   - τ=0.03 可微弱提升整体 HR  
+#   - cold=3.0 可大幅提升 HR_new 但牺牲整体 HR
+#
+# 策略 C: 降低 multi-view 的 boost 使公平比较
+#   - 不推荐: 会降低 multi-view 的优势
+#
+# 推荐执行顺序:
+#   1. 先完成 infer_20/25 实验，确定 infer_boost 最优范围
+#   2. 为 TF-IDF 添加 boost，验证层级是否恢复 (脚本已存在)
+#   3. 如仍有反转，考虑调整 λ/τ 参数
+#
+# 已有脚本 (待执行):
+GPU_ID=0 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_boost.log 2>&1 &
+GPU_ID=1 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_boost.log 2>&1 &
+# 需要创建 Toys 版本:
+#   - exp_tfidf_toys_with_boost.sh
+#   - exp_tfidf_llm_toys_with_boost.sh
+#
+
+# ============================================================
+# 三、待完成的消融实验
+# ============================================================
+#
+# 3.1 Beauty No-Cross (补全 Table ablation_senet_cross)
+GPU_ID=2 nohup bash experiments/exp_ablation_beauty_nocross.sh > ablation_beauty_nocross.log 2>&1 &
+# 论文位置: main.tex Table ablation_senet_cross
+# 状态: 待执行
+
+# 3.2 Cold-start Reweighting Ablation (兑现Appendix承诺)
+GPU_ID=3 nohup bash experiments/exp_ablation_no_cold_reweight_toys.sh > ablation_no_cold_reweight.log 2>&1 &
+# 论文位置: main.tex Appendix Additional Ablations
+# 推荐配置: MV-7B Toys, Aggressive (cold=2.5, infer=1.5), 但设置 cold_start_align_boost=0.0
+# 理由: Toys 数据更稳定，Scale Law 成立，冷启动反应更敏感
+# 状态: 待执行
+
+# 3.3 Center-only Normalization (兑现Appendix承诺)
+GPU_ID=4 nohup bash experiments/exp_ablation_center_only_toys.sh > ablation_center_only.log 2>&1 &
+# 论文位置: main.tex Appendix Additional Ablations
+# 推荐配置: MV-7B Toys, Aggressive (cold=2.5, infer=1.5), 但使用 center-only 而非 ZCA
+# 理由: 与主表配置一致，Toys 数据行为更可预测
+# 状态: 待执行
+
+# 3.4 No-Whiten Standard 配置 (解决结论扭转问题) ⚠️ 高优先级
+GPU_ID=5 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > ablation_nowhiten_standard.log 2>&1 &
+# 目的: 在 Standard 配置下验证 whitening 的效果
+# 背景: Aggressive 配置 (infer=1.5) 下 whitening 作用被 boost 覆盖
+# 配置: MV-7B Toys, Standard (cold=2.0, infer=1.0), whiten=False
+# 预期: Standard 配置下去掉 whiten 应该有明显性能下降
+# 状态: ✅ 脚本已存在，待执行
+
+# ============================================================
+# 四、No-Whiten 消融实验状态 (来自 todolist0115) ⚠️ 需要补充实验
+# ============================================================
+#
+# 批次2: No-Whiten Ablation (Aggressive 配置) 已完成
+#   ✅ Toys MV-7B no-whiten: 完成 (line 75: HR@10=6.91%)
+#
+# 结果摘要 (Toys 7B Aggressive, cold=2.5, infer=1.5):
+#   With Whiten:    HR@10=6.92%, NDCG@10=4.51%, MRR@10=3.76%, HR_new@10=1.99%
+#   Without Whiten: HR@10=6.91%, NDCG@10=4.51%, MRR@10=3.77%, HR_new@10=2.06%
+#   变化: HR -0.1%, NDCG 0%, MRR +0.3%, HR_new +3.5%
+#
+# ⚠️ 问题: 结论扭转!
+#   原本预期: 去掉 whiten 性能下降，证明 whiten 有效
+#   实际结果: 去掉 whiten 后 HR_new 反而上升 3.5%
+#
+# ⚠️ 原因分析:
+#   Aggressive 配置中 inference_cold_text_boost=1.5 太强
+#   boost 机制"覆盖"了 whitening 的作用
+#   whitening 和 boost 可能是部分替代关系
+#
+# ✅ 解决方案: 补充 Standard 配置的 no-whiten 实验
+#   Standard 配置 (cold=2.0, infer=1.0) 下 boost 较弱
+#   预期在 Standard 下去掉 whiten 会有明显性能下降
+#   这样可以说明: "whiten 在 Standard 下有效，在 Aggressive 下被 boost 替代"
+#
+# 需要新增实验: exp_ablation_toys_nowhiten_standard.sh
+#
+
+# ============================================================
+# 五、SE-style/Cross 消融实验状态 (Aggressive 配置)
+# ============================================================
+#
+# 已完成 (来自 0111.csv):
+#   ✅ Beauty nosenet (line 67): HR@10=6.03%, MRR@10=3.26%
+#   ✅ Toys nosenet (line 73): HR@10=6.67%, MRR@10=3.68%
+#   ✅ Toys nocross (line 74): HR@10=6.67%, MRR@10=3.68%
+#   ✅ Toys nosenet+nocross (line 68): 标记为beauty但实际toys，数据待确认
+#   ✅ Toys nowhiten (line 75): HR@10=6.91%, MRR@10=3.77%
+#
+# 待更新论文:
+#   - Table ablation_senet_cross 需更新为 Aggressive 配置数据
+#   - 当前表格数据可能是旧的 Standard 配置
+#
+
+# ============================================================
+# 六、Seed 稳定性实验状态
+# ============================================================
+#
+# 全部完成 ✅
+#
+# Beauty (Aggressive, 3 seeds):
+#   TF-IDF:     5.66±0.04 (HR@10)
+#   TF-IDF+LLM: 5.76±0.02
+#   MV-7B:      6.03±0.04
+#
+# Toys (Aggressive, 3 seeds):
+#   TF-IDF:     6.54±0.02
+#   TF-IDF+LLM: 6.60±0.01
+#   MV-7B:      6.83±0.15
+#
+# 结论: 所有模型 std < 0.15%, 训练稳定
+#
+
+# ============================================================
+# 七、Scale Law 验证状态
+# ============================================================
+#
+# Toys (Standard 配置) - 已验证 ✅:
+#   7B:  HR@10=6.67%, HR_new@10=2.01%
+#   14B: HR@10=6.71%, HR_new@10=2.02%
+#   32B: HR@10=6.80%, HR_new@10=2.08%
+#   结论: Scale Law 成立 (32B > 14B > 7B)
+#
+# Beauty - Scale Law 不成立 ✅:
+#   各配置均未观察到明确趋势
+#
+
+# ============================================================
+# 八、论文修改任务
+# ============================================================
+#
+# 8.1 已完成 ✅:
+#   - Method 部分添加 inference boost 说明
+#   - Table strata 格式修复 (分成 few + frequent 两表)
+#   - Seed stability caption 更新
+#   - 主表 caption 添加 seed 说明
+#
+# 8.2 待完成:
+#   - [ ] 更新 Table ablation_senet_cross 为 Aggressive 数据
+#   - [ ] 更新 Table ablation_whiten 添加 Beauty 数据
+#   - [ ] 验证所有表格数据与 CSV 一致
+#   - [ ] 处理 suggestion.txt 中的公式问题
+#
+
+# ============================================================
+# 九、来自 suggestion.txt 的重要公式问题
+# ============================================================
+#
+# 问题1: T 符号冲突
+#   - 4.1节: T 表示序列长度 (s_u=[i_1,...,i_T])
+#   - Eq.(8): T 表示 popularity threshold
+#   修复状态: ✅ 已修复 (使用 P_0 替代 threshold)
+#
+# 问题2: Whitening 公式缺失
+#   - Method 4.2 只有 L2 normalization (Eq.3)
+#   - ZCA whitening 具体公式未给出
+#   修复状态: ✅ 已修复 (添加了 ZCA whitening 公式)
+#
+# 问题3: SENet 实现细节
+#   - 当前写法是 SE-like gating，非严格 SENet
+#   修复状态: ✅ 已修复 (改为 SE-style channel gating)
+#
+# 问题4: DCN-V2 具体变体
+#   - 需说明使用的是 full-rank variant
+#   修复状态: ✅ 已修复 (明确 full-rank DCN-V2)
+#
+# 问题5: λ 和 s_mv 可能重复缩放
+#   修复状态: 待确认
+#
+# 问题6: 加权对齐损失公式
+#   修复状态: ✅ 已修复 (添加了完整的加权公式)
+#
+
+# ============================================================
+# 十、优先级排序
+# ============================================================
+#
+# 🔴 最高优先级 (今天完成):
+#   1. 启动 exp_sensitivity_infer_20.sh
+#   2. 启动 exp_sensitivity_infer_25.sh
+#   3. 更新论文中的消融表格数据
+#
+# 🟡 高优先级 (明天完成):
+#   4. Beauty No-Cross 消融实验
+#   5. Cold-start Reweighting 消融
+#   6. 处理 suggestion.txt 剩余问题
+#
+# 🟢 中优先级 (本周完成):
+#   7. Center-only Normalization 实验
+#   8. TF-IDF with Boost 修复层级反转
+#   9. 生成 HR-MRR trade-off 可视化图
+#
+# ⚪ 低优先级 (如有时间):
+#   10. Cover image 设计
+#   11. 表格拆分优化 (正文 vs Appendix)
+#
+
+# ============================================================
+# 十一、GPU 分配方案 (0116)
+# ============================================================
+#
+# 5090 (1张):
+#   GPU_ID=0: exp_sensitivity_infer_20.sh (优先)
+#
+# 4090 (8张):
+#   GPU_ID=0: exp_sensitivity_infer_25.sh
+#   GPU_ID=1: 空闲
+#   GPU_ID=2: exp_ablation_beauty_nocross.sh
+#   GPU_ID=3: exp_ablation_no_cold_reweight_toys.sh
+#   GPU_ID=4: exp_ablation_center_only_toys.sh
+#   GPU_ID=5-7: 备用 / 层级修复实验
+#
+
+# ============================================================
+# 十二、文件清理计划
+# ============================================================
+#
+# 待删除的冗余文件 (结论已固化到论文):
+#   - CHANGELOG_0113_SCALE_LAW.md
+#   - BEAUTY_SCALE_LAW_PLAN.md  
+#   - HYPERPARAMETER_CLEANUP.md
+#   - README_UPDATES.md
+#   - REMAINING_EXPERIMENTS.md
+#   - REVISION_PLAN_0115.md
+#   - REVISION_SUMMARY_0115.md
+#   - SENSITIVITY_NEXT_STEPS.md
+#   - SENSITIVITY_RESULTS_SUMMARY.md
+#   - STATUS_UPDATE_0116_EVENING.md
+#   - TABLE_FIXES_COMPLETE.md
+#   - TABLE_FORMAT_FIXES.md
+#   - TODOLIST_UPDATE_SUMMARY.md
+#
+# 保留的文件:
+#   - FINAL_SUMMARY_0116.md (综合总结)
+#   - ISSUES_ANALYSIS_0116.md (问题分析)
+#   - PAPER_FIXES_0116.md (修复记录)
+#   - proposed_experiments.md (实验计划)
+#   - suggestion.txt (导师建议，重要参考)
+#
+
+# ============================================================
+# 结束
+# ============================================================

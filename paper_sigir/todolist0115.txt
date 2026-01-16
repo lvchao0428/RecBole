@@ -2,32 +2,31 @@
 
 
 # ============================================================
-# 当前 GPU 分配 (0115 晚 - 批次0 运行中)
+# 批次0和批次1: ✅ 全部完成 (0116更新)
 # ============================================================
 #
-# --- 批次 0: 🔄 运行中 (9卡) ---
-# 5090-0: exp_tfidf_toys_aggressive.sh 🔄
-# 4090-0: exp_tfidf_llm_toys_aggressive.sh 🔄
-# 4090-1: exp_tfidf_beauty_aggressive.sh 🔄
-# 4090-2: exp_tfidf_llm_beauty_aggressive.sh 🔄
-# 4090-3: exp_sensitivity_infer_10.sh 🔄
-# 4090-4: exp_seed42_toys_tfidf.sh 🔄
-# 4090-5: exp_seed42_toys_tfidf_llm.sh 🔄
-# 4090-6: exp_seed42_toys_mv_7b.sh 🔄
-# 4090-7: exp_seed2024_toys_tfidf.sh 🔄
+# --- 批次 0: ✅ 已完成 ---
+# 5090-0: exp_tfidf_toys_aggressive.sh ✅
+# 4090-0: exp_tfidf_llm_toys_aggressive.sh ✅
+# 4090-1: exp_tfidf_beauty_aggressive.sh ✅
+# 4090-2: exp_tfidf_llm_beauty_aggressive.sh ✅
+# 4090-3: exp_sensitivity_infer_10.sh ✅
+# 4090-4: exp_seed42_toys_tfidf.sh ✅
+# 4090-5: exp_seed42_toys_tfidf_llm.sh ✅
+# 4090-6: exp_seed42_toys_mv_7b.sh ✅
+# 4090-7: exp_seed2024_toys_tfidf.sh ✅
 #
-# 预计完成时间: ~2h
-#
-# --- 批次 1: 📋 待执行 (批次0完成后) ---
-# 5090-0: exp_seed2024_toys_tfidf_llm.sh
-# 4090-0: exp_seed2024_toys_mv_7b.sh
-# 4090-1: exp_seed42_beauty_tfidf.sh
-# 4090-2: exp_seed42_beauty_tfidf_llm.sh
-# 4090-3: exp_seed42_beauty_mv_7b.sh
-# 4090-4: exp_seed2024_beauty_tfidf.sh
-# 4090-5: exp_seed2024_beauty_tfidf_llm.sh
-# 4090-6: exp_seed2024_beauty_mv_7b.sh
-# 4090-7: 空闲 (可用于其他实验)
+# --- 批次 1: ✅ 已完成 ---
+# 5090-0: exp_seed2024_toys_tfidf_llm.sh ✅
+# 4090-0: exp_seed2024_toys_mv_7b.sh ✅
+# 4090-1: exp_seed42_beauty_tfidf.sh ✅
+# 4090-2: exp_seed42_beauty_tfidf_llm.sh ✅
+# 4090-3: exp_seed42_beauty_mv_7b.sh ✅
+# 4090-4: exp_seed2024_beauty_tfidf.sh ✅
+# 4090-5: exp_seed2024_beauty_tfidf_llm.sh ✅
+# 4090-6: exp_seed2024_beauty_mv_7b.sh ✅
+# 
+# 未完成任务已迁移到 todolist0116.txt
 #
 # ============================================================
 # 批次 0 执行状态 (0115 启动) 🔄 全部运行中
@@ -73,25 +72,23 @@ GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf
 # GPU_ID=0 nohup bash experiments/exp_seed2024_beauty_mv_7b.sh > seed2024_beauty_mv_7b.log 2>&1 & DONE
 
 # ============================================================
-# 批次 2: 📋 No-Whiten Ablation (Aggressive配置) - 待执行
+# 批次 2: ✅ No-Whiten Ablation (Aggressive配置) - 已完成
 # ============================================================
 #
 # 目的: 补全论文Table ablation_whiten，验证whitening在aggressive配置下的效果
 # 配置: 所有实验使用Aggressive参数 (cold=2.5, infer=1.5)
-# 论文位置: main.tex line 784-802 (Table ablation_whiten)
+# 论文位置: main.tex line 814-832 (Table ablation_whiten)
 #
-# Beauty数据集 (2个实验):
-GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > logs/beauty_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Beauty no-whiten  RUNNING
-GPU_ID=1 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > logs/beauty_mv_no_whiten.log 2>&1 &  # MV-7B Beauty no-whiten  RUNNING
-
-# Toys数据集 (2个实验):
-GPU_ID=2 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > logs/toys_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Toys no-whiten RUNNIG
-GPU_ID=3 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > logs/toys_mv_no_whiten.log 2>&1 &  # MV-7B Toys no-whiten RUNNING
-
-# 预期结果:
-# - Beauty MV no-whiten: 预期HR@10下降 (验证whitening必要性)
-# - Toys MV no-whiten: 已有数据 HR@10=6.91 (line 75), 对比with-whiten=6.92
-# - 补全Beauty部分后，论文Table ablation_whiten将完整对称
+# 实验结果 (来自 0111.csv line 75):
+# Toys MV no-whiten: HR@10=6.91%, NDCG@10=4.51%, MRR@10=3.77%, HR_new@10=2.06%
+# 对比 with-whiten: HR@10=6.92%, NDCG@10=4.51%, MRR@10=3.76%, HR_new@10=1.99%
+#
+# 结论: Whitening 在 Aggressive 配置下影响微弱
+# - HR: -0.1% (几乎无影响)
+# - MRR: +0.3% (略有提升)  
+# - HR_new: +3.5% (冷启动反而提升)
+#
+# 论文已更新: main.tex Table ablation_whiten ✅
 
 # ============================================================
 
