@@ -357,6 +357,25 @@ The scalar $\alpha_i$ includes a global text gate and
 optional per-item gating, scaled by temperature for stable
 fusion.
 
+\paragraph{Inference-time cold-start boosting.}
+To complement training-time reweighting, we apply adaptive text
+weighting during inference. For an item $i$ with popularity
+$\mathrm{pop}(i)$, we compute a dynamic boost factor:
+\begin{equation}
+  \gamma_i = 1 + \beta_{\text{infer}} \cdot \max\Big(0, 
+  \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
+  \label{eq:infer_boost}
+\end{equation}
+where $\beta_{\text{infer}}$ is the inference boost coefficient
+(e.g., $\beta_{\text{infer}}=1.5$ in aggressive configuration).
+The effective text weight in the fusion layer becomes 
+$\alpha_i' = \alpha_i \cdot \gamma_i$, dynamically increasing text
+reliance for cold-start items without modifying model parameters.
+This decoupling allows deployment-time adjustment: conservative
+boosting ($\beta_{\text{infer}}=1.0$) for balanced performance,
+or aggressive boosting ($\beta_{\text{infer}}=1.5$) for cold-start
+prioritization.
+
 \subsection{Multi-View Contrastive Alignment}
 We align each text view to the ID embedding space using
 \InfoNCE~\cite{oord2018cpc}. The alignment objective is:
@@ -1140,7 +1159,7 @@ deviation $<$0.15\%, confirming that our findings are robust to random
 initialization.
 
 \begin{table}[h]
-\caption{Seed stability across three random seeds (42, 2024, 2025). All values in \%.}
+\caption{Seed stability across three random seeds (42, 2024, 2025) using Aggressive configuration (cold\_boost$=$2.5, infer\_boost$=$1.5, $\lambda{=}0.10$, $\tau{=}0.05$). All values in \%.}
 \label{tab:seed_stability}
 \centering
 \scriptsize
@@ -1173,40 +1192,71 @@ complexity, but remains within acceptable bounds.
 
 \subsection{Extended Strata Results (few/frequent)}
 \label{app:strata}
-Table~\ref{tab:strata_extended} reports the full popularity-stratified results including \textbf{few} $[3,10)$ and \textbf{frequent} $[10,\infty)$ strata.
+Table~\ref{tab:strata_few} and Table~\ref{tab:strata_frequent}
+report detailed results for the \textbf{few} $[3,10)$ and 
+\textbf{frequent} $[10,\infty)$ popularity strata.
 
-\begin{table*}[t]
-\caption{Extended strata results (few/frequent). All values in \%.}
-\label{tab:strata_extended}
+\begin{table}[h]
+\caption{Few stratum $[3,10)$ results. All values in \%.}
+\label{tab:strata_few}
 \centering
-\small
-\begin{tabular}{lcccccc}
+\scriptsize
+\begin{tabular}{lccc}
 \toprule
-\multirow{2}{*}{\textbf{Model}} &
-\multicolumn{3}{c}{\textbf{few stratum} $[3,10)$} &
-\multicolumn{3}{c}{\textbf{frequent stratum} $[10,\infty)$} \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-7}
-& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
+\textbf{Model} & \textbf{HR@10} & \textbf{NDCG@10} & \textbf{MRR@10} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only) & 3.33 & 1.98 & 1.56 & 7.86 & 4.47 & 3.42 \\
-\base + \tfidf & 3.38 & 2.42 & 2.05 & 9.83 & 6.40 & 5.35 \\
-\base + \tfidf + \llm & 3.44 & 2.41 & 2.01 & 10.06 & 6.50 & 5.42 \\
-\model (7B) & \textbf{3.77} & \textbf{2.60} & \textbf{2.14} & \textbf{10.55} & \textbf{6.72} & \textbf{5.55} \\
+\multicolumn{4}{l}{\textit{Amazon Beauty}} \\
+\base (ID-only) & 3.33 & 1.98 & 1.56 \\
+\base + \tfidf & 3.38 & 2.42 & 2.05 \\
+\base + \tfidf + \llm & 3.44 & 2.41 & 2.01 \\
+\model (7B) & \textbf{3.77} & \textbf{2.60} & \textbf{2.14} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only) & 4.61 & 2.53 & 1.87 & 10.61 & 5.92 & 4.45 \\
-\base + \tfidf & 4.71 & 3.22 & 2.76 & 11.93 & 7.91 & 6.67 \\
-\base + \tfidf + \llm & 4.81 & 3.28 & 2.80 & 11.97 & 7.94 & 6.69 \\
-\model (7B) & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} & \textbf{12.47} & \textbf{8.07} & \textbf{6.71} \\
+\multicolumn{4}{l}{\textit{Amazon Toys\&Games}} \\
+\base (ID-only) & 4.61 & 2.53 & 1.87 \\
+\base + \tfidf & 4.71 & 3.22 & 2.76 \\
+\base + \tfidf + \llm & 4.81 & 3.28 & 2.80 \\
+\model (7B) & \textbf{5.22} & \textbf{3.44} & \textbf{2.90} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Frequent stratum $[10,\infty)$ results. All values in \%.}
+\label{tab:strata_frequent}
+\centering
+\scriptsize
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{HR@10} & \textbf{NDCG@10} & \textbf{MRR@10} \\
+\midrule
+\multicolumn{4}{l}{\textit{Amazon Beauty}} \\
+\base (ID-only) & 7.86 & 4.47 & 3.42 \\
+\base + \tfidf & 9.83 & 6.40 & 5.35 \\
+\base + \tfidf + \llm & 10.06 & 6.50 & 5.42 \\
+\model (7B) & \textbf{10.55} & \textbf{6.72} & \textbf{5.55} \\
+\midrule
+\multicolumn{4}{l}{\textit{Amazon Toys\&Games}} \\
+\base (ID-only) & 10.61 & 5.92 & 4.45 \\
+\base + \tfidf & 11.93 & 7.91 & 6.67 \\
+\base + \tfidf + \llm & 11.97 & 7.94 & 6.69 \\
+\model (7B) & \textbf{12.47} & \textbf{8.07} & \textbf{6.71} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \paragraph{Observations.}
-(1) The hierarchy \model $>$ TF-IDF+LLM $\geq$ TF-IDF $>$ ID-only holds consistently on the \textbf{few} stratum for both datasets.
-(2) On the \textbf{frequent} stratum, all text-enhanced models show large gains over ID-only ($+$27\% HR@10 on Beauty, $+$17\% on Toys), with diminishing marginal returns from multi-view features.
-(3) Cold-start boosting primarily benefits the \textbf{new} and \textbf{few} strata; the \textbf{frequent} stratum is dominated by collaborative signals where text features provide calibration rather than discovery.
+(1) The hierarchy \model $>$ TF-IDF+LLM $\geq$ TF-IDF $>$ ID-only 
+holds consistently on the \textbf{few} stratum (Table~\ref{tab:strata_few})
+for both datasets, confirming that multi-view features provide stronger
+benefits for moderately popular items.
+(2) On the \textbf{frequent} stratum (Table~\ref{tab:strata_frequent}), 
+all text-enhanced models show large gains over ID-only ($+$27\% HR@10 on 
+Beauty, $+$17\% on Toys), with diminishing marginal returns from 
+multi-view features.
+(3) Cold-start boosting (both training and inference) primarily benefits 
+the \textbf{new} and \textbf{few} strata; the \textbf{frequent} stratum 
+is dominated by collaborative signals where text features provide 
+calibration rather than discovery.
 
 
 \subsection{Additional Ablations: Cold-start Reweighting and Center-only Normalization}

@@ -81,12 +81,12 @@ GPU_ID=7 nohup bash experiments/exp_seed2024_toys_tfidf.sh > seed2024_toys_tfidf
 # 论文位置: main.tex line 784-802 (Table ablation_whiten)
 #
 # Beauty数据集 (2个实验):
-GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > logs/beauty_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Beauty no-whiten
-GPU_ID=1 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > logs/beauty_mv_no_whiten.log 2>&1 &  # MV-7B Beauty no-whiten
+GPU_ID=0 nohup bash beauty_train/two_phase_run_tfidf_llm_stratified_no_whiten.sh > logs/beauty_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Beauty no-whiten  RUNNING
+GPU_ID=1 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_whiten.sh > logs/beauty_mv_no_whiten.log 2>&1 &  # MV-7B Beauty no-whiten  RUNNING
 
 # Toys数据集 (2个实验):
-GPU_ID=2 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > logs/toys_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Toys no-whiten
-GPU_ID=3 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > logs/toys_mv_no_whiten.log 2>&1 &  # MV-7B Toys no-whiten
+GPU_ID=2 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_no_whiten.sh > logs/toys_tfidf_llm_no_whiten.log 2>&1 &  # TF-IDF+LLM Toys no-whiten RUNNIG
+GPU_ID=3 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_no_whiten.sh > logs/toys_mv_no_whiten.log 2>&1 &  # MV-7B Toys no-whiten RUNNING
 
 # 预期结果:
 # - Beauty MV no-whiten: 预期HR@10下降 (验证whitening必要性)
