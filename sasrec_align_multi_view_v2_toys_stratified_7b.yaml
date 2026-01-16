@@ -94,19 +94,19 @@ text_view_senet_ratio: 2
 per_view_l2_norm: true
 
 # [CHANGE-6] 冷启动对齐权重增强 (legacy, 已被 IPW 替代)
-# cold_start_align_boost: 0
-# cold_start_align_threshold: 10
+cold_start_align_boost: 0
+cold_start_align_threshold: 10
 
 # [CHANGE-8] IPW (Inverse Propensity Weighting) - 推荐使用
 # 比 cold_start 更平滑优雅，无硬阈值，有因果推断理论支持
 # 公式: weight = 1.0 + (max_weight - 1.0) * clamp((log(threshold+1) - log(pop+1)) / log(threshold+1), 0, 1) ** alpha
 # 效果: 高频物品(pop>=threshold)权重≈1.0，低频物品权重逐渐增加，全局平滑无拐点
-use_ipw_weighting: true           # 启用 IPW（优先于 cold_start_align_boost）
-ipw_threshold: 10                 # 高频阈值，与分层评估 frequent 阈值对齐
-ipw_alpha: 0.5                    # 曲线形状，>1更陡峭，<1更平缓
-ipw_max_weight: 4.0               # 最大权重（对应 pop=0）
-ipw_clip_min: 0.5                 # 权重下限
-ipw_clip_max: 10.0                # 权重上限
+#use_ipw_weighting: true           # 启用 IPW（优先于 cold_start_align_boost）
+#ipw_threshold: 10                 # 高频阈值，与分层评估 frequent 阈值对齐
+#ipw_alpha: 0.5                    # 曲线形状，>1更陡峭，<1更平缓
+#ipw_max_weight: 4.0               # 最大权重（对应 pop=0）
+#ipw_clip_min: 0.5                 # 权重下限
+#ipw_clip_max: 10.0                # 权重上限
 # ================================
 
 text_view_half_precision: true
