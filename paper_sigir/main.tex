@@ -315,7 +315,7 @@ is projected to the backbone dimension $d$ and refined by:
 \end{align}
 where $\mathbf{t}_{w,i}^{(v)}$ is the whitened embedding for
 item $i$ in view $v$, and $\mathrm{MLP}_v$ is a two-layer
-network with reduction ratio $r$ (typically $r=2$ or $4$).
+network with reduction ratio $r$.
 We then apply $\ell_2$ normalization:
 \begin{equation}
   \hat{\mathbf{r}}_i^{(v)} = \frac{\mathbf{r}_i^{(v)}}{\lVert \mathbf{r}_i^{(v)} \rVert_2}.
@@ -357,25 +357,6 @@ The scalar $\alpha_i$ includes a global text gate and
 optional per-item gating, scaled by temperature for stable
 fusion.
 
-\paragraph{Inference-time cold-start boosting.}
-To complement training-time reweighting, we apply adaptive text
-weighting during inference. For an item $i$ with popularity
-$\mathrm{pop}(i)$, we compute a dynamic boost factor:
-\begin{equation}
-  \gamma_i = 1 + \beta_{\text{infer}} \cdot \max\Big(0, 
-  \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
-  \label{eq:infer_boost}
-\end{equation}
-where $\beta_{\text{infer}}$ is the inference boost coefficient
-(e.g., $\beta_{\text{infer}}=1.5$ in aggressive configuration).
-The effective text weight in the fusion layer becomes 
-$\alpha_i' = \alpha_i \cdot \gamma_i$, dynamically increasing text
-reliance for cold-start items without modifying model parameters.
-This decoupling allows deployment-time adjustment: conservative
-boosting ($\beta_{\text{infer}}=1.0$) for balanced performance,
-or aggressive boosting ($\beta_{\text{infer}}=1.5$) for cold-start
-prioritization.
-
 \subsection{Multi-View Contrastive Alignment}
 We align each text view to the ID embedding space using
 \InfoNCE~\cite{oord2018cpc}. The alignment objective is:
@@ -402,10 +383,14 @@ and combine per-view losses:
 \begin{equation}
   \mathcal{L}_{\text{mv-align}} = \sum_{v=1}^{V}\pi_v \mathcal{L}_{\text{align,w}}^{(v)}.
 \end{equation}
-\paragraph{Cold-start reweighting.}
+
+We enhance cold-start item performance through two complementary
+mechanisms that operate at different stages:
+
+\paragraph{Training-time cold-start reweighting.}
 To avoid alignment being dominated by frequent items, we
-reweight samples based on item popularity $\mathrm{pop}(i)$,
-where $\mathrm{pop}(i)$ is the interaction count in training data:
+reweight samples based on item popularity $\mathrm{pop}(i)$
+during training, where $\mathrm{pop}(i)$ is the interaction count:
 \begin{equation}
   w_i = 1 + \beta\cdot \max\Big(0, \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
 \end{equation}
@@ -416,7 +401,33 @@ receive boosted weights). The weighted alignment loss becomes:
   \frac{1}{\sum_i w_i}\sum_{i=1}^{B} w_i \cdot
   \left[-\log \frac{\exp(\mathbf{S}_{ii}/\tau)}{\sum_{j=1}^{B}\exp(\mathbf{S}_{ij}/\tau)}\right],
 \end{equation}
-where $w_i$ only reweights the anchor (positive) samples.
+where $w_i$ only reweights the anchor (positive) samples, ensuring
+that cold-start items receive sufficient gradient updates during
+alignment training.
+
+\paragraph{Inference-time cold-start boosting.}
+To complement training-time reweighting, we apply adaptive text
+weighting during inference. For an item $i$ with popularity
+$\mathrm{pop}(i)$, we compute a dynamic boost factor:
+\begin{equation}
+  \gamma_i = 1 + \beta_{\text{infer}} \cdot \max\Big(0, 
+  \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
+  \label{eq:infer_boost}
+\end{equation}
+where $\beta_{\text{infer}}$ is the inference boost coefficient.
+The effective text weight in the fusion layer becomes 
+$\alpha_i' = \alpha_i \cdot \gamma_i$, dynamically increasing text
+reliance for cold-start items without modifying model parameters.
+This decoupling allows deployment-time adjustment without
+retraining: lower $\beta_{\text{infer}}$ for balanced performance,
+or higher $\beta_{\text{infer}}$ for cold-start prioritization
+(see Appendix~\ref{app:hyper} for validated configurations).
+
+Together, these two mechanisms ensure that cold-start items receive
+both strong learning signals during training (via reweighted
+alignment) and appropriate inference-time emphasis (via dynamic
+boosting), enabling effective cold-start recommendations without
+sacrificing performance on frequent items.
 
 \begin{figure}[t]
 \centering
@@ -966,7 +977,7 @@ Components that improve ranking quality (cross, whitening) may slightly hurt col
 TF-IDF variants show lower HR\_new than ID-only (1.85\% vs 1.91\% on Toys) due to sharper
 score distributions, while \model recovers this gap through multi-view fusion.
 
-\textbf{(5) Robustness and sensitivity}: The model is robust to contrastive learning hyperparameters ($\lambda$, $\tau$) but sensitive to cold-start boosting. Inference-time boost (infer\_boost) is the most critical parameter: reducing it from 1.5 to 0.5 causes HR@10 to drop by 3.2\%. We recommend default settings ($\lambda{=}0.10$, $\tau{=}0.05$, cold${=}2.5$, infer${=}1.5$) as a robust starting point.
+\textbf{(5) Robustness and sensitivity}: The model is robust to contrastive learning hyperparameters ($\lambda$, $\tau$) but sensitive to cold-start boosting parameters (cold\_boost, infer\_boost). Sensitivity analysis (Appendix~\ref{app:hyper}) shows that inference-time boost is the most critical parameter for cold-start performance. Validated configurations are provided in Table~\ref{tab:hyper_config}.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
@@ -1001,7 +1012,7 @@ and (ii) uni100 sampled ranking, and quantify agreement between the two protocol
 \toprule
 & \multicolumn{3}{c}{\textbf{Full Ranking}} & \multicolumn{3}{c}{\textbf{Uni100}} \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-\textbf{Model} & HR & NDCG & MRR & HR & NDCG & MRR \\
+\textbf{Model} & HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
 \midrule
 \model (7B) & 6.92 & 4.51 & 3.76 & 61.81 & 46.93 & 42.29 \\
 TF-IDF+LLM & 6.61 & 4.42 & 3.74 & 61.13 & 45.64 & 40.81 \\
@@ -1078,13 +1089,13 @@ and satisfies the hierarchy (MRR 3.76\% $>$ 3.71\% $>$ 3.73\%),
 while 14B/32B show slight MRR inversions.
 
 \begin{table}[t]
-\caption{Aggressive configuration results on Toys\&Games (@10). All values are percentages (\%).}
+\caption{Aggressive configuration results on Toys\&Games. All values are percentages (\%).}
 \label{tab:aggressive}
 \centering
 \small
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Model} & \textbf{HR} & \textbf{NDCG} & \textbf{HR\_new} & \textbf{HR\_few} \\
+\textbf{Model} & \textbf{HR@10} & \textbf{NDCG@10} & \textbf{HR\_new@10} & \textbf{HR\_few@10} \\
 \midrule
 \model (7B) & \textbf{6.92} & \textbf{4.51} & 1.99 & \textbf{5.22} \\
 \model (14B) & 6.84 & 4.43 & 1.96 & 5.19 \\
