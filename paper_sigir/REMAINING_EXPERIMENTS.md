@@ -1,182 +1,235 @@
-# 剩余实验规划 (2026-01-14)
+# 剩余实验规划 (2026-01-16)
 
-## ✅ 当前运行中的实验
+## 当前实验状态
 
-| GPU | 实验 | 配置 | 状态 | 预计完成 |
-|-----|------|------|------|----------|
-| 5090-0 | cold_25 | cold=2.5 baseline重跑 | 🔄 运行中 | ~1小时 |
-| 4090-1 | infer_05 | infer=0.5 | 🔄 运行中 | ~2小时 |
-| 4090-2 | cold_30 | cold=3.0 | 🔄 运行中 | ~2小时 |
-| 4090-3 | lambda_005 | λ=0.05 | ✅ 完成 | - |
-| 4090-4 | lambda_015 | λ=0.15 | ✅ 完成 | - |
-| 4090-5 | tau_003 | τ=0.03 | ✅ 完成 | - |
-| 4090-6 | tau_010 | τ=0.10 | ✅ 完成 | - |
-| 4090-7 | cold_15 | cold=1.5 | ✅ 完成 | - |
+### ✅ 运行中 (8个实验)
 
-## 📋 待补充的实验
+**批次2: No-Whiten** (GPU 0-3, RUNNING)
+- Beauty TF-IDF+LLM no-whiten
+- Beauty MV-7B no-whiten
+- Toys TF-IDF+LLM no-whiten
+- Toys MV-7B no-whiten
 
-### 1. ⭐⭐⭐ Uni100 vs Full-Ranking 对比实验 (高优先级)
+**批次3-A: SE-net/Cross** (GPU 4-7, RUNNING)
+- Beauty MV no-senet
+- Beauty MV no-cross-and-senet
+- Toys MV no-senet
+- Toys MV no-senet-nocross
 
-**目的**: 验证 sampled evaluation (uni100) 与 full-ranking 的一致性
+**预计完成**: ~3-4小时
 
-**论文位置**: Appendix A.1 - Table "Sampled Evaluation Sanity Check"
+---
 
-**需要的实验** (✅ 脚本已全部创建):
+## 📋 待执行的补充实验
 
+### 优先级1: Infer Boost扩展 (触碰边界)
+
+**动机**: 当前范围infer=0.5-1.5，最优值在1.5，需要扩展找到峰值
+
+**实验**:
 ```bash
-# Toys 7B Aggressive - Uni100 评估 (完整二阶段训练)
-GPU_ID=3 nohup bash experiments/exp_uni100_toys_7b.sh > uni100_toys_7b.log 2>&1 &  # ✅
-
-# Toys TF-IDF+LLM - Uni100 评估 (完整二阶段训练)
-GPU_ID=4 nohup bash experiments/exp_uni100_tfidf_llm_toys.sh > uni100_tfidf_llm_toys.log 2>&1 &  # ✅
-
-# Toys TF-IDF - Uni100 评估 (完整二阶段训练)
-GPU_ID=5 nohup bash experiments/exp_uni100_tfidf_toys.sh > uni100_tfidf_toys.log 2>&1 &  # ✅
+experiments/exp_sensitivity_infer_20_toys.sh  # infer=2.0
+experiments/exp_sensitivity_infer_25_toys.sh  # infer=2.5
 ```
 
-**对比数据** (Full-ranking 已有):
-| Model | Full HR@10 | Full MRR@10 | Uni100 HR@10 | Uni100 MRR@10 | Correlation |
-|-------|-----------|-------------|--------------|---------------|-------------|
-| Multi-view 7B | 6.92 | 3.76 | ? | ? | ? |
-| TF-IDF+LLM | 6.66 | 3.71 | ? | ? | ? |
-| TF-IDF | 6.60 | 3.73 | ? | ? | ? |
-
-**分析指标**:
-- Overall correlation (Pearson/Spearman)
-- Per-stratum correlation (new/few/frequent)
-- Model mis-ranking cases
-
----
-
-### 2. ⭐⭐ Scale Law 补充实验 (中优先级)
-
-**目的**: 完整验证 Toys Standard 配置的 Scale Law
-
-**论文位置**: Appendix A.2 - Scale Law Validation
-
-**需要的实验**:
-
+**脚本内容**:
 ```bash
-# Toys 14B Standard (cold=2.0, infer=1.0)
-GPU_ID=3 nohup bash two_phase_run_multiview_v2_toys_stratified_14b_standard.sh > toys_14b_std.log 2>&1 &
+#!/usr/bin/env bash
+# exp_sensitivity_infer_20_toys.sh
+# Sensitivity: Inference boost = 2.0 on Toys (Aggressive baseline)
 
-# Toys 32B Standard (cold=2.0, infer=1.0)  
-GPU_ID=4 nohup bash two_phase_run_multiview_v2_toys_stratified_32b_standard.sh > toys_32b_std.log 2>&1 &
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+GPU_ID=${GPU_ID:-0}
+echo "========================================="
+echo "Sensitivity: Infer Boost = 2.0 on Toys"
+echo "Using GPU: $GPU_ID"
+echo "Baseline: cold=2.5, infer=1.5 → Testing infer=2.0"
+echo "========================================="
+
+python scripts/two_phase_train.py \
+  --model SASRecAlignMultiViewV2 \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --gpu_id $GPU_ID \
+  --phase_a_grid \
+  --align_grid "0.10" \
+  --tau_grid "0.05" \
+  --backbone_burnin_epochs 0 \
+  --phase_a_epochs 20 \
+  --phase_a_valid_metric "MRR@10" \
+  --phase_b_epochs 40 \
+  --backbone_lr_scale 0.1 \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 2.0}" \
+  --checkpoint_dir ./saved/sensitivity_infer_20 \
+  --seed 2025 \
+  --variant_features "sasrec,multiview_v2,7b,toys,agg,infer20" \
+  --save
+
+echo "✅ Done!"
 ```
 
-**已有**: Toys 7B Standard (row 70, 0111.csv)
-
-**预期 Scale Law**:
-- HR@10: 32B > 14B > 7B
-- HR_new@10: 32B > 14B > 7B
-- MRR@10: 可能反转（附录中说明）
-
----
-
-### 3. ⭐ Beauty 补充实验 (低优先级)
-
-**目的**: Beauty 数据集的完整对比
-
-**可选实验**:
-
+**GPU分配**:
 ```bash
-# Beauty TF-IDF baseline (已有数据，可跳过)
-# Beauty TF-IDF+LLM (已有数据，可跳过)
-# Beauty Multi-view 7B Aggressive (如需统一配置)
+# 等待批次2+3完成后
+GPU_ID=0 nohup bash experiments/exp_sensitivity_infer_20_toys.sh > logs/sensitivity_infer_20.log 2>&1 &
+GPU_ID=1 nohup bash experiments/exp_sensitivity_infer_25_toys.sh > logs/sensitivity_infer_25.log 2>&1 &
 ```
+
+**预期结果**:
+- infer=2.0: 可能略微提升HR_new，但overall HR可能下降
+- infer=2.5: 预期性能下降（over-reliance on text）
+
+**论文更新位置**: Table sensitivity, line 1113-1126
 
 ---
 
-## 🎯 推荐实验优先级
+### 优先级2: Appendix承诺实验
 
-### 高优先级 (必须完成)
+#### 实验2.1: Cold-start Reweighting Ablation
 
-1. **Uni100 对比实验** (3个实验，约6小时)
-   - 论文 Appendix 必需
-   - 展示 full-ranking 的必要性
+**动机**: Appendix line 1213明确承诺
 
-### 中优先级 (建议完成)
+**脚本**:
+```bash
+#!/usr/bin/env bash
+# exp_ablation_no_cold_reweight_toys.sh
+# Ablation: Remove cold-start reweighting in alignment loss
 
-2. **Toys Standard 14B/32B** (2个实验，约4小时)
-   - 完整验证 Scale Law
-   - 增强论文说服力
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
-### 低优先级 (可选)
+GPU_ID=${GPU_ID:-0}
+echo "Ablation: No Cold-start Reweighting (Toys, Aggressive baseline)"
 
-3. **Beauty 补充实验**
-   - 如果审稿人要求再补充
+python scripts/two_phase_train.py \
+  --model SASRecAlignMultiViewV2 \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --gpu_id $GPU_ID \
+  --phase_a_grid \
+  --align_grid "0.10" \
+  --tau_grid "0.05" \
+  --backbone_burnin_epochs 0 \
+  --phase_a_epochs 20 \
+  --phase_b_epochs 40 \
+  --backbone_lr_scale 0.1 \
+  --config_dict "{'cold_start_align_boost': 0.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
+  --checkpoint_dir ./saved/ablation_no_cold_reweight \
+  --seed 2025 \
+  --variant_features "sasrec,multiview_v2,7b,toys,agg,nocoldboost" \
+  --save
+
+echo "✅ Done!"
+```
+
+**关键变更**: `cold_start_align_boost': 0.0`
+
+**预期**: HR_new和HR_few显著下降
 
 ---
 
-## 📝 实验脚本创建清单
+#### 实验2.2: Center-only Normalization
 
-需要创建的脚本：
+**动机**: Appendix line 1217承诺，对比ZCA vs center-only
 
-- [ ] `experiments/exp_uni100_toys_7b.sh`
-- [ ] `experiments/exp_uni100_tfidf_llm_toys.sh`
-- [ ] `experiments/exp_uni100_tfidf_toys.sh`
-- [ ] `two_phase_run_multiview_v2_toys_stratified_14b_standard.sh`
-- [ ] `two_phase_run_multiview_v2_toys_stratified_32b_standard.sh`
+**脚本**:
+```bash
+#!/usr/bin/env bash
+# exp_ablation_center_only_toys.sh
+# Ablation: Center-only normalization (vs ZCA whitening)
+
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+GPU_ID=${GPU_ID:-0}
+echo "Ablation: Center-only Normalization (Toys, Aggressive)"
+
+python scripts/two_phase_train.py \
+  --model SASRecAlignMultiViewV2 \
+  --dataset Amazon_Toys_and_Games \
+  --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --gpu_id $GPU_ID \
+  --phase_a_grid \
+  --align_grid "0.10" \
+  --tau_grid "0.05" \
+  --backbone_burnin_epochs 0 \
+  --phase_a_epochs 20 \
+  --phase_b_epochs 40 \
+  --backbone_lr_scale 0.1 \
+  --config_dict "{'cold_start_align_boost': 2.5, 'inference_cold_text_boost': 1.5, 'whiten_text': false, 'center_text': true}" \
+  --checkpoint_dir ./saved/ablation_center_only \
+  --seed 2025 \
+  --variant_features "sasrec,multiview_v2,7b,toys,agg,centeronly" \
+  --save
+
+echo "✅ Done!"
+```
+
+**关键变更**: 
+- `whiten_text': false` (禁用ZCA)
+- `center_text': true` (仅zero-mean)
+
+**预期**: 性能介于full-whiten和no-whiten之间
 
 ---
 
-## 🔬 Whiten 方案真实情况 (重要发现！)
+## 🚀 执行计划
 
-### 从脚本发现：
+### Phase 1: 等待当前实验 (今晚)
+- ⏳ 等待8个实验完成 (~3-4小时)
+- ✅ 提取结果到CSV
 
-**所有特征都使用 `--center --whiten` (ZCA whitening)：**
+### Phase 2: 执行扩展实验 (明天)
+```bash
+# Infer扩展 (2个)
+GPU_ID=0 nohup bash experiments/exp_sensitivity_infer_20_toys.sh > logs/infer_20.log 2>&1 &
+GPU_ID=1 nohup bash experiments/exp_sensitivity_infer_25_toys.sh > logs/infer_25.log 2>&1 &
 
-1. **TF-IDF**: `--center --whiten` ✅
-2. **Single-view LLM**: `--center --whiten` ✅
-3. **Multi-view (per-view)**: `--center --whiten` ✅
-
-### 这意味着：
-
-- ❌ **没有 "no ZCA" 的情况**
-- ✅ 所有文本特征都经过: Center → ZCA Whiten → L2
-- ✅ 差异在于: Multi-view 是 **per-view whiten** (每个视图独立白化)
-
-### 架构图需要修正：
-
-**Single-view:**
-```
-TF-IDF → SVD → Whiten (ZCA) → SENet → L2
-LLM    → SVD → Whiten (ZCA) → SENet → L2
+# Appendix承诺 (2个)
+GPU_ID=2 nohup bash experiments/exp_ablation_no_cold_reweight_toys.sh > logs/no_cold_reweight.log 2>&1 &
+GPU_ID=3 nohup bash experiments/exp_ablation_center_only_toys.sh > logs/center_only.log 2>&1 &
 ```
 
-**Multi-view:**
-```
-TF-IDF base → SVD → Whiten (ZCA, shared) → SENet → L2
-View 1-4    → SVD → Whiten (ZCA, per-view) → SENet → L2
-```
+**预计时间**: ~2-3小时
 
-**关键差异**: 
-- Single-view: 所有特征用相同的 whiten matrix
-- Multi-view: 每个视图用独立的 whiten matrix (4+1=5个)
+### Phase 3: 更新论文 (明天晚)
+- [ ] 更新Table ablation_whiten
+- [ ] 更新Table ablation_senet_cross
+- [ ] 更新Table sensitivity (infer扩展)
+- [ ] 补充Appendix分析
 
 ---
 
-## 🎯 建议行动
+## 📝 创建实验脚本
 
-### 立即执行 (等当前3个实验完成后)
+需要创建以下脚本文件：
 
-1. **Uni100 对比实验** (填充 Appendix Table)
-2. **更新架构图** (修正 whiten 标注)
+### Infer扩展:
+1. `experiments/exp_sensitivity_infer_20_toys.sh`
+2. `experiments/exp_sensitivity_infer_25_toys.sh`
 
-### 次要
+### Appendix承诺:
+3. `experiments/exp_ablation_no_cold_reweight_toys.sh`
+4. `experiments/exp_ablation_center_only_toys.sh`
 
-3. **Standard 配置 Scale Law** (如果需要完整对比)
+**是否需要我创建这些脚本？**
 
 ---
 
-## 📊 论文完成度
+## ✅ 总结
 
-| 部分 | 进度 | 状态 |
-|------|------|------|
-| Main Results (Table 3) | 100% | ✅ 完成 |
-| Ablation (Table 4, 5) | 100% | ✅ 完成 |
-| Sensitivity (Table 10) | 75% | 🔄 运行中 |
-| Uni100 Sanity Check (App Table) | 0% | ⏳ 待开始 |
-| Scale Law (App Table) | 33% | ⏳ 可选 |
+### 已确认的事实:
+1. ✅ Seed实验都用aggressive配置 (数据正确)
+2. ✅ SE-net/Cross ablation已用aggressive运行中
+3. ✅ 配置分布合理 (Scale Law用standard，其他用aggressive)
+4. ✅ 论文修复完成 (Method, Table format, Caption)
 
-**预计投稿时间**: 完成 Uni100 实验后 (约1周)
+### 剩余工作:
+1. ⏳ 等待当前8个实验完成
+2. 📝 创建4个补充实验脚本 (infer扩展 + Appendix)
+3. 📊 提取结果并更新论文表格
+
+**论文状态**: ✅ **可投稿!** (核心完成，补充实验可后续提交)
+

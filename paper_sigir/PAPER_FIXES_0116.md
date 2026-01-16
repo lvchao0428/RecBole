@@ -250,10 +250,10 @@ echo "✅ Done!"
 ### GPU分配 (4个实验)
 
 ```bash
-GPU_ID=0 nohup bash experiments/exp_ablation_toys_nosenet_aggressive.sh > logs/toys_nosenet_agg.log 2>&1 &
-GPU_ID=1 nohup bash experiments/exp_ablation_toys_nocross_aggressive.sh > logs/toys_nocross_agg.log 2>&1 &
-GPU_ID=2 nohup bash experiments/exp_ablation_beauty_nosenet_aggressive.sh > logs/beauty_nosenet_agg.log 2>&1 &
-GPU_ID=3 nohup bash experiments/exp_ablation_beauty_nocross_aggressive.sh > logs/beauty_nocross_agg.log 2>&1 &
+GPU_ID=4 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_senet.sh > two_phase_run_multiview_v2_stratified_no_senet.log 2>&1 & RUNNING
+GPU_ID=5 nohup bash beauty_train/two_phase_run_multiview_v2_stratified_no_cross_and_senet.sh > two_phase_run_multiview_v2_stratified_no_cross_and_senet.log 2>&1 & RUNNING
+GPU_ID=6 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_nosenet.sh > two_phase_run_multiview_v2_toys_stratified_7b_nosenet.log 2>&1 & RUNNING
+GPU_ID=7 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_nosenet_nocross.sh > two_phase_run_multiview_v2_toys_stratified_7b_nosenet_nocross.log 2>&1 & RUNNING
 ```
 
 ---
