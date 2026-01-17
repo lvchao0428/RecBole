@@ -7,20 +7,20 @@
 # ============================================================
 #
 # === 敏感性分析 (2卡) ===
-GPU_ID=0 nohup bash experiments/exp_sensitivity_infer_20.sh > sensitivity_infer_20.log 2>&1 &  # 🔄 运行中
-GPU_ID=1 nohup bash experiments/exp_sensitivity_infer_25.sh > sensitivity_infer_25.log 2>&1 &  # 🔄 运行中
+GPU_ID=0 nohup bash experiments/exp_sensitivity_infer_20.sh > sensitivity_infer_20.log 2>&1 &  # DONE
+GPU_ID=1 nohup bash experiments/exp_sensitivity_infer_25.sh > sensitivity_infer_25.log 2>&1 &  # DONE
 
 # === 层级修复实验 (4卡) - TF-IDF 系列添加 boost ===
-GPU_ID=2 nohup bash experiments/exp_tfidf_toys_with_boost.sh > tfidf_toys_boost.log 2>&1 &  # 🔄 运行中
-GPU_ID=3 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > tfidf_llm_toys_boost.log 2>&1 &  # 🔄 运行中
-GPU_ID=4 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_boost.log 2>&1 &  # 🔄 运行中
-GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_boost.log 2>&1 &  # 🔄 运行中
+GPU_ID=2 nohup bash experiments/exp_tfidf_toys_with_boost.sh > tfidf_toys_boost.log 2>&1 &  # DONE
+GPU_ID=3 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > tfidf_llm_toys_boost.log 2>&1 &  # DONE
+GPU_ID=4 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_boost.log 2>&1 &  # DONE
+GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_boost.log 2>&1 &  # DONE
 
 # === Whitening 消融 - Standard 配置 (1卡) ===
-GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > nowhiten_standard.log 2>&1 &  # 🔄 运行中
+GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > nowhiten_standard.log 2>&1 &  # DONE
 
 # === 主表复跑 - Standard 配置 (1卡) ===
-GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > two_phase_run_multiview_v2_toys_stratified_7b.log 2>&1 &  # 🔄 运行中 (Standard)
+GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > two_phase_run_multiview_v2_toys_stratified_7b.log 2>&1 &  # DONE
 
 # 预计完成时间: ~2-3h
 # 总计: 8 个实验同时运行
@@ -44,29 +44,29 @@ GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > two_phase
 # ============================================================
 # 三、主表数据复跑计划 (最高优先级) 🔴
 # ============================================================
-#
+
 # 目标: 所有模型使用统一的 cold_boost (非 IPW)
 # 配置: Standard (cold=2.0, infer=1.0) 和 Aggressive (cold=2.5, infer=1.5)
 #
 # === Standard 配置复跑 (6个实验) ===
 # Toys:
-GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > mv_toys_7b_standard.log 2>&1 &  # 🔄 运行中
-GPU_ID=x nohup bash two_phase_run_tfidf_toys_stratified.sh > tfidf_toys_standard.log 2>&1 &  # 📋 待执行
-GPU_ID=x nohup bash two_phase_run_tfidf_llm_toys_stratified.sh > tfidf_llm_toys_standard.log 2>&1 &  # 📋 待执行
-
+GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > mv_toys_7b_standard.log 2>&1 &  # RUNNING on 5090
+GPU_ID=0 nohup bash two_phase_run_tfidf_toys_stratified.sh > tfidf_toys_standard.log 2>&1 &  RUNNING on 5090
+GPU_ID=0 nohup bash two_phase_run_tfidf_llm_toys_stratified.sh > tfidf_llm_toys_standard.log 2>&1 &  RUNNING on 4090
 # Beauty:
-GPU_ID=x nohup bash two_phase_run_multiview_v2_stratified.sh > mv_beauty_7b_standard.log 2>&1 &  # 📋 待执行
-GPU_ID=x nohup bash two_phase_run_tfidf_stratified.sh > tfidf_beauty_standard.log 2>&1 &  # 📋 待执行
-GPU_ID=x nohup bash two_phase_run_tfidf_llm_stratified.sh > tfidf_llm_beauty_standard.log 2>&1 &  # 📋 待执行
+GPU_ID=1 nohup bash two_phase_run_multiview_v2_stratified.sh > mv_beauty_7b_standard.log 2>&1 &  RUNNING on 4090
+GPU_ID=2 nohup bash two_phase_run_tfidf_stratified.sh > tfidf_beauty_standard.log 2>&1 &  RUNNING on 4090 
+GPU_ID=3 nohup bash two_phase_run_tfidf_llm_stratified.sh > tfidf_llm_beauty_standard.log 2>&1 & RUNNING on 4090
 
 # === Aggressive 配置复跑 (6个实验) ===
 # Toys:
-GPU_ID=x nohup bash experiments/exp_multiview_toys_aggressive.sh > mv_toys_7b_aggressive_v2.log 2>&1 &  # 📋 待执行
-GPU_ID=2 nohup bash experiments/exp_tfidf_toys_with_boost.sh > tfidf_toys_aggressive_v2.log 2>&1 &  # 🔄 运行中
-GPU_ID=3 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > tfidf_llm_toys_aggressive_v2.log 2>&1 &  # 🔄 运行中
+GPU_ID=4 nohup bash experiments/exp_multiview_toys_aggressive.sh > mv_toys_7b_aggressive_v2.log 2>&1 &  RUNNING on 4090
+GPU_ID=5 nohup bash experiments/exp_tfidf_toys_with_boost.sh > tfidf_toys_aggressive_v2.log 2>&1 &  RUNNING on 4090
+GPU_ID=6 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > tfidf_llm_toys_aggressive_v2.log 2>&1 &  RUNNING on 4090
 
 # Beauty:
-GPU_ID=x nohup bash experiments/exp_multiview_beauty_aggressive.sh > mv_beauty_7b_aggressive_v2.log 2>&1 &  # 📋 待执行
+GPU_ID=7 nohup bash experiments/exp_multiview_beauty_aggressive.sh > mv_beauty_7b_aggressive_v2.log 2>&1 &  RUNNING on 4090
+
 GPU_ID=4 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_aggressive_v2.log 2>&1 &  # 🔄 运行中
 GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_aggressive_v2.log 2>&1 &  # 🔄 运行中
 
