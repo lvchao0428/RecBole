@@ -50,7 +50,7 @@ GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > two_phase
 #
 # === Standard 配置复跑 (6个实验) ===
 # Toys:
-GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > mv_toys_7b_standard.log 2>&1 &  # RUNNING on 5090
+GPU_ID=0 nohup bash two_phase_run_multiview_v2_toys_stratified_7b.sh > mv_toys_7b_standard.log 2>&1 &  # DON on 5090
 GPU_ID=0 nohup bash two_phase_run_tfidf_toys_stratified.sh > tfidf_toys_standard.log 2>&1 &  RUNNING on 5090
 GPU_ID=0 nohup bash two_phase_run_tfidf_llm_toys_stratified.sh > tfidf_llm_toys_standard.log 2>&1 &  RUNNING on 4090
 # Beauty:
@@ -67,8 +67,8 @@ GPU_ID=6 nohup bash experiments/exp_tfidf_llm_toys_with_boost.sh > tfidf_llm_toy
 # Beauty:
 GPU_ID=7 nohup bash experiments/exp_multiview_beauty_aggressive.sh > mv_beauty_7b_aggressive_v2.log 2>&1 &  RUNNING on 4090
 
-GPU_ID=4 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_aggressive_v2.log 2>&1 &  # 🔄 运行中
-GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_aggressive_v2.log 2>&1 &  # 🔄 运行中
+GPU_ID=4 nohup bash experiments/exp_tfidf_beauty_with_boost.sh > tfidf_beauty_aggressive_v2.log 2>&1 &  # RUNNING
+GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_beauty_aggressive_v2.log 2>&1 &  # RUNNING
 
 # 配置要求:
 #   Standard:   cold_start_align_boost=2.0, inference_cold_text_boost=1.0
@@ -84,26 +84,26 @@ GPU_ID=5 nohup bash experiments/exp_tfidf_llm_beauty_with_boost.sh > tfidf_llm_b
 # ============================================================
 #
 # 4.1 Toys No-Cross Aggressive (重新运行) ⚠️ 高优先级
-GPU_ID=x nohup bash experiments/exp_ablation_toys_nocross_aggressive.sh > ablation_toys_nocross_agg.log 2>&1 &
+GPU_ID=x nohup bash experiments/exp_ablation_toys_nocross_aggressive.sh > ablation_toys_nocross_agg.log 2>&1 & RUNNING
 # 问题: Row 73-74 数据完全相同，说明之前的 no-cross 实验失败
 # 配置: MV-7B Toys, Aggressive (cold=2.5, infer=1.5), use_cross=False
 # 论文位置: main.tex Table ablation_senet_cross
 # 状态: 📋 需要创建脚本并执行
 
 # 4.2 Beauty No-Cross (补全 Table ablation_senet_cross)
-GPU_ID=x nohup bash experiments/exp_ablation_beauty_nocross.sh > ablation_beauty_nocross.log 2>&1 &
+GPU_ID=x nohup bash experiments/exp_ablation_beauty_nocross.sh > ablation_beauty_nocross.log 2>&1 & RUNNING
 # 论文位置: main.tex Table ablation_senet_cross
 # 配置: MV-7B Beauty, Aggressive (cold=2.5, infer=1.5), use_cross=False
 # 状态: 📋 待执行
 
 # 4.3 Cold-start Reweighting Ablation (兑现Appendix承诺)
-GPU_ID=x nohup bash experiments/exp_ablation_no_cold_reweight_toys.sh > ablation_no_cold_reweight.log 2>&1 &
+GPU_ID=x nohup bash experiments/exp_ablation_no_cold_reweight_toys.sh > ablation_no_cold_reweight.log 2>&1 & running
 # 论文位置: main.tex Appendix Additional Ablations
 # 配置: MV-7B Toys, Aggressive, cold_start_align_boost=0.0
 # 状态: 📋 待执行
 
 # 4.4 Center-only Normalization (兑现Appendix承诺)
-GPU_ID=x nohup bash experiments/exp_ablation_center_only_toys.sh > ablation_center_only.log 2>&1 &
+GPU_ID=5 nohup bash toy_train/two_phase_run_multiview_v2_toys_stratified_7b_center_only.sh > two_phase_run_multiview_v2_toys_stratified_7b_center_only.log 2>&1 & RUNNING
 # 论文位置: main.tex Appendix Additional Ablations
 # 配置: MV-7B Toys, Aggressive, 使用 center-only 而非 ZCA
 # 状态: 📋 待执行
@@ -126,7 +126,7 @@ GPU_ID=x nohup bash experiments/exp_ablation_center_only_toys.sh > ablation_cent
 # ✅ 结论正常: Whitening 提升 HR (+2.3%)，对 MRR 影响小
 #
 # 🔄 运行中:
-GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > nowhiten_standard.log 2>&1 &  # 🔄 运行中
+GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > nowhiten_standard.log 2>&1 &  # DONE
 # 目的: 验证 Standard 配置下 whitening 的效果
 # 配置: MV-7B Toys, Standard (cold=2.0, infer=1.0), whiten=False
 #

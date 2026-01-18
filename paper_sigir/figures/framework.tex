@@ -1,199 +1,219 @@
-% MV-Align Framework - 完整数据流架构图
-\documentclass[tikz,border=6pt]{standalone}
+% MV-Align Framework - 重新设计的架构图
+% 聚焦3个核心动作: Normalize/Whiten, Explicit Cross, Align
+\documentclass[tikz,border=8pt]{standalone}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, backgrounds, fit}
+\usetikzlibrary{positioning, arrows.meta, backgrounds, fit, shapes.geometric, calc, decorations.pathreplacing}
 
-% 配色
-\definecolor{rawtext}{RGB}{255,248,220}
-\definecolor{idblue}{RGB}{173,216,230}
-\definecolor{tfidf}{RGB}{255,228,196}
-\definecolor{llm}{RGB}{204,238,214}
-\definecolor{v1}{RGB}{255,200,210}
-\definecolor{v2}{RGB}{230,200,240}
-\definecolor{v3}{RGB}{200,230,240}
-\definecolor{v4}{RGB}{255,240,215}
-\definecolor{align}{RGB}{255,255,224}
+% 配色方案 - 更清晰的视觉层次
+\definecolor{inputcolor}{RGB}{245,245,245}       % 输入层 - 浅灰
+\definecolor{viewcolor1}{RGB}{255,182,193}       % View1 - 粉红
+\definecolor{viewcolor2}{RGB}{173,216,230}       % View2 - 浅蓝
+\definecolor{viewcolor3}{RGB}{152,251,152}       % View3 - 浅绿
+\definecolor{viewcolor4}{RGB}{255,218,185}       % View4 - 浅橙
+\definecolor{tfidfcolor}{RGB}{255,250,205}       % TF-IDF - 淡黄
+\definecolor{idcolor}{RGB}{135,206,250}          % ID Emb - 天蓝
+\definecolor{proccolor}{RGB}{240,248,255}        % 处理块 - 淡蓝白
+\definecolor{crosscolor}{RGB}{221,160,221}       % Cross模块 - 淡紫
+\definecolor{aligncolor}{RGB}{255,228,196}       % Align模块 - 浅橙
+\definecolor{outputcolor}{RGB}{144,238,144}      % 输出 - 淡绿
+\definecolor{accentblue}{RGB}{70,130,180}        % 强调色 - 钢青
+\definecolor{accentorange}{RGB}{255,140,0}       % 强调色 - 橙色
+
+% Helper command for circled numbers - 必须在 begin{document} 前定义
+\newcommand*\circled[1]{%
+  \tikz[baseline=(char.base)]{
+    \node[shape=circle, draw, inner sep=1pt, font=\scriptsize\bfseries, 
+          line width=0.6pt, minimum size=0.4cm] (char) {#1};
+  }%
+}
 
 \tikzset{
-  raw/.style={rectangle, rounded corners=1pt, draw=black!40, line width=0.6pt,
-              minimum height=0.4cm, font=\scriptsize\sffamily, fill=rawtext},
-  feat/.style={rectangle, rounded corners=2pt, draw=black, line width=0.9pt,
-               minimum height=0.48cm, font=\small\sffamily},
-  proc/.style={rectangle, draw=black!60, line width=0.7pt,
-               minimum height=0.4cm, font=\footnotesize\sffamily, fill=white},
-  small/.style={rectangle, draw=black!60, line width=0.6pt,
-                minimum height=0.36cm, font=\scriptsize\sffamily, fill=white},
-  arr/.style={-Stealth, line width=0.9pt},
-  darr/.style={-Stealth, line width=0.7pt, dashed, color=orange!70},
+  % 输入节点
+  input/.style={rectangle, rounded corners=3pt, draw=black!50, line width=0.8pt,
+                minimum height=0.5cm, minimum width=1.2cm, font=\small\sffamily, fill=inputcolor},
+  % 视图embedding节点
+  view/.style={rectangle, rounded corners=3pt, draw=black!60, line width=0.9pt,
+               minimum height=0.55cm, minimum width=0.9cm, font=\footnotesize\sffamily\bfseries},
+  % 处理模块节点
+  proc/.style={rectangle, rounded corners=2pt, draw=black!50, line width=0.7pt,
+               minimum height=0.45cm, minimum width=0.85cm, font=\scriptsize\sffamily, fill=proccolor},
+  % 小处理块
+  small/.style={rectangle, rounded corners=2pt, draw=black!50, line width=0.6pt,
+                minimum height=0.38cm, minimum width=0.75cm, font=\scriptsize\sffamily, fill=white},
+  % ID embedding
+  idemb/.style={rectangle, rounded corners=3pt, draw=accentblue, line width=1.2pt,
+                minimum height=0.55cm, minimum width=1.0cm, font=\small\sffamily\bfseries, fill=idcolor},
+  % Cross模块
+  cross/.style={rectangle, rounded corners=4pt, draw=crosscolor!80!black, line width=1.1pt,
+                minimum height=0.6cm, font=\small\sffamily\bfseries, fill=crosscolor!50},
+  % Align模块
+  align/.style={rectangle, rounded corners=4pt, draw=accentorange, line width=1.1pt,
+                minimum height=0.7cm, font=\small\sffamily\bfseries, fill=aligncolor},
+  % 输出
+  output/.style={rectangle, rounded corners=4pt, draw=outputcolor!60!black, line width=1pt,
+                 minimum height=0.55cm, minimum width=1.4cm, font=\small\sffamily\bfseries, fill=outputcolor!70},
+  % 箭头样式
+  arr/.style={-Stealth, line width=0.9pt, color=black!70},
+  thickarr/.style={-Stealth, line width=1.1pt, color=accentblue},
+  dasharr/.style={-Stealth, line width=0.8pt, dashed, color=accentorange},
+  % 标注框
+  labelbox/.style={rectangle, rounded corners=2pt, draw=none, fill=white, 
+                   font=\scriptsize\sffamily, inner sep=2pt},
 }
 
 \begin{document}
-\begin{tikzpicture}[node distance=0.65cm]
+\begin{tikzpicture}[node distance=0.5cm]
 
-% ========== Titles ==========
-\node[font=\large\bfseries] at (-1.5, 0.6) {(a) Single-View};
-\node[font=\large\bfseries] at (7, 0.6) {(b) Multi-View};
+% ==================== 标题 ====================
+\node[font=\Large\bfseries\sffamily, color=black!80] at (3.85, 1.2) {MV-Align Framework};
 
-% ==================== (a) Single-View ====================
-% Raw input
-\node[raw, minimum width=2.5cm] (sraw) at (-1.5, -0.4) {Item Text};
-\node[font=\tiny, text=gray, below=0.01cm of sraw] {Title + Description};
+% ==================== 输入层 ====================
+\node[input, minimum width=5cm] (raw) at (3.85, 0.2) {Item Text (Title + Description)};
 
-% Offline encoding
-\node[feat, fill=tfidf, minimum width=1.15cm, below=0.7cm of sraw, xshift=-1.15cm] (stf) {TF-IDF};
-\node[feat, fill=llm, minimum width=1.15cm, below=0.7cm of sraw, xshift=1.15cm] (sllm) {LLM};
+% ==================== Multi-View LLM Embeddings ====================
+\node[view, fill=viewcolor1, minimum width=0.8cm] (v1) at (1.0, -1.0) {$\mathbf{v}_1$};
+\node[view, fill=viewcolor2, minimum width=0.8cm] (v2) at (2.5, -1.0) {$\mathbf{v}_2$};
+\node[view, fill=viewcolor3, minimum width=0.8cm] (v3) at (4.0, -1.0) {$\mathbf{v}_3$};
+\node[view, fill=viewcolor4, minimum width=0.8cm] (v4) at (5.5, -1.0) {$\mathbf{v}_4$};
+\node[view, fill=tfidfcolor, minimum width=0.9cm] (tfidf) at (7.2, -1.0) {TF-IDF};
 
-\node[font=\tiny, text=gray, below=0.01cm of stf] {\textit{offline}};
-\node[font=\tiny, text=gray, below=0.01cm of sllm] {\textit{Qwen 7B}};
+% View labels - 放在 views 下方，维度标注
+\node[font=\tiny\sffamily, text=black!60, below=0.08cm of v1] {\textit{64-d}};
+\node[font=\tiny\sffamily, text=black!60, below=0.08cm of v2] {\textit{64-d}};
+\node[font=\tiny\sffamily, text=black!60, below=0.08cm of v3] {\textit{64-d}};
+\node[font=\tiny\sffamily, text=black!60, below=0.08cm of v4] {\textit{64-d}};
+\node[font=\tiny\sffamily, text=black!60, below=0.08cm of tfidf] {\textit{256-d}};
 
-% Online processing
-\node[proc, minimum width=1.05cm, below=0.75cm of stf] (sp1) {SVD};
-\node[proc, minimum width=1.05cm, below=0.75cm of sllm] (sp2) {SVD};
+% ==================== ① Normalize/Whiten 处理链 ====================
+% 大括号标注 - 处理链（调整位置）
+\draw[decorate, decoration={brace, amplitude=6pt, raise=2pt, mirror}, line width=0.8pt, color=accentblue]
+  (0.0, -2.3) -- (0.0, -5.0);
+\node[font=\footnotesize\sffamily\bfseries, color=accentblue, rotate=90, anchor=south] 
+  at (-0.5, -3.65) {\circled{1} Normalize \& Whiten};
 
-\node[small, minimum width=0.95cm, below=0.6cm of sp1] (sw1) {Whiten};
-\node[small, minimum width=0.95cm, below=0.6cm of sp2] (sw2) {Whiten};
+% 处理链 - 每个view相同
+% View 1
+\node[small] (svd1) at (1.0, -2.3) {SVD};
+\node[small] (wh1) at (1.0, -2.95) {ZCA};
+\node[small] (se1) at (1.0, -3.6) {SENet};
+\node[small] (l21) at (1.0, -4.25) {L2};
 
-\node[small, minimum width=0.95cm, below=0.6cm of sw1] (sse1) {SENet};
-\node[small, minimum width=0.95cm, below=0.6cm of sw2] (sse2) {SENet};
+% View 2
+\node[small] (svd2) at (2.5, -2.3) {SVD};
+\node[small] (wh2) at (2.5, -2.95) {ZCA};
+\node[small] (se2) at (2.5, -3.6) {SENet};
+\node[small] (l22) at (2.5, -4.25) {L2};
 
-\node[small, minimum width=0.95cm, below=0.6cm of sse1] (sl2a) {L2};
-\node[small, minimum width=0.95cm, below=0.6cm of sse2] (sl2b) {L2};
+% View 3
+\node[small] (svd3) at (4.0, -2.3) {SVD};
+\node[small] (wh3) at (4.0, -2.95) {ZCA};
+\node[small] (se3) at (4.0, -3.6) {SENet};
+\node[small] (l23) at (4.0, -4.25) {L2};
 
-% Concat
-\node[proc, minimum width=1.9cm, below=0.8cm of sl2b, xshift=-1.15cm] (scat) {Concat \& Proj};
+% View 4
+\node[small] (svd4) at (5.5, -2.3) {SVD};
+\node[small] (wh4) at (5.5, -2.95) {ZCA};
+\node[small] (se4) at (5.5, -3.6) {SENet};
+\node[small] (l24) at (5.5, -4.25) {L2};
 
-% Cross + ID
-\node[feat, fill=idblue, minimum width=0.9cm, left=1.5cm of scat] (sid) {ID};
-\node[proc, minimum width=2.5cm, minimum height=0.48cm, below=0.65cm of scat] (scr) {Cross Net};
+% TF-IDF
+\node[small] (svdt) at (7.2, -2.3) {SVD};
+\node[small] (wht) at (7.2, -2.95) {ZCA};
+\node[small] (set) at (7.2, -3.6) {SENet};
+\node[small] (l2t) at (7.2, -4.25) {L2};
 
-% Output
-\node[feat, fill=tfidf!50, minimum width=1.5cm, below=0.65cm of scr] (sout) {Item Emb};
+% 处理链箭头
+\foreach \v in {1,2,3,4} {
+  \draw[arr] (v\v) -- (svd\v);
+  \draw[arr] (svd\v) -- (wh\v);
+  \draw[arr] (wh\v) -- (se\v);
+  \draw[arr] (se\v) -- (l2\v);
+}
+\draw[arr] (tfidf) -- (svdt);
+\draw[arr] (svdt) -- (wht);
+\draw[arr] (wht) -- (set);
+\draw[arr] (set) -- (l2t);
 
-% Alignment
-\node[proc, fill=align, minimum width=2cm, minimum height=0.6cm,
-      below=0.4cm of sout, align=center] (sal) {
-  \scriptsize Align Loss\\
-  \tiny $\mathcal{L}$
+% ==================== Concat & Proj ====================
+\node[proc, minimum width=4.2cm] (concat) at (3.85, -5.1) {Concat \& Project $\rightarrow$ 256-d};
+
+% Arrows to concat
+\draw[arr] (l21) -- (concat);
+\draw[arr] (l22) -- (concat);
+\draw[arr] (l23) -- (concat);
+\draw[arr] (l24) -- (concat);
+\draw[arr] (l2t) -- (concat);
+
+% ==================== ID Embedding ====================
+\node[idemb] (id) at (-0.4, -6.1) {ID Emb};
+\node[font=\tiny\sffamily, text=black!60, below=0.03cm of id] {\textit{256-d}};
+
+% ==================== ② Explicit Cross ====================
+\node[cross, minimum width=4.2cm, minimum height=0.7cm] (cross) at (3.85, -6.1) {
+  \circled{2} Cross Network (DCN-V2)
 };
 
-% Arrows
-\draw[arr] (sraw) -- (stf);
-\draw[arr] (sraw) -- (sllm);
-\draw[arr] (stf) -- (sp1) -- (sw1) -- (sse1) -- (sl2a) -- (scat);
-\draw[arr] (sllm) -- (sp2) -- (sw2) -- (sse2) -- (sl2b) -- (scat);
-\draw[arr] (sid) -- (scr);
-\draw[arr] (scat) -- (scr) -- (sout);
-\draw[darr] (sl2b.east) -| ([xshift=0.6cm]sl2b.east) |- (sal.east);
-\draw[darr] (sid.south) |- (sal.west);
+% Arrows to cross
+\draw[thickarr] (concat) -- (cross);
+\draw[thickarr] (id) -- (cross);
 
-% Labels
-\node[font=\tiny, text=blue!70, right=0.02cm of sw2] {\textit{ZCA, shared}};
+% ==================== Output ====================
+\node[output, minimum width=1.8cm] (out) at (3.85, -7.2) {Fused Item Emb};
 
-% ==================== (b) Multi-View ====================
-% Raw input
-\node[raw, minimum width=3.8cm] (mraw) at (5.85, -0.4) {Item Text};
-\node[font=\tiny, text=gray, below=0.01cm of mraw] {Title + Description};
+\draw[arr] (cross) -- (out);
 
-% Offline encoding
-\node[feat, fill=tfidf, minimum width=0.85cm, text width=0.8cm, align=center, 
-      below=0.7cm of mraw, xshift=-1.8cm] (mtf) {TF-\\IDF};
-\node[feat, fill=v1, minimum width=0.65cm, below=0.7cm of mraw, xshift=-0.6cm] (m1) {V1};
-\node[feat, fill=v2, minimum width=0.65cm, below=0.7cm of mraw, xshift=0.3cm] (m2) {V2};
-\node[feat, fill=v3, minimum width=0.65cm, below=0.7cm of mraw, xshift=1.2cm] (m3) {V3};
-\node[feat, fill=v4, minimum width=0.65cm, below=0.7cm of mraw, xshift=2.1cm] (m4) {V4};
-
-\node[font=\tiny, text=gray, below=0.01cm of mtf] {\textit{offline}};
-\node[font=\tiny, text=gray, above=0.02cm of m2, xshift=0.45cm] {LLM (Qwen 7B)};
-
-% Online processing - TF-IDF
-\node[proc, minimum width=0.8cm, below=0.75cm of mtf] (mp0) {SVD};
-\node[small, minimum width=0.75cm, below=0.6cm of mp0] (mw0) {Whiten};
-\node[small, minimum width=0.75cm, below=0.6cm of mw0] (mse0) {SENet};
-\node[small, minimum width=0.75cm, below=0.6cm of mse0] (ml20) {L2};
-
-% Online processing - Views
-\node[small, minimum width=0.6cm, below=0.6cm of m1] (ms1) {SVD};
-\node[small, minimum width=0.6cm, below=0.6cm of m2] (ms2) {SVD};
-\node[small, minimum width=0.6cm, below=0.6cm of m3] (ms3) {SVD};
-\node[small, minimum width=0.6cm, below=0.6cm of m4] (ms4) {SVD};
-
-\node[small, minimum width=0.6cm, below=0.6cm of ms1] (mw1) {Whiten};
-\node[small, minimum width=0.6cm, below=0.6cm of ms2] (mw2) {Whiten};
-\node[small, minimum width=0.6cm, below=0.6cm of ms3] (mw3) {Whiten};
-\node[small, minimum width=0.6cm, below=0.6cm of ms4] (mw4) {Whiten};
-
-\node[small, minimum width=0.6cm, below=0.6cm of mw1] (mse1) {SENet};
-\node[small, minimum width=0.6cm, below=0.6cm of mw2] (mse2) {SENet};
-\node[small, minimum width=0.6cm, below=0.6cm of mw3] (mse3) {SENet};
-\node[small, minimum width=0.6cm, below=0.6cm of mw4] (mse4) {SENet};
-
-\node[small, minimum width=0.6cm, below=0.6cm of mse1] (ml21) {L2};
-\node[small, minimum width=0.6cm, below=0.6cm of mse2] (ml22) {L2};
-\node[small, minimum width=0.6cm, below=0.6cm of mse3] (ml23) {L2};
-\node[small, minimum width=0.6cm, below=0.6cm of mse4] (ml24) {L2};
-
-% Concat
-\node[proc, minimum width=3cm, below=0.9cm of ml23, xshift=-0.75cm] (mcat) {Concat \& Proj};
-
-% Cross + ID
-\node[feat, fill=idblue, minimum width=0.9cm, left=1.8cm of mcat] (mid) {ID};
-\node[proc, minimum width=3.8cm, minimum height=0.48cm, below=0.65cm of mcat] (mcr) {Cross Net};
-
-% Output
-\node[feat, fill=tfidf!50, minimum width=1.5cm, below=0.65cm of mcr] (mout) {Item Emb};
-
-% Alignment
-\node[proc, fill=align, minimum width=2.5cm, minimum height=0.75cm,
-      below=0.4cm of mout, align=center] (mal) {
-  \scriptsize Multi-View Align\\
-  \tiny $\mathcal{L}_{\text{mv}}$
+% ==================== ③ Align Loss - 分两行避免公式太长 ====================
+\node[align, minimum width=4.5cm, minimum height=1.1cm, align=center] (alignloss) at (3.85, -8.65) {
+  \circled{3} Multi-View Alignment\\[1pt]
+  \scriptsize $\mathcal{L}_{\text{align}} = \sum_v w_v \cdot \text{InfoNCE}(\mathbf{e}^{\text{ID}}, \mathbf{v})$
 };
 
-% Arrows
-\draw[arr] (mraw) -- (mtf);
-\draw[arr] (mraw) -- (m1);
-\draw[arr] (mraw) -- (m2);
-\draw[arr] (mraw) -- (m3);
-\draw[arr] (mraw) -- (m4);
+% Dashed arrows for alignment - 从L2直接连到Align
+\draw[dasharr] (l21.south) -- ++(0,-0.15) -| ([xshift=-1.4cm]alignloss.north);
+\draw[dasharr] (l22.south) -- ++(0,-0.15) -| ([xshift=-0.6cm]alignloss.north);
+\draw[dasharr] (l23.south) -- ++(0,-0.15) -| ([xshift=0.2cm]alignloss.north);
+\draw[dasharr] (l24.south) -- ++(0,-0.15) -| ([xshift=1.0cm]alignloss.north);
+\draw[dasharr] (id.south) |- ([yshift=0.1cm]alignloss.west);
 
-\draw[arr] (mtf) -- (mp0) -- (mw0) -- (mse0) -- (ml20) -- (mcat);
-\draw[arr] (m1) -- (ms1) -- (mw1) -- (mse1) -- (ml21) -- (mcat);
-\draw[arr] (m2) -- (ms2) -- (mw2) -- (mse2) -- (ml22) -- (mcat);
-\draw[arr] (m3) -- (ms3) -- (mw3) -- (mse3) -- (ml23) -- (mcat);
-\draw[arr] (m4) -- (ms4) -- (mw4) -- (mse4) -- (ml24) -- (mcat);
-\draw[arr] (mid) -- (mcr);
-\draw[arr] (mcat) -- (mcr) -- (mout);
-
-% Alignment arrows (分散路径)
-\draw[darr] (ml21.south) -- ++(0,-0.2) -| ([xshift=-0.7cm]mal.north);
-\draw[darr] (ml22.south) -- ++(0,-0.2) -| ([xshift=-0.23cm]mal.north);
-\draw[darr] (ml23.south) -- ++(0,-0.2) -| ([xshift=0.23cm]mal.north);
-\draw[darr] (ml24.south) -- ++(0,-0.2) -| ([xshift=0.7cm]mal.north);
-\draw[darr] (mid.south) |- ([yshift=0.2cm]mal.west);
-
-% Labels
-\node[font=\tiny, text=blue!70, left=0.02cm of mw0] {\textit{ZCA, shared}};
-\node[font=\tiny, text=blue!70, right=0.02cm of mw4] {\textit{ZCA, per-view}};
-
-% Separator
-\draw[line width=0.9pt, gray!30, dashed] (2.8, 1.1) -- (2.8, -9.3);
-
-% Note
-\node[font=\footnotesize, text=gray!70, below left=0.25cm and 0cm of mal] {
-  \textit{Budget: 1$\times$256-d = 4$\times$64-d}
+% Cold-start reweighting note - 放在 Align 框下方
+\node[font=\tiny\sffamily, text=accentorange] at (3.85, -9.5) {
+  + Cold-Start Reweighting ($w_i \propto 1/\text{pop}_i$)
 };
 
-% Stage labels
+% ==================== 阶段标注 ====================
 \begin{scope}[on background layer]
-\node[draw=gray!40, dashed, rounded corners, fit=(stf)(sllm)(sp1)(sp2), 
-      inner sep=0.15cm, fill=gray!5, fill opacity=0.3] (soff) {};
-\node[font=\tiny, text=gray!70, above right=0cm and 0cm of soff.north west] {Offline};
+% Offline区域 - 标签放在左上角
+\node[draw=gray!40, dashed, rounded corners=4pt, 
+      fit=(v1)(v2)(v3)(v4)(tfidf), 
+      inner xsep=6pt, inner ysep=5pt, fill=gray!5] (offbox) {};
+\node[font=\tiny\sffamily, text=gray!60, fill=white, inner sep=1pt, anchor=south west] 
+  at ([xshift=0.1cm, yshift=0.05cm]offbox.north west) {\textit{Offline}};
+% LLM 标注放在括号上方
+\draw[decorate, decoration={brace, amplitude=4pt, raise=1pt}, line width=0.6pt, color=gray!50]
+  (0.5, -0.6) -- (6.0, -0.6);
+\node[font=\tiny\sffamily, text=gray!60] at (3.25, -0.3) {LLM (4 Prompts)};
 
-\node[draw=gray!40, dashed, rounded corners, fit=(mtf)(m1)(m2)(m3)(m4)(mp0)(ms1)(ms2)(ms3)(ms4), 
-      inner sep=0.15cm, fill=gray!5, fill opacity=0.3] (moff) {};
-\node[font=\tiny, text=gray!70, above right=0cm and 0cm of moff.north west] {Offline};
+% Online区域 - 标签放在左上角
+\node[draw=accentblue!30, dashed, rounded corners=4pt,
+      fit=(svd1)(svd2)(svd3)(svd4)(svdt)(l21)(l22)(l23)(l24)(l2t)(concat)(cross)(out),
+      inner xsep=8pt, inner ysep=6pt, fill=accentblue!2] (onbox) {};
+\node[font=\tiny\sffamily, text=accentblue!60, fill=white, inner sep=1pt, anchor=south west]
+  at ([xshift=0.1cm, yshift=0.05cm]onbox.north west) {\textit{Online}};
 \end{scope}
+
+% ==================== 输入箭头 ====================
+\draw[arr] (raw) -- (v1);
+\draw[arr] (raw) -- (v2);
+\draw[arr] (raw) -- (v3);
+\draw[arr] (raw) -- (v4);
+\draw[arr] (raw) -- (tfidf);
+
+% ==================== Embedding Budget 标注 - 放在底部，简洁形式 ====================
+\node[font=\scriptsize\sffamily, text=black!70, anchor=west] at (-0.6, -10.2) {
+  \textbf{Budget:} Single-View 1$\times$256-d = Multi-View 4$\times$64-d \textit{\scriptsize(LLM; +TF-IDF shared)}
+};
 
 \end{tikzpicture}
 \end{document}
