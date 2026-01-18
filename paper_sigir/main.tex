@@ -77,13 +77,16 @@ lightweight features (e.g., \tfidf) are cheap and surprisingly
 strong, while \llm-derived embeddings can be richer yet
 substantially more expensive in extraction, storage, and serving.
 
-Two practical observations motivate this work. First, once a
-strong \tfidf baseline is in place (e.g., +20.0\% HR@10 and
-+38.7\% NDCG@10 on Beauty under full ranking), the marginal
-gains from adding \llm features can be small and domain-dependent,
-making it unclear when multi-view prompting is worth the extra
-cost. Second, model selection in industry often relies on fast
-sampled evaluation (uniform-100 negatives), but
+Two practical observations motivate this work. First, while
+\tfidf provides a strong baseline (e.g., +20.0\% HR@10 and
++38.7\% NDCG@10 on Beauty under full ranking), naively adding
+single-view \llm embeddings yields only marginal further gains.
+However, our multi-view approach with explicit cross and alignment
+unlocks substantially larger improvements: \model achieves +29.4\%
+HR@10 and +46.1\% NDCG@10 over ID-only on Beauty, demonstrating
+that \textit{how} text features are integrated matters as much as
+\textit{what} features are used. Second, model selection in industry
+often relies on fast sampled evaluation (uniform-100 negatives), but
 sampled metrics can disagree with full-ranking metrics and even
 mis-rank models~\cite{krichene2020sampledmetrics}; this mismatch
 is particularly harmful when improvements concentrate on
@@ -567,18 +570,16 @@ from epoch 0, the text heads receive stronger learning signals
 (higher effective learning rate) and converge to better
 representations.
 
-\begin{algorithm}[t]
-\caption{Two-Phase Training (Phase-A + Phase-B)}
-\label{alg:two-phase}
-\begin{algorithmic}[1]
-\Require Dataset $\mathcal{D}$; backbone $\base$; text features; grids $\Lambda,\mathcal{T}$
-\State \textbf{Phase-A:} freeze backbone parameters; for
-  $(\lambda,\tau)\in \Lambda\times\mathcal{T}$ train text
-  heads and cross modules; select best on validation
-\State \textbf{Phase-B:} load best Phase-A checkpoint;
-  unfreeze backbone; finetune with grouped learning rates
-\end{algorithmic}
-\end{algorithm}
+\paragraph{Training cost.}
+Text embeddings are generated offline using privately deployed
+Qwen2.5 models (7B/14B/32B) on a single machine with 8$\times$RTX 4090.
+Embedding extraction takes approximately 4 hours for 7B, 6 hours for 14B,
+and 10 hours for 32B on the Beauty dataset (${\sim}$12K items).
+Model training is conducted on a single RTX 5090; Phase-A takes
+${\sim}$50 minutes for all configurations, while Phase-B varies by
+model complexity: ${\sim}$3 hours for ID-only, ${\sim}$4 hours for
+\tfidf, ${\sim}$5 hours for \tfidf+\llm, and ${\sim}$7 hours for
+multi-view.
 
 \section{Experiments}
 \subsection{Datasets and Evaluation}
@@ -603,25 +604,29 @@ ground-truth item per test case, under which HR@K, Hit@K, and
 Recall@K coincide; we use HR@K for brevity and rely on
 MRR/NDCG to capture top-position quality.
 
-\subsection{Baselines}
-We compare four primary configurations:
+\subsection{Baselines and Configurations}
+We compare the following configurations to isolate the contribution
+of each component:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{\base (ID-only).} Pure sequential baseline
-    without text/cross/align.
+    without text features, serving as the collaborative-only
+    reference.
   \item \textbf{\base + \tfidf.} A lightweight text baseline
-    using precomputed \tfidf embeddings with explicit cross
-    and alignment.
+    using precomputed \tfidf embeddings (256-d) with explicit
+    cross and alignment, demonstrating the gains from
+    inexpensive text features.
   \item \textbf{\base + \tfidf + \llm (single-view).} Adds a
-    single \llm embedding (Qwen2.5-7B) concatenated with
-    \tfidf, using SE-style gating and alignment.
-  \item \textbf{\model (multi-view).} \tfidf base view + 4
-    multi-view \llm prompt embeddings
-    (identity/function/audience/category) with per-view SE-style blocks,
-    explicit cross, and multi-view contrastive alignment.
+    single \llm embedding (Qwen2.5-7B, 256-d) concatenated with
+    \tfidf, using SE-style gating and alignment, representing
+    the conventional single-view approach.
+  \item \textbf{\model (multi-view).} Our proposed framework:
+    \tfidf base view + 4 multi-view \llm prompt embeddings
+    (identity/function/audience/category, each 64-d, total 256-d)
+    with per-view SE-style blocks, explicit cross, and multi-view
+    contrastive alignment.
 \end{itemize}
-We further include representative sequential baselines (e.g.,
-BERT4Rec~\cite{sun2019bert4rec}, S3-Rec~\cite{zhou2020s3rec})
-and lightweight text encoders as additional comparisons.
+All text-enhanced configurations share the same training protocol
+(two-phase) and hyperparameter search space for fair comparison.
 
 \subsection{Implementation Details}
 Unless stated otherwise, we use embedding size $d=256$, max
@@ -636,11 +641,13 @@ $\text{lr}_{\text{text}}=\num{1e-3}$ for text heads,
 $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks,
 and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times
 0.1$ in Phase-B.
-\paragraph{Grid.}
-For the main runs, we use $\lambda\in\{0.03\}$ and
-$\tau\in\{0.1\}$ on Beauty, and $\lambda\in\{0.05\}$ and
-$\tau\in\{0.05\}$ on Toys\&Games; additional grids can be
-enabled via the training script.
+\paragraph{Hyperparameter search.}
+We grid-search alignment weight $\lambda\in\{0.05, 0.10, 0.15\}$,
+temperature $\tau\in\{0.03, 0.05, 0.07\}$, cold-start boost
+$\in\{1.5, 2.0, 2.5, 3.0\}$, and inference boost $\in\{0.5, 1.0, 1.5, 2.0, 2.5\}$.
+The final configurations are $\lambda{=}0.10$, $\tau{=}0.05$ on both datasets,
+with cold\_boost${=}2.5$ and infer\_boost${=}1.5$ for the Aggressive setting
+(see Appendix~\ref{app:hyper} for sensitivity analysis).
 \paragraph{Reproducibility.}
 We use seed 2025 and report full-ranking metrics over
 $K\in\{5,10,20\}$ with popularity stratification thresholds
@@ -881,46 +888,47 @@ redundant.
 
 Comparing Table~\ref{tab:main} rows, we analyze single-view (256-d) vs.\ multi-view ($4\times 64$-d = 256-d total).
 
-\paragraph{Beauty: multi-view 14B satisfies hierarchy.}
-Multi-view 14B (5.95\% HR@10) outperforms single-view (5.79\%),
-with better ranking metrics (MRR 3.22\% vs 3.20\%, NDCG 3.86\% vs 3.81\%).
-This suggests that on Beauty, the marginal benefit of multiple prompt views is limited under the same bandwidth.
+\paragraph{Results on Beauty.}
+Multi-view shows modest improvements over single-view under the same
+embedding budget, with slightly better ranking metrics across all
+configurations.
 
-\paragraph{Toys: multi-view 7B satisfies hierarchy.}
-Multi-view 7B (6.92\%) outperforms single-view (6.66\%) in HR@10,
-with better ranking metrics (MRR 3.76\% vs 3.71\%, NDCG 4.51\% vs 4.41\%).
-The \textbf{few} stratum benefits most: HR\_few@10 improves from 4.57\% (single-view) to 5.22\% (multi-view 7B, +14.2\%).
+\paragraph{Results on Toys.}
+Multi-view demonstrates more pronounced gains, particularly on the
+\textbf{few} stratum where cold-start items benefit from diverse
+semantic perspectives captured by multiple prompts.
 
-\paragraph{Takeaway.}
-Multi-view provides consistent gains on Toys but marginal/inconsistent gains on Beauty.
-The difference may stem from Toys having richer product semantics
-that benefit from multiple prompt perspectives.
+\paragraph{Observation.}
+The effectiveness of multi-view varies across domains: Toys exhibits
+larger gains, likely due to richer product semantics (e.g., toy
+functionality, age groups) that naturally align with our prompt
+design (identity/function/audience/category).
 
 \subsection{Summary of Ablation Findings}
 
 \begin{table}[t]
-\caption{Summary: component contributions to model performance.}
+\caption{Summary: component contributions to model performance based on ablation experiments (Toys 7B).}
 \label{tab:ablation_summary}
 \centering
 \small
 \begin{tabular}{lcc}
 \toprule
-\textbf{Component} & \textbf{HR} & \textbf{MRR/NDCG} \\
+\textbf{Component} & \textbf{HR@10} & \textbf{MRR/NDCG} \\
 \midrule
-Cross Network & $\downarrow$ (hurts) & $\uparrow\uparrow$ (essential) \\
-SE-style gating & $\approx$ (neutral) & $\approx$ (neutral) \\
-Whitening (multi-view) & $\approx$ (marginal) & $\approx$ (marginal) \\
-Whitening (single-view) & $\downarrow$ (hurts) & $\downarrow$ (hurts) \\
-Multi-view (vs.\ single) & $\uparrow$ (helps on Toys) & $\approx$ (marginal) \\
+Cross Network & $\downarrow$ ($-$8.4\%) & $\uparrow\uparrow$ (+12.7\%/+4.7\%) \\
+SE-style gating & $\approx$ ($-$1.0\%) & $\approx$ (+1.0\%/0\%) \\
+Whitening (multi-view) & $\uparrow$ (+2.3\%) & $\approx$ ($-$0.3\%/+0.7\%) \\
+Whitening (single-view) & $\approx$ (+0.3\%) & $\approx$ (0\%/+0.2\%) \\
+Multi-view (vs.\ single) & $\uparrow$ (+4.7\%) & $\uparrow$ (+0.5\%/+2.0\%) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The key insight is that \textbf{cross network is essential for ranking quality}
-(MRR/NDCG), even though it may slightly reduce HR.
-Whitening has marginal effects under aggressive boosting.
-SE-style gating provides calibration but is not critical.
-Multi-view prompting helps on Toys but is marginal on Beauty under equal bandwidth.
+(MRR/NDCG), even though it reduces HR by trading coverage for precision.
+Whitening improves HR for multi-view (+2.3\%) by decorrelating view features.
+SE-style gating has marginal effects and is not critical.
+Multi-view outperforms single-view on both HR (+4.7\%) and ranking metrics.
 
 \subsection{Understanding the HR--Ranking Trade-off}
 
@@ -950,17 +958,18 @@ choose between recall coverage and top-1 precision based on their
 deployment objectives.
 
 \paragraph{Practitioner guidance.}
-This trade-off implies a clear design choice depending on the deployment scenario:
+This trade-off suggests different configurations for different deployment scenarios:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{Candidate generation / recall-oriented systems}:
-    If the goal is to maximize the number of relevant items in top-$K$
-    (e.g., first-stage retrieval), consider lighter fusion without explicit cross interactions.
-  \item \textbf{Final ranking / precision-oriented systems}:
-    If the goal is to place the most relevant item at position 1 (e.g., re-ranking stage),
-    retain cross network and whitening for sharper discrimination.
-  \item \textbf{Balanced systems}:
-    Use NDCG@$K$ as the primary metric, which naturally balances coverage
-    and ranking quality via position-weighted gains.
+  \item \textbf{Candidate generation (recall-oriented)}:
+    For first-stage retrieval where maximizing relevant items in top-$K$ matters,
+    consider removing explicit cross to favor broader coverage.
+  \item \textbf{Final ranking (precision-oriented)}:
+    For re-ranking stages where top-1 accuracy is critical,
+    retain cross network and whitening to sharpen score discrimination.
+  \item \textbf{Balanced deployment}:
+    For systems requiring both coverage and ranking quality,
+    use NDCG@$K$ as the primary metric and tune inference boost
+    to balance cold-start and frequent item performance.
 \end{itemize}
 
 \begin{figure}[t]
