@@ -30,6 +30,7 @@ python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_base_stratified.yaml" \
+   --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \

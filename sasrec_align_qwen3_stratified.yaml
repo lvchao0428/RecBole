@@ -10,7 +10,7 @@ inner_size: 256
 hidden_act: gelu
 layer_norm_eps: 1e-12
 initializer_range: 0.02
-gpu_id: "4"
+gpu_id: "0"
 
 # Dataset
 dataset: Amazon_Beauty
@@ -58,13 +58,13 @@ loss_type: CE
 train_neg_sample_args: null
 
 # Text features (TF-IDF + Qwen3) with SENet and Gates
-item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+#item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
 #item_text_emb_path_base: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.base.center_only.npy
-#item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
-item_text_emb_path_llm: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
+item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+  #item_text_emb_path_llm: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
 #item_text_emb_path_llm: /home/ubuntu/own/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.center_only.npy
 #item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy
-#item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
+item_text_emb_path_llm: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy
 use_llm: true
 use_align: true
 use_cross: true

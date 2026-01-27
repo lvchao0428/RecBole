@@ -52,6 +52,7 @@ python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Toys_and_Games \
   --config_files "sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
@@ -72,7 +73,6 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --config_dict "{'cold_start_align_boost': 2.0, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.0}" \
   --checkpoint_dir ./saved/phase_runs_multiview_v2_toys_stratified_final \
   --seed 2025 \
   --variant_features "sasrec,multiview_v2,7b,toys,stratified,final" \
