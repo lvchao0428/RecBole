@@ -147,7 +147,9 @@ GPU_ID=7 nohup bash experiments/exp_ablation_toys_nowhiten_standard.sh > nowhite
 #   - 数据: 都是 HR@10=6.67%, 说明其中一个实验失败
 #
 # 📋 需要重新运行:
-GPU_ID=x nohup bash experiments/exp_ablation_toys_nocross_aggressive.sh > ablation_toys_nocross_agg_v2.log 2>&1 &
+GPU_ID=x nohup bash experiments/exp_ablation_toys_nocross_aggressive.sh > ablation_toys_nocross_agg_v2.log 2>&1 & DONE
+GPU_ID=0 nohup bash experiments/exp_ablation_beauty_nocross.sh > ablation_beauty_nocross.log 2>&1 & DONE
+GPU_ID=1 nohup bash toy_train/two_phase_run_tfidf_llm_toys_stratified_nosenet.sh > two_phase_run_tfidf_llm_toys_stratified_nosenet.log 2>&1 & DONE
 # 配置: MV-7B Toys, Aggressive (cold=2.5, infer=1.5), use_cross=False
 # 状态: 📋 待创建脚本并执行
 #
