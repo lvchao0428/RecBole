@@ -30,7 +30,7 @@ python scripts/two_phase_train.py \
   --model SASRec_Align \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_base_stratified.yaml" \
-   --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
+  --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
@@ -51,7 +51,7 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_stratified \
+  --checkpoint_dir ./saved/two_phase_run_tfidf_stratified \
   --seed 2025 \
   --variant_features "sasrec,tfidf,beauty,stratified" \
   --watchdog_disable \

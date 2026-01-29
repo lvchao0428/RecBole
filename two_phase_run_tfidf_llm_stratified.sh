@@ -59,7 +59,7 @@ python scripts/two_phase_train.py \
   --phase_a_auto_to_b \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_stratified \
+  --checkpoint_dir ./saved/two_phase_run_tfidf_llm_stratified \
   --seed 2025 \
   --variant_features "sasrec,tfidf,llm,beauty,stratified" \
   --watchdog_disable \
