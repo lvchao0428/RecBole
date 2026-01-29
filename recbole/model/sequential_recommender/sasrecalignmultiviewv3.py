@@ -21,7 +21,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from recbole.model.sequential_recommender.sasrec_align_v3 import SASRecAlignV3
+from recbole.model.sequential_recommender.sasrecalignv3 import SASRecAlignV3
 
 
 class SASRecAlignMultiViewV3(SASRecAlignV3):
@@ -137,7 +137,7 @@ class SASRecAlignMultiViewV3(SASRecAlignV3):
             fusion_input_dim = self.hidden_size + self.hidden_size
             
             if self.use_cross:
-                from recbole.model.sequential_recommender.sasrec_align_v3 import DCNV2Cross
+                from recbole.model.sequential_recommender.sasrecalignv3 import DCNV2Cross
                 from recbole.model.layers import MLPLayers
 
                 if self.use_multiview_text_cross:
