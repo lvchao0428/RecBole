@@ -1,5 +1,5 @@
 ---
-# SASRecAlignV3 with TF-IDF baseline + Stratified Evaluation
+# SASRecAlignV3 with TF-IDF baseline + Stratified Evaluation (Toys Dataset)
 # V3 简化版权重配置
 
 model: SASRecAlignV3
@@ -12,8 +12,8 @@ layer_norm_eps: 1e-12
 initializer_range: 0.02
 gpu_id: "0"
 
-# Dataset
-dataset: Amazon_Beauty
+# Dataset (Amazon_Toys_and_Games)
+dataset: Amazon_Toys_and_Games
 field_separator: "\t"
 seq_separator: " "
 USER_ID_FIELD: user_id
@@ -28,7 +28,7 @@ MAX_ITEM_LIST_LENGTH: 50
 POSITION_FIELD: position_id
 load_col:
   inter: [user_id, item_id, rating, timestamp]
-  item: [item_id]
+  item: [item_id, title, categories]
 
 # Training / Evaluation
 epochs: 50
@@ -65,7 +65,7 @@ cold_threshold: 10
 # =========================================
 
 # Text features (TF-IDF baseline)
-item_text_emb_path_base: /home/charlie/project/RecBole/dataset/Amazon_Beauty/item_text_emb.base.npy
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
 item_text_emb_path_llm: ""
 use_llm: false
 use_align: true

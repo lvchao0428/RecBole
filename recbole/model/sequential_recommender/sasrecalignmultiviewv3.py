@@ -45,19 +45,19 @@ class SASRecAlignMultiViewV3(SASRecAlignV3):
         super().__init__(config, dataset)
 
         # Multi-View 特有配置
-        self.use_text_view_split = bool(config.get("use_text_view_split", False))
-        self.use_multiview_text_cross = bool(config.get("use_multiview_text_cross", False))
+        self.use_text_view_split = bool(config["use_text_view_split"]) if "use_text_view_split" in config else False
+        self.use_multiview_text_cross = bool(config["use_multiview_text_cross"]) if "use_multiview_text_cross" in config else False
         
-        if config.get("item_text_emb_split_dir"):
+        if "item_text_emb_split_dir" in config and config["item_text_emb_split_dir"]:
             self.text_view_split_dir = os.path.abspath(os.path.expanduser(config["item_text_emb_split_dir"]))
         else:
             self.text_view_split_dir = None
 
         # SENet 和归一化配置
-        self.text_view_senet_ratio = int(config.get("text_view_senet_ratio", 2))
-        self.use_text_view_senet = bool(config.get("use_text_view_senet", True))
-        self.per_view_l2_norm = bool(config.get("per_view_l2_norm", True))
-        self.text_view_half_precision = bool(config.get("text_view_half_precision", True))
+        self.text_view_senet_ratio = int(config["text_view_senet_ratio"]) if "text_view_senet_ratio" in config else 2
+        self.use_text_view_senet = bool(config["use_text_view_senet"]) if "use_text_view_senet" in config else True
+        self.per_view_l2_norm = bool(config["per_view_l2_norm"]) if "per_view_l2_norm" in config else True
+        self.text_view_half_precision = bool(config["text_view_half_precision"]) if "text_view_half_precision" in config else True
         self.text_view_storage_dtype = torch.float16 if self.text_view_half_precision else torch.float32
 
         # 初始化多视图模块

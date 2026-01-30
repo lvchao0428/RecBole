@@ -39,7 +39,6 @@ python scripts/two_phase_train.py \
   --model SASRecAlignV3 \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_qwen3_stratified_v3.yaml" \
-  #--config_dict "{'align_weight': 0.1, 'cold_text_boost': 2.5, 'infer_boost': 1.5, 'cold_threshold': 10}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \

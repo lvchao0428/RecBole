@@ -102,10 +102,10 @@ class SASRecAlignV3(SequentialRecommender):
         self.dropout = nn.Dropout(self.hidden_dropout_prob)
 
         # additional regularization / scoring configs
-        self.label_smoothing = float(config.get("label_smoothing", 0.0))
-        self.cosine_score = bool(config.get("cosine_score", False))
-        self.cosine_scale = float(config.get("cosine_scale", 10.0))
-        self.token_dropout_prob = float(config.get("token_dropout_prob", 0.0))
+        self.label_smoothing = float(config["label_smoothing"]) if "label_smoothing" in config else 0.0
+        self.cosine_score = bool(config["cosine_score"]) if "cosine_score" in config else False
+        self.cosine_scale = float(config["cosine_scale"]) if "cosine_scale" in config else 10.0
+        self.token_dropout_prob = float(config["token_dropout_prob"]) if "token_dropout_prob" in config else 0.0
 
         if self.loss_type == "BPR":
             self.loss_fct = BPRLoss()
@@ -119,43 +119,43 @@ class SASRecAlignV3(SequentialRecommender):
 
         # ============ V3 简化权重配置 ============
         # 三个核心权重控制参数
-        self.align_weight = float(config.get("align_weight", 0.1))  # 全局对齐权重
-        self.cold_text_boost = float(config.get("cold_text_boost", 0.0))  # 冷启动训练增强（0=关闭，建议2.0-5.0）
-        self.infer_boost = float(config.get("infer_boost", 0.0))  # 推理时冷启动增强（0=关闭，建议0.5-2.0）
-        self.cold_threshold = int(config.get("cold_threshold", 10))  # 冷启动阈值
+        self.align_weight = float(config["align_weight"]) if "align_weight" in config else 0.1
+        self.cold_text_boost = float(config["cold_text_boost"]) if "cold_text_boost" in config else 0.0
+        self.infer_boost = float(config["infer_boost"]) if "infer_boost" in config else 0.0
+        self.cold_threshold = int(config["cold_threshold"]) if "cold_threshold" in config else 10
         # =========================================
         
         # 保留的必要参数
-        self.temperature = float(config.get("temperature", 0.07))
-        self.text_weight = float(config.get("text_weight", 1.0))
-        self.normalize_text = bool(config.get("normalize_text", True))
-        self.detach_text_emb = bool(config.get("detach_text_emb", True))
-        self.use_llm = bool(config.get("use_llm", False))
-        self.use_cross = bool(config.get("use_cross", False))
-        self.use_align = bool(config.get("use_align", True))
-        self.text_cross_layer_num = int(config.get("text_cross_layer_num", 3))
-        self.cross_dropout_prob = float(config.get("cross_dropout_prob", 0.0))
-        self.text_gate_init = float(config.get("text_gate_init", 0.5))
+        self.temperature = float(config["temperature"]) if "temperature" in config else 0.07
+        self.text_weight = float(config["text_weight"]) if "text_weight" in config else 1.0
+        self.normalize_text = bool(config["normalize_text"]) if "normalize_text" in config else True
+        self.detach_text_emb = bool(config["detach_text_emb"]) if "detach_text_emb" in config else True
+        self.use_llm = bool(config["use_llm"]) if "use_llm" in config else False
+        self.use_cross = bool(config["use_cross"]) if "use_cross" in config else False
+        self.use_align = bool(config["use_align"]) if "use_align" in config else True
+        self.text_cross_layer_num = int(config["text_cross_layer_num"]) if "text_cross_layer_num" in config else 3
+        self.cross_dropout_prob = float(config["cross_dropout_prob"]) if "cross_dropout_prob" in config else 0.0
+        self.text_gate_init = float(config["text_gate_init"]) if "text_gate_init" in config else 0.5
         
         # learnable global gate alpha in [0,1] via sigmoid
         self.text_gate_param = nn.Parameter(torch.tensor(self.text_gate_init, dtype=torch.float32))
         
         # Explicit switch to fully disable text features and mimic pure SASRec
-        self.disable_text_feature = bool(config.get("disable_text_feature", False))
-        self.freeze_backbone = bool(config.get("freeze_backbone", False))
+        self.disable_text_feature = bool(config["disable_text_feature"]) if "disable_text_feature" in config else False
+        self.freeze_backbone = bool(config["freeze_backbone"]) if "freeze_backbone" in config else False
         
         # Text fusion settings
-        self.fuse_text_feature = bool(config.get("fuse_text_feature", True))
-        self.text_mlp_bn = bool(config.get("text_mlp_bn", False))
-        self.text_proj_norm_flag = bool(config.get("text_proj_norm", True))
-        self.fused_item_norm_flag = bool(config.get("fused_item_norm", True))
-        self.fusion_chunk_size = int(config.get("fusion_chunk_size", 0))
+        self.fuse_text_feature = bool(config["fuse_text_feature"]) if "fuse_text_feature" in config else True
+        self.text_mlp_bn = bool(config["text_mlp_bn"]) if "text_mlp_bn" in config else False
+        self.text_proj_norm_flag = bool(config["text_proj_norm"]) if "text_proj_norm" in config else True
+        self.fused_item_norm_flag = bool(config["fused_item_norm"]) if "fused_item_norm" in config else True
+        self.fusion_chunk_size = int(config["fusion_chunk_size"]) if "fusion_chunk_size" in config else 0
         
         # Load text embeddings
-        item_text_emb_path_base = config.get("item_text_emb_path_base", None)
-        item_text_emb_path_llm = config.get("item_text_emb_path_llm", None)
+        item_text_emb_path_base = config["item_text_emb_path_base"] if "item_text_emb_path_base" in config else None
+        item_text_emb_path_llm = config["item_text_emb_path_llm"] if "item_text_emb_path_llm" in config else None
         if item_text_emb_path_base is None and item_text_emb_path_llm is None:
-            item_text_emb_path_base = config.get("item_text_emb_path", None)
+            item_text_emb_path_base = config["item_text_emb_path"] if "item_text_emb_path" in config else None
 
         if self.disable_text_feature:
             emb_base = None
