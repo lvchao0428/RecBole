@@ -321,7 +321,8 @@ class SASRecAlignMultiViewV3(SASRecAlignV3):
         effective_text_weight = alpha * self.text_weight
 
         # 推理增强：给冷启动商品更强的文本信号
-        if self.infer_boost > 0 and item_ids is not None:
+        # 注意：只在推理时（self.training == False）应用，避免影响训练
+        if self.infer_boost > 0 and item_ids is not None and not self.training:
             cold_factor = self._compute_cold_weights(item_ids)
             cold_boost = 1.0 + self.infer_boost * cold_factor
             cold_boost = cold_boost.unsqueeze(1).to(effective_text_weight.device if hasattr(effective_text_weight, 'device') else item_emb.device)

@@ -224,6 +224,11 @@ def main():
     # Add gpu_id to config
     user_config_dict["gpu_id"] = args.gpu_id
     
+    # Override metrics to use only standard metrics (avoid ItemPopularityStats registration issue)
+    # ItemPopularityStats and some stratified metrics require special data registration
+    # that is only available during normal training flow
+    user_config_dict["metrics"] = ["Recall", "MRR", "NDCG", "Hit", "Precision"]
+    
     # Build config
     config = Config(
         model=args.model,
