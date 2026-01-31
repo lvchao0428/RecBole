@@ -6,10 +6,10 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 # ==========================================
 # 配置区域
 # ==========================================
-CHECKPOINT="./saved/phase_runs_tfidf_v3_toys_stratified/SASRecAlignV3-Amazon_Toys_and_Games-Jan25-2026.pth"
+CHECKPOINT="./saved/two_phase_run_tfidf_v3_toys_stratified/SASRecAlignV3-Jan-30-2026_03-36-03.pth"
 MODEL="SASRecAlignV3"
 DATASET="Amazon_Toys_and_Games"
-CONFIG_FILES="sasrec_align_tfidf_v3_toys_stratified.yaml"
+CONFIG_FILES="sasrec_align_toys_base_stratified_v3.yaml"
 INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
 VALID_METRIC="MRR@10"
 VARIANT_LABEL="tfidf_v3_toys"

@@ -6,7 +6,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 # ==========================================
 # 配置区域
 # ==========================================
-CHECKPOINT="./saved/phase_runs_multiview_v3_stratified_14b/SASRecAlignMultiViewV3-Amazon_Beauty-Jan25-2026.pth"
+CHECKPOINT="./saved/two_phase_run_multiview_v3_stratified_14b/SASRecAlignMultiViewV3-Jan-29-2026_23-30-37.pth"
 MODEL="SASRecAlignMultiViewV3"
 DATASET="Amazon_Beauty"
 CONFIG_FILES="sasrec_align_multi_view_v3_stratified_14b.yaml"

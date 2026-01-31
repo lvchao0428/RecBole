@@ -16,7 +16,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
 # Checkpoint 路径（需要修改为实际路径）
 # 查找命令: ls -lht saved/phase_runs_multiview_v3_stratified/*.pth
-CHECKPOINT="./saved/phase_runs_multiview_v3_stratified/SASRecAlignMultiViewV3-Amazon_Beauty-Jan25-2026.pth"
+CHECKPOINT="./saved/phase_runs_multiview_v3_stratified/SASRecAlignMultiViewV3-Jan-29-2026_18-35-38.pth"
 
 # 模型和数据集
 MODEL="SASRecAlignMultiViewV3"

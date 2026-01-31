@@ -6,10 +6,10 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 # ==========================================
 # 配置区域
 # ==========================================
-CHECKPOINT="./saved/phase_runs_tfidf_llm_v3_stratified/SASRecAlignV3-Amazon_Beauty-Jan25-2026.pth"
+CHECKPOINT="./saved/phase_runs_v3_stratified/SASRecAlignV3-Jan-29-2026_15-46-34.pth"
 MODEL="SASRecAlignV3"
 DATASET="Amazon_Beauty"
-CONFIG_FILES="sasrec_align_tfidf_llm_v3_stratified.yaml"
+CONFIG_FILES="sasrec_align_qwen3_stratified_v3.yaml"
 INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
 VALID_METRIC="MRR@10"
 VARIANT_LABEL="tfidf_llm_v3_beauty"
