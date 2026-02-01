@@ -224,10 +224,12 @@ def main():
     # Add gpu_id to config
     user_config_dict["gpu_id"] = args.gpu_id
     
-    # Override metrics to use only standard metrics (avoid ItemPopularityStats registration issue)
-    # ItemPopularityStats and some stratified metrics require special data registration
-    # that is only available during normal training flow
-    user_config_dict["metrics"] = ["Recall", "MRR", "NDCG", "Hit", "Precision"]
+    # Include stratified metrics for new/few/frequent analysis
+    # Note: We manually call data_collect() to register data.count_items
+    user_config_dict["metrics"] = [
+        "Recall", "MRR", "NDCG", "Hit", "Precision",
+        "StratifiedRecall", "StratifiedNDCG", "StratifiedMRR", "StratifiedHit"
+    ]
     
     # Build config
     config = Config(
@@ -263,6 +265,11 @@ def main():
     
     # Create trainer (for evaluation only)
     trainer = get_trainer(config["MODEL_TYPE"], config["model"])(config, model)
+    
+    # IMPORTANT: Register data.count_items for stratified metrics
+    # This is normally done in trainer.fit(), but we skip training
+    trainer.eval_collector.data_collect(train_data)
+    logger.info("Registered data.count_items for stratified metrics")
     
     # ========== Phase 1: Coarse sweep on validation set ==========
     logger.info("")
@@ -400,6 +407,17 @@ def main():
     test_metric = lookup_metric(args.valid_metric, test_result)
     if test_metric:
         logger.info(f"  Test {args.valid_metric}: {test_metric:.6f}")
+    
+    # Print stratified metrics
+    logger.info("")
+    logger.info(set_color("[Stratified Test Metrics]", "cyan"))
+    stratified_keys = ["Recall_new@10", "Recall_few@10", "Recall_frequent@10",
+                       "NDCG_new@10", "NDCG_few@10", "NDCG_frequent@10",
+                       "MRR_new@10", "MRR_few@10", "MRR_frequent@10"]
+    for key in stratified_keys:
+        val = lookup_metric(key, test_result)
+        if val is not None:
+            logger.info(f"  {key}: {val:.6f}")
     logger.info("=" * 60)
 
 
