@@ -10,7 +10,8 @@ CHECKPOINT="./saved/two_phase_run_tfidf_llm_v3_toys_stratified/SASRecAlignV3-Jan
 MODEL="SASRecAlignV3"
 DATASET="Amazon_Toys_and_Games"
 CONFIG_FILES="sasrec_align_toys_qwen3_stratified_v3.yaml"
-INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
+#INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
+INFER_BOOST_GRID="1.5"
 VALID_METRIC="MRR@10"
 VARIANT_LABEL="tfidf_llm_v3_toys"
 GPU_ID=${GPU_ID:-0}
@@ -36,6 +37,7 @@ python scripts/infer_boost_sweep.py \
   --infer_boost_grid "$INFER_BOOST_GRID" \
   --valid_metric "$VALID_METRIC" \
   --variant_label "$VARIANT_LABEL" \
+   --skip_fine_sweep "true" \
   --gpu_id "$GPU_ID"
 
 echo "✅ Done!"

@@ -40,6 +40,7 @@ python scripts/two_phase_train.py \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_qwen3_stratified_v3.yaml" \
   --gpu_id $GPU_ID \
+  --config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.0, 'cold_threshold': 3}"
   --phase_a_grid \
   --align_grid "0.10" \
   --tau_grid "0.05" \

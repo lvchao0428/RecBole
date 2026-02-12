@@ -24,7 +24,6 @@ echo "run toy tfidf + llm"
 nohup sh two_phase_run_tfidf_llm_toys_stratified.sh > two_phase_run_tfidf_llm_toys_stratified.log 2>&1 
 echo "run toy tfidf + llm end"
 
-
 echo "run toy multi-view 7b"
 nohup sh two_phase_run_multiview_v2_toys_stratified_7b.sh > two_phase_run_multiview_v2_toys_stratified_7b.log 2>&
 echo "run toy multi-view 7b end"
