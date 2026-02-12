@@ -1,0 +1,96 @@
+\section{Experiments}
+\subsection{Datasets and Evaluation}
+We evaluate on two Amazon product review domains~\cite{mcauley2015amazon,ni2019amazon}: \textbf{Beauty} and
+\textbf{Toys\&Games}. We follow time-ordered splits and
+report metrics under \textbf{full ranking} at $K\in\{5,10,20\}$.
+In addition to overall metrics (HR, NDCG, MRR, Precision),
+we report \textbf{popularity-stratified} metrics by item
+interaction counts:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{new}: $[1,3)$ interactions
+  \item \textbf{few}: $[3,10)$ interactions
+  \item \textbf{frequent}: $[10,\infty)$ interactions
+\end{itemize}
+We compute popularity strata from item interaction counts in
+the training data. We focus on full-ranking metrics in the
+main paper and omit uni100-style sampled metrics for clarity
+and reliability; Appendix~\ref{app:sampled} provides a sanity
+check comparing sampled vs.\ full ranking. Our evaluation
+follows leave-one-out next-item prediction with a single
+ground-truth item per test case, under which HR@K, Hit@K, and
+Recall@K coincide; we use HR@K for brevity and rely on
+MRR/NDCG to capture top-position quality.
+
+\subsection{Baselines}
+We compare four primary configurations:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{\base (ID-only).} Pure sequential baseline
+    without text/cross/align.
+  \item \textbf{\base + \tfidf.} A lightweight text baseline
+    using precomputed \tfidf embeddings with explicit cross
+    and alignment.
+  \item \textbf{\base + \tfidf + \llm (single-view).} Adds a
+    single \llm embedding (Qwen2.5-7B~\cite{qwen2024qwen25}) concatenated with
+    \tfidf, using SE-style gating and alignment.
+  \item \textbf{\model (multi-view).} \tfidf base view + 4
+    multi-view \llm prompt embeddings
+    (identity/function/audience/category) with per-view SE-style blocks,
+    explicit cross, and multi-view contrastive alignment.
+\end{itemize}
+We further include representative sequential baselines (e.g.,
+BERT4Rec~\cite{sun2019bert4rec}, S3-Rec~\cite{zhou2020s3rec})
+and lightweight text encoders as additional comparisons.
+
+\subsection{Implementation Details}
+Unless stated otherwise, we use embedding size $d=256$, max
+sequence length $L=50$, 2 Transformer layers with 2 heads,
+batch size 512, and Adam with base learning rate $10^{-4}$.
+\paragraph{Two-phase schedule.}
+We follow Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($50$
+epochs) with Phase-A selecting $(\lambda,\tau)$ on
+\texttt{MRR@10} for Beauty and \texttt{HR@10} for Toys\&Games.
+We use grouped learning rates:
+$\text{lr}_{\text{text}}=\num{1e-3}$ for text heads,
+$\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks,
+and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times
+0.1$ in Phase-B.
+\paragraph{Grid.}
+For the main runs, we use the Aggressive configuration:
+$\lambda=0.10$ and $\tau=0.05$ on both datasets
+(see Table~\ref{tab:hyper_config} for complete hyperparameter
+settings including cold-start boosting); additional grids can
+be enabled via the training script.
+\paragraph{Reproducibility.}
+We use seed 2025 and report full-ranking metrics over
+$K\in\{5,10,20\}$ with popularity stratification thresholds
+\texttt{new}:[1,3), \texttt{few}:[3,10),
+\texttt{frequent}:[10,$\infty$). Our implementation is based on
+RecBole~\cite{zhao2021recbole}; all exact settings are
+reproducible from the provided YAML configs and run scripts
+in the repository.
+
+\paragraph{Parameter counts.}
+Table~\ref{tab:params} shows the actual trainable parameter
+counts on Amazon Beauty ($|I|=12,102$, $d=256$, $d_t=256$,
+$d_l=1024$, $V=4$, $d_v=1024$).
+The multi-view model adds only modest overhead (${\sim}6$M
+params) over the single-view baseline, while the \llm
+embeddings themselves are precomputed offline and stored as
+static buffers (not counted as trainable parameters).
+
+\begin{table}[h]
+\caption{Trainable parameter counts (Amazon Beauty).}
+\label{tab:params}
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Model} & \textbf{\#Params} & \textbf{Overhead} \\
+\midrule
+\base (ID-only) & ${\sim}3.5$M & --- \\
+\base + \tfidf & ${\sim}4.5$M & +1.0M \\
+\base + \tfidf + \llm & ${\sim}5.3$M & +1.8M \\
+\model (multi-view) & ${\sim}11.5$M & +8.0M \\
+\bottomrule
+\end{tabular}
+\end{table}

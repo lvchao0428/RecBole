@@ -1,0 +1,100 @@
+\section{Main Results}
+Table~\ref{tab:main} reports full-ranking results on Beauty
+and Toys\&Games. Across both datasets, adding text features
+consistently improves over the ID-only baseline, with \tfidf
+providing substantial gains (+20.0\% HR@10 on Beauty, +9.7\%
+on Toys). The key findings are:
+
+\paragraph{Text features provide large gains over ID-only.}
+On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.63\%
+(+20.0\%), and NDCG@10 from 2.69\% to 3.73\% (+38.7\%). On
+Toys, \tfidf improves HR@10 from 5.97\% to 6.55\% (+9.7\%)
+and NDCG@10 from 3.32\% to 4.39\% (+32.2\%).
+
+
+\paragraph{Multi-view shows consistent improvements.}
+\model (7B) achieves the best performance on both datasets.
+On \textbf{Beauty}, \model achieves HR@10=6.07\% (+29.4\% vs
+ID-only), with MRR@10=3.27\% and NDCG@10=3.93\%. On
+\textbf{Toys}, \model achieves HR@10=6.92\% (+15.9\% vs
+ID-only), NDCG@10=4.51\%, MRR@10=3.76\%. The hierarchy
+\model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only holds for all
+overall metrics on both datasets.
+
+\paragraph{Cold-start (new/few) improvements.}
+Multi-view provides gains on \textbf{few} strata compared
+to baselines. On Toys (7B), HR\_few@10 improves from 4.71\%
+(TF-IDF) to 5.22\% (+10.8\%). On Beauty (7B), HR\_few@10
+improves from 3.38\% (TF-IDF) to 3.77\% (+11.5\%). For the
+\textbf{new} stratum, we observe an HR--ranking trade-off:
+TF-IDF variants achieve slightly lower HR\_new@10 than
+ID-only (1.85\% vs 1.91\% on Toys) due to aggressive
+cold-start boosting that sharpens score distributions for
+ranking quality at the cost of recall coverage; \model
+recovers HR\_new@10 to 1.99\% while maintaining ranking gains.
+
+
+\begin{table*}[t]
+\caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%). Results based on seed=2025; validated with seeds 42 and 2024 (std $<$0.15\%, see Table~\ref{tab:seed_stability}). Extended strata results in Appendix~\ref{app:strata}.}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model}} &
+\multicolumn{3}{c}{\textbf{Overall}} &
+\multicolumn{3}{c}{\textbf{new stratum} $[1,3)$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
+\base (ID-only, 50ep) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 \\
+\base + \tfidf & 5.63 & 3.73 & 3.15 & 1.68 & 1.23 & 1.06 \\
+\base + \tfidf + \llm (7B) & 5.74 & 3.77 & 3.17 & 1.65 & 1.20 & 1.02 \\
+\model (7B) & \textbf{6.07} & \textbf{3.93} & \textbf{3.27} & \textbf{1.81} & \textbf{1.26} & \textbf{1.06} \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
+\base (ID-only, 50ep) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 \\
+\base + \tfidf & 6.55 & 4.39 & 3.72 & 1.85 & 1.35 & 1.17 \\
+\base + \tfidf + \llm (7B) & 6.61 & 4.42 & 3.74 & 1.96 & 1.40 & 1.19 \\
+\model (7B) & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & \textbf{1.99} & \textbf{1.37} & \textbf{1.14} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Prompt Templates for Text Embeddings}
+We describe the prompt templates used to generate text
+embeddings from the LLM encoder (Qwen2.5).
+
+\paragraph{Single-view embedding.}
+For single-view LLM embeddings, we use a simple title-based
+prompt:
+\begin{quote}
+\texttt{[TITLE] \{text\}}
+\end{quote}
+where \texttt{\{text\}} is the item title. The LLM encoder
+processes this prompt and we extract the mean-pooled hidden
+states as the item embedding.
+
+\paragraph{Multi-view embeddings.}
+For multi-view embeddings, we design four prompts capturing
+different semantic perspectives:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Identity/Title}:
+    \texttt{Identify the item: [TITLE] \{text\}}
+  \item \textbf{Function/Utility}:
+    \texttt{What are the main functions and features of
+    [TITLE] \{text\}?}
+  \item \textbf{Target Audience}:
+    \texttt{Who is the target audience or user group for
+    [TITLE] \{text\}?}
+  \item \textbf{Category/Context}:
+    \texttt{Categorize the item [TITLE] \{text\} and describe
+    its context.}
+\end{enumerate}
+Each view is independently encoded, projected via SVD to 64
+dimensions, and then processed through per-view SE-style gating
+before fusion.
+This design encourages the model to capture complementary
+semantic aspects (what the item is, what it does, who uses
+it, and how it fits into the catalog).

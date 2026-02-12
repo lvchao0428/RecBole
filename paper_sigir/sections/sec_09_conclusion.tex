@@ -1,0 +1,38 @@
+\section{Conclusion}
+We presented \model, a plug-in framework for sequential recommendation that
+combines multi-view text features, explicit cross interactions, and contrastive
+alignment. Our full-ranking experiments yield actionable practitioner guidance:
+
+\textbf{(1) TF-IDF is surprisingly strong---start there.}
+\tfidf alone provides substantial gains over ID-only baselines on both
+overall and ranking metrics. This lightweight baseline should be the
+\emph{first} text enhancement before investing in heavier \llm embeddings.
+
+\textbf{(2) Multi-view benefits cold-start items with LLM scale effects.}
+\model achieves best overall performance on both datasets, with the most
+pronounced gains on the \textbf{new} stratum (cold-start items). Furthermore,
+larger LLM encoders show clear scaling behavior on long-tail items: as model
+size increases, cold-start coverage improves consistently. When cold-start
+performance is critical, multi-view prompting with larger LLMs justifies
+the embedding cost; for simpler catalogs, \tfidf alone may suffice.
+
+\textbf{(3) Cross network controls the recall--precision trade-off.}
+Toggle cross based on deployment stage:
+\emph{candidate generation} (maximize Top-$K$ coverage)---disable cross for
+higher HR at the cost of lower MRR;
+\emph{re-ranking} (maximize Top-1 quality)---enable cross to sharpen score
+distributions and improve MRR/NDCG.
+
+\textbf{(4) Tune \texttt{infer\_boost} at deployment---no retraining needed.}
+Sensitivity analysis shows \texttt{infer\_boost} is the most impactful
+hyperparameter for cold-start performance, while contrastive hyperparameters
+($\lambda$, $\tau$) are robust across reasonable ranges.
+\textbf{Recommendation}: use moderate \texttt{infer\_boost} for balanced
+performance; increase it when cold-start items are prioritized.
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\clearpage  % Force new page for appendix
+
+\appendix

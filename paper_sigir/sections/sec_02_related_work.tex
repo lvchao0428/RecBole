@@ -1,0 +1,76 @@
+\section{Related Work}
+\paragraph{Sequential recommendation.}
+Transformer-based sequential models such as
+\base~\cite{kang2018sasrec} and BERT4Rec~\cite{sun2019bert4rec}
+(which adopts bidirectional masked prediction) are strong backbones for
+capturing user behavior patterns.
+GRU4Rec~\cite{hidasi2015gru4rec} pioneered RNN-based session
+modeling, while SASRec introduced self-attention for next-item
+prediction with causal masking. Recent efficient variants
+include LightSANs~\cite{fan2021lightsans} with low-rank
+attention decomposition for reduced complexity.
+
+\paragraph{Text-enhanced recommendation.}
+Item text features (from bag-of-words, neural encoders, or
+\llm embeddings) provide complementary signals beyond
+collaborative filtering. Early work used TF-IDF and
+Item2Vec~\cite{barkan2016item2vec} for item representation;
+CDL~\cite{wang2015cdl} jointly modeled text via stacked
+denoising autoencoders. Recent approaches leverage pretrained
+language models: UniSRec~\cite{hou2022unisrec} uses
+BERT-encoded item text as universal transferable
+representations, while VQ-Rec~\cite{hou2023vqrec} bridges
+language and collaborative semantics via vector quantization.
+Large language models have further expanded this line:
+P5~\cite{geng2022p5} unifies recommendation in a text-to-text
+paradigm, and TALLRec~\cite{bao2023tallrec} aligns LLMs with
+recommendation via instruction tuning. However, these methods
+typically encode item text with a single prompt or
+representation; our work explores \emph{multi-view} \llm
+embeddings via diverse prompt perspectives
+(identity/function/audience/category) with explicit fusion and
+alignment, and we show when this added complexity is justified
+versus simpler alternatives.
+
+\paragraph{Feature interaction and cross networks.}
+Deep \& Cross Network (DCN)~\cite{wang2017dcn} and its
+successor DCN-V2~\cite{wang2021dcnv2} explicitly model feature
+crosses, complementing implicit interactions learned by DNNs.
+Squeeze-and-Excitation Networks (SENet)~\cite{hu2018senet}
+introduced channel-wise attention for adaptive feature
+recalibration; FiBiNET~\cite{huang2019fibinet} adapted SENet
+for CTR prediction with bilinear feature interactions. In
+recommendation, cross networks have shown effectiveness in CTR
+prediction; we adapt them for ID-text fusion in sequential
+settings, and use SE-style blocks for per-view channel gating of \llm
+features.
+
+\paragraph{Multi-view learning in recommendation.}
+Multi-view learning leverages complementary information from
+different feature sources or modalities. Inspired by
+CLIP~\cite{radford2021clip}, which aligns visual and textual
+representations via contrastive learning, we design multi-view
+prompts to elicit diverse semantics from language models. In
+recommendation, multi-view approaches have been explored for
+session-based settings~\cite{wang2023kgmvgnn} using
+knowledge-enhanced graph neural networks. Our work applies
+multi-view learning to \llm text embeddings, using different
+prompt perspectives (identity, function, audience, category)
+and whitening to decorrelate view representations before
+fusion.
+
+\paragraph{Contrastive learning in recommendation.}
+Contrastive objectives such as \InfoNCE~\cite{oord2018cpc}
+have been widely adopted for self-supervised representation
+learning. In recommendation, contrastive methods align
+user/item representations across views~\cite{wu2021cl4rec}.
+We extend this to multi-view text-to-ID alignment with
+cold-start reweighting.
+
+\paragraph{Evaluation protocols.}
+Sampled evaluation can mislead model
+selection~\cite{krichene2020sampledmetrics}; full-ranking
+evaluation provides more reliable comparisons but is
+computationally expensive. We adopt full ranking with
+stratified analysis to understand model behavior across
+popularity strata.
