@@ -59,7 +59,7 @@ train_neg_sample_args: null
 
 # ============ V3 简化权重配置 ============
 align_weight: 0.1
-cold_text_boost: 0.0
+cold_text_boost: 3.0
 infer_boost: 0.0
 cold_threshold: 10
 # =========================================
