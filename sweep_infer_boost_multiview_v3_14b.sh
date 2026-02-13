@@ -11,7 +11,7 @@ MODEL="SASRecAlignMultiViewV3"
 DATASET="Amazon_Beauty"
 CONFIG_FILES="sasrec_align_multi_view_v3_stratified_14b.yaml"
 #INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
-INFER_BOOST_GRID="1.5"
+INFER_BOOST_GRID="0.6"
 VALID_METRIC="MRR_new@10"
 VARIANT_LABEL="multiview_v3_14b_beauty"
 GPU_ID=${GPU_ID:-0}
@@ -37,7 +37,7 @@ python scripts/infer_boost_sweep.py \
   --infer_boost_grid "$INFER_BOOST_GRID" \
   --valid_metric "$VALID_METRIC" \
   --variant_label "$VARIANT_LABEL" \
-   --skip_fine_sweep "true" \
+   --skip_fine_sweep \
   --gpu_id "$GPU_ID"
 
 echo "✅ Done!"

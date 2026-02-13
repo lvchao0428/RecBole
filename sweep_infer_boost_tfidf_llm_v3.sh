@@ -6,13 +6,12 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 # ==========================================
 # 配置区域
 # ==========================================
-CHECKPOINT="./saved/phase_runs_v3_stratified/SASRecAlignV3-Jan-29-2026_15-46-34.pth
-"
+CHECKPOINT="./saved/phase_runs_v3_stratified/SASRecAlignV3-Jan-29-2026_15-46-34.pth"
 MODEL="SASRecAlignV3"
 DATASET="Amazon_Beauty"
 CONFIG_FILES="sasrec_align_qwen3_stratified_v3.yaml"
 #INFER_BOOST_GRID="0.0,0.5,0.8,1.0,1.2,1.5,2.0"
-INFER_BOOST_GRID="1.5"
+INFER_BOOST_GRID="0.6"
 VALID_METRIC="MRR@10"
 VARIANT_LABEL="tfidf_llm_v3_beauty"
 GPU_ID=${GPU_ID:-0}
@@ -37,7 +36,7 @@ python scripts/infer_boost_sweep.py \
   --checkpoint "$CHECKPOINT" \
   --infer_boost_grid "$INFER_BOOST_GRID" \
   --valid_metric "$VALID_METRIC" \
-   --skip_fine_sweep "true" \
+   --skip_fine_sweep \
   --variant_label "$VARIANT_LABEL" \
   --gpu_id "$GPU_ID"
 
