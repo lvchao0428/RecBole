@@ -49,7 +49,7 @@ python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV3 \
   --dataset Amazon_Beauty \
   --config_files "sasrec_align_multi_view_v3_stratified.yaml" \
-  --config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.0, 'cold_threshold': 3}" \
+  --config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
   --gpu_id $GPU_ID \
   --phase_a_grid \
   --align_grid "0.10" \
@@ -67,7 +67,7 @@ python scripts/two_phase_train.py \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_multiview_v3_stratified \
-  --seed 2025 \
+  --seed 42 \
   --variant_features "sasrec,multiview_v3,7b,4views,beauty,stratified" \
   --watchdog_disable \
   --save

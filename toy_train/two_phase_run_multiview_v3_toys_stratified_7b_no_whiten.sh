@@ -13,10 +13,9 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-#base_dir='/home/charlie/project/RecBole'
-base_dir='/home/ubuntu/own/RecBole/'
+base_dir='/home/charlie/project/RecBole'
 cd ${base_dir}
-yaml_dir='/home/ubuntu/own/RecBole/toy_train'
+yaml_dir='/home/charlie/project/RecBole/toy_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
@@ -42,7 +41,7 @@ echo ""
 python scripts/two_phase_train.py \
   --model SASRecAlignMultiViewV2 \
   --dataset Amazon_Toys_and_Games \
-  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_toys_stratified_7b_nosenet_nocross.yaml" \
+  --config_files "${yaml_dir}/sasrec_align_multi_view_v3_toys_stratified_7b_no_whiten.yaml" \
   --config_dict "{'cold_start_align_boost': 2.5, 'cold_start_align_threshold': 10, 'inference_cold_text_boost': 1.5}" \
   --phase_a_grid \
   --gpu_id $GPU_ID \

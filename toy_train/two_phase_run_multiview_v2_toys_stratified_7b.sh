@@ -13,7 +13,7 @@
 # 5. alignment_weight: 0.15 (从0.05提升到0.15，3x)
 # ============================================================
 
-base_dir='/home/ubuntu/own/RecBole'
+base_dir='/home/charlie/project/RecBole'
 cd ${base_dir}
 yaml_dir='/home/ubuntu/own/RecBole/toy_train'
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
@@ -38,33 +38,30 @@ echo "  - frequent: [10, +∞) interactions"
 echo ""
 
 python scripts/two_phase_train.py \
-  --model SASRecAlignMultiViewV2 \
-  --dataset Amazon_Toys_and_Games \
-  --config_files "${yaml_dir}/sasrec_align_multi_view_v2_toys_stratified_7b.yaml" \
-  --phase_a_grid \
-  --align_grid "0.08" \
-  --tau_grid "0.05" \
-  --backbone_burnin_epochs 10 \
-  --burnin_eval_step 2 \
-  --phase_a_epochs 20 \
-  --phase_a_eval_step 1 \
-  --phase_a_valid_metric "MRR@10" \
-  --metric_baseline 0.0272 \
-  --metric_gain_threshold 0.01 \
-  --lr_text_head 2e-3 \
-  --lr_dnn_cross 5e-4 \
-  --phase_a_text_gate_reg_l2 0.01 \
-  --phase_b_alignment_weight 0.15 \
-  --phase_b_text_gate_reg_l2 0.03 \
-  --phase_b_text_weight 1.0 \
-  --phase_a_auto_to_b \
-  --phase_b_epochs 40 \
-  --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_multiview_v2_toys_stratified \
-  --seed 2025 \
-  --variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,align_scale_2x,toys,stratified" \
-  --watchdog_disable \
-  --save
+--model SASRecAlignMultiViewV3 \
+--dataset Amazon_Toys_and_Games \
+--config_files "${yaml_dir}/sasrec_align_multi_view_v3_toys_stratified_7b.yaml" \
+--config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
+--phase_a_grid \
+--align_grid "0.10" \
+--tau_grid "0.05" \
+--backbone_burnin_epochs 0 \
+--burnin_eval_step 2 \
+--phase_a_epochs 20 \
+--phase_a_eval_step 1 \
+--phase_a_valid_metric "MRR@10" \
+--metric_baseline 0.0272 \
+--metric_gain_threshold 0.01 \
+--lr_text_head 2e-3 \
+--lr_dnn_cross 5e-4 \
+--phase_a_auto_to_b \
+--phase_b_epochs 40 \
+--backbone_lr_scale 0.1 \
+--checkpoint_dir ./saved/phase_runs_multiview_v3_toys_stratified_7b \
+--seed 2025 \
+--variant_features "sasrec,multiview_v2,7b,4views,per_view_l2_norm,align_scale_2x,toys,stratified" \
+--watchdog_disable \
+--save
 
 echo ""
 echo "========================================="

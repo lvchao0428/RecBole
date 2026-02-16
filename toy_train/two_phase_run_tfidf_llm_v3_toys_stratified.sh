@@ -1,31 +1,30 @@
 #!/usr/bin/env bash
-#set -euo pipefail
-
-# Two-phase TF-IDF+LLM with Stratified Evaluation (Toys Dataset)
-# 按交互次数分档评估：new [1,3), few [3,10), frequent [10,+inf)
+# Two-phase TF-IDF+LLM V3 with Stratified Evaluation (Toys)
 
 base_dir='/home/charlie/project/RecBole'
 cd ${base_dir}
 yaml_dir='/home/charlie/project/RecBole/toy_train'
+
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 GPU_ID=${GPU_ID:-0}
+echo "Using GPU: $GPU_ID"
+
 echo "========================================="
-echo "TF-IDF+LLM with Stratified Metrics (Toys)"
+echo "TF-IDF+LLM V3 with Stratified Metrics (Toys)"
 echo "========================================="
+echo "Model: SASRecAlignV3"
 echo "Dataset: Amazon_Toys_and_Games"
-echo "Item Stratification:"
-echo "  - new:      [1, 3)   interactions"
-echo "  - few:      [3, 10)  interactions"
-echo "  - frequent: [10, +∞) interactions"
+echo "V3 Simplified Weights: align_weight, cold_text_boost, infer_boost"
 echo ""
 
 python scripts/two_phase_train.py \
 --model SASRecAlignV3 \
 --dataset Amazon_Toys_and_Games \
---config_files "${yaml_dir}/sasrec_align_toys_qwen3_stratified_no_whiten.yaml" \
+--config_files "${yaml_dir}/sasrec_align_toys_qwen3_stratified_v3.yaml" \
 --config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
+--gpu_id $GPU_ID \
 --phase_a_grid \
 --align_grid "0.10" \
 --tau_grid "0.05" \
@@ -48,6 +47,6 @@ python scripts/two_phase_train.py \
 --save
 
 echo ""
-echo "✅ Training Done! Stratified metrics available in results."
-echo ""
-
+echo "========================================="
+echo "✅ Training Done!"
+echo "========================================="
