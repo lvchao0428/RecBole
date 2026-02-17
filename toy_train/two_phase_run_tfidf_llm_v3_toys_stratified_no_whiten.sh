@@ -22,7 +22,7 @@ echo ""
 python scripts/two_phase_train.py \
 --model SASRecAlignV3 \
 --dataset Amazon_Toys_and_Games \
---config_files "${yaml_dir}/sasrec_align_toys_qwen3_stratified_v3_no_whiten.yaml" \
+--config_files "${yaml_dir}/sasrec_align_toys_qwen3_stratified_v3.yaml" \
 --config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
 --gpu_id $GPU_ID \
 --phase_a_grid \
