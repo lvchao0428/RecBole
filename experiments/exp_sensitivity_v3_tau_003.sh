@@ -41,7 +41,7 @@ python scripts/two_phase_train.py \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/sensitivity_v3_tau_003 \
-  --seed 42 \
+  --seed 2025 \
   --variant_features "sasrec,multiview_v3,7b,toys,tau_003" \
   --watchdog_disable \
   --save
