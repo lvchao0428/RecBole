@@ -31,6 +31,7 @@ for SEED in $SEEDS; do
         --model SASRecAlign \
         --dataset Amazon_Toys_and_Games \
         --config_files "sasrec_baseline_50ep_toys_stratified.yaml" \
+        --config_dict "{'freeze_backbone': False}" \
         --gpu_id $GPU_ID \
         --phase_a_epochs 50 \
         --phase_a_eval_step 5 \
