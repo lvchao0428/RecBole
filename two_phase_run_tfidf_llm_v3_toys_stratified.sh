@@ -37,7 +37,7 @@ python scripts/two_phase_train.py \
 	--phase_b_epochs 40 \
 	--backbone_lr_scale 0.1 \
 	--checkpoint_dir ./saved/two_phase_run_tfidf_llm_v3_toys_stratified \
-	--seed 42 \
+	--seed 2025 \
 	--variant_features "sasrec,tfidf,llm,v3,toys,stratified" \
 	--watchdog_disable \
 	--save

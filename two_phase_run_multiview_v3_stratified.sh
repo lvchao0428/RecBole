@@ -67,7 +67,7 @@ python scripts/two_phase_train.py \
   --phase_b_epochs 40 \
   --backbone_lr_scale 0.1 \
   --checkpoint_dir ./saved/phase_runs_multiview_v3_stratified \
-  --seed 42 \
+  --seed 2025 \
   --variant_features "sasrec,multiview_v3,7b,4views,beauty,stratified" \
   --watchdog_disable \
   --save

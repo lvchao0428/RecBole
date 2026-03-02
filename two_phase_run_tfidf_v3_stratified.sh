@@ -36,7 +36,7 @@ python scripts/two_phase_train.py \
     --phase_b_epochs 40 \
     --backbone_lr_scale 0.1 \
     --checkpoint_dir ./saved/two_phase_run_tfidf_v3_stratified \
-    --seed 42 \
+    --seed 2025 \
     --variant_features "sasrec,tfidf,v3,beauty,stratified" \
     --watchdog_disable \
     --save
