@@ -91,6 +91,20 @@ def sanitize_wrappers(text: str) -> str:
     return sanitized
 
 
+def repair_soft_wrapped_text(text: str) -> str:
+    """
+    Repair text pasted from wrapped terminals where long tokens are split by newlines,
+    e.g. "ndc\\ng@20" or "frequ\\nent@10".
+
+    This keeps the original parsing flow intact and only merges clearly broken tokens.
+    """
+    repaired = text.replace("\r\n", "\n")
+    # Merge hard-wrap newlines inside alnum-ish tokens.
+    repaired = re.sub(r"(?<=[A-Za-z0-9_@.])\n(?=[A-Za-z0-9_@.])", "", repaired)
+    # Keep JSON/Python dict whitespace valid everywhere else.
+    return repaired
+
+
 def looks_like_metric_mapping(candidate) -> bool:
     if not isinstance(candidate, dict):
         return False
@@ -176,11 +190,12 @@ def regex_parse_kv(text: str) -> Tuple[List[str], List[str]]:
     """
     # This matches keys in single or double quotes, followed by colon, then captures
     # a simple value up to the next comma or closing brace.
-    pattern = re.compile(r"""(['"])(.*?)\1\s*:\s*([^,}]+)""")
+    pattern = re.compile(r"""(['"])([\s\S]*?)\1\s*:\s*([^,}]+)""", re.DOTALL)
     keys: List[str] = []
     vals: List[str] = []
     for m in pattern.finditer(text):
-        keys.append(m.group(2))
+        key = m.group(2).replace("\n", "").replace("\r", "").strip()
+        keys.append(key)
         vals.append(m.group(3).strip())
     if not keys:
         raise ValueError("Could not parse any key/value pairs.")
@@ -260,16 +275,17 @@ def main(argv: Iterable[str] | None = None) -> int:
     raw_text = read_all_input(args)
     dict_like = extract_braced_substring(raw_text)
     sanitized = sanitize_wrappers(dict_like)
+    repaired = repair_soft_wrapped_text(sanitized)
 
-    mapping = try_literal_eval_dict(sanitized)
+    mapping = try_literal_eval_dict(repaired)
     if mapping is None:
         # Try OrderedDict with list-of-tuples format
-        od_result = try_parse_ordereddict_tuple_list(sanitized)
+        od_result = try_parse_ordereddict_tuple_list(repaired)
         if od_result is not None:
             keys, raw_vals = od_result
         else:
             # Fallback: regex parse of dict-like "'key': value" pairs
-            keys, raw_vals = regex_parse_kv(sanitized)
+            keys, raw_vals = regex_parse_kv(repaired)
         values = [format_value_for_csv(coerce_to_number(v)) for v in raw_vals]
     else:
         metric_mapping = select_metric_mapping(mapping, args.dict_paths)
