@@ -6,7 +6,7 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 GPU_ID=${GPU_ID:-0}
-SEEDS=${SEEDS:-"2025 2024 42"}
+SEEDS=${SEEDS:-"2026 2023 2025 2024 42"}
 
 echo "========================================="
 echo "SASRec Baseline (50ep) with Stratified Metrics"
