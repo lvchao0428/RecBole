@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 """
-plot_sensitivity.py - Generate sensitivity analysis visualization for the paper
+plot_sensitivity.py - Generate sensitivity analysis figures for the paper.
 
-This script creates a 2x2 subplot figure showing the effect of hyperparameter 
-variations on key metrics (HR@10, NDCG@10, MRR@10, HR_new@10).
-
-Usage:
-    python paper_sigir/scripts/plot_sensitivity.py
-
-Output:
-    paper_sigir/figures/sensitivity.pdf
-    paper_sigir/figures/sensitivity.png
+The sensitivity plot now reads raw experiment results directly from
+`paper_sigir/sentitivity` and extracts four hyperparameter groups:
+alignment weight, cold_text_boost, infer boost, and temperature.
 """
 
+import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 from pathlib import Path
+import re
 
 # Set publication-quality style
 plt.style.use('seaborn-v0_8-whitegrid')
@@ -29,51 +25,40 @@ mpl.rcParams['legend.fontsize'] = 9
 mpl.rcParams['xtick.labelsize'] = 9
 mpl.rcParams['ytick.labelsize'] = 9
 
-# Sensitivity analysis data from 0111.csv experiments
-# Baseline: λ=0.10, τ=0.05, cold=2.5, infer=1.5
-# All values in percentage (%)
+DEFAULT_DATA_FILE = Path(__file__).parent.parent / 'sentitivity'
 
-data = {
+PARAMETER_CONFIG = {
     'lambda': {
         'param': r'$\lambda$ (Alignment Weight)',
-        'values': [0.05, 0.10, 0.15],
         'x_label': r'$\lambda$',
-        'HR@10': [6.82, 6.92, 6.93],
-        'NDCG@10': [4.45, 4.51, 4.48],
-        'MRR@10': [3.72, 3.76, 3.72],
-        'HR_new@10': [1.98, 1.99, 2.04],
-        'baseline_idx': 1,
-    },
-    'tau': {
-        'param': r'$\tau$ (Temperature)',
-        'values': [0.03, 0.05, 0.10],
-        'x_label': r'$\tau$',
-        'HR@10': [6.94, 6.92, 6.90],
-        'NDCG@10': [4.50, 4.51, 4.50],
-        'MRR@10': [3.75, 3.76, 3.76],
-        'HR_new@10': [2.01, 1.99, 2.01],
-        'baseline_idx': 1,
+        'baseline_value': 0.10,
+        'pattern': re.compile(r'\+\s*align\s*([0-9.]+)', re.IGNORECASE),
     },
     'cold_boost': {
         'param': 'Cold-start Boost',
-        'values': [1.5, 2.5, 3.0],
-        'x_label': 'cold_boost',
-        'HR@10': [6.90, 6.92, 6.89],
-        'NDCG@10': [4.46, 4.51, 4.47],
-        'MRR@10': [3.71, 3.76, 3.72],
-        'HR_new@10': [1.95, 1.99, 2.02],
-        'baseline_idx': 1,
+        'x_label': 'cold_text_boost',
+        'baseline_value': 3.0,
+        'pattern': re.compile(r'\+\s*cold_text_boost\s*([0-9.]+)', re.IGNORECASE),
     },
     'infer_boost': {
         'param': 'Inference Boost',
-        'values': [0.5, 1.0, 1.5],  # 1.0 pending, will use interpolation
         'x_label': 'infer_boost',
-        'HR@10': [6.70, None, 6.92],  # None = pending experiment
-        'NDCG@10': [4.40, None, 4.51],
-        'MRR@10': [3.69, None, 3.76],
-        'HR_new@10': [1.95, None, 1.99],
-        'baseline_idx': 2,
+        'baseline_value': 0.6,
+        'pattern': re.compile(r'\+\s*infer\s*boost\s*([0-9.]+)', re.IGNORECASE),
     },
+    'tau': {
+        'param': r'$\tau$ (Temperature)',
+        'x_label': r'$\tau$',
+        'baseline_value': 0.05,
+        'pattern': re.compile(r'\+\s*temperature\s*([0-9.]+)', re.IGNORECASE),
+    },
+}
+
+METRIC_COLUMNS = {
+    'HR@10': 'hit@10',
+    'NDCG@10': 'ndcg@10',
+    'MRR@10': 'mrr@10',
+    'HR_new@10': 'Hit_new@10',
 }
 
 # Colors for different metrics
@@ -91,33 +76,115 @@ markers = {
     'HR_new@10': 'D',
 }
 
-def interpolate_missing(values):
-    """Linear interpolation for missing values."""
-    values = list(values)
-    for i, v in enumerate(values):
-        if v is None:
-            # Find nearest non-None values
-            left = right = None
-            for j in range(i-1, -1, -1):
-                if values[j] is not None:
-                    left = (j, values[j])
-                    break
-            for j in range(i+1, len(values)):
-                if values[j] is not None:
-                    right = (j, values[j])
-                    break
-            if left and right:
-                # Linear interpolation
-                values[i] = left[1] + (right[1] - left[1]) * (i - left[0]) / (right[0] - left[0])
-            elif left:
-                values[i] = left[1]
-            elif right:
-                values[i] = right[1]
-    return values
+def _get_header_indices(header_tokens):
+    """Build first-occurrence index map for header columns."""
+    idx_map = {}
+    for idx, col_name in enumerate(header_tokens):
+        col_name = col_name.strip()
+        if col_name and col_name not in idx_map:
+            idx_map[col_name] = idx
+    return idx_map
 
 
-def create_sensitivity_plot():
-    """Create 2x2 sensitivity analysis plot."""
+def _match_parameter(row_name):
+    """Match row name to a sensitivity hyperparameter group."""
+    for param_key, config in PARAMETER_CONFIG.items():
+        matched = config['pattern'].search(row_name)
+        if matched:
+            return param_key, float(matched.group(1))
+    return None, None
+
+
+def _format_tick_labels(values):
+    """Format x ticks to compact decimal text."""
+    labels = []
+    for v in values:
+        if float(v).is_integer():
+            labels.append(str(int(v)))
+        else:
+            labels.append(f'{v:.2f}'.rstrip('0').rstrip('.'))
+    return labels
+
+
+def load_sensitivity_data(data_file=DEFAULT_DATA_FILE):
+    """
+    Parse raw sensitivity file and return plotting-ready data.
+
+    Returns:
+        dict: keyed by parameter group (`lambda`, `tau`, `cold_boost`, `infer_boost`).
+    """
+    lines = Path(data_file).read_text(encoding='utf-8').splitlines()
+    header_tokens = None
+
+    for line in lines:
+        if '训练脚本' in line and 'hit@10' in line and 'Hit_new@10' in line:
+            header_tokens = [token.strip() for token in line.split('\t')]
+            break
+
+    if header_tokens is None:
+        raise ValueError(f'Cannot find valid header row in {data_file}')
+
+    header_idx = _get_header_indices(header_tokens)
+    required_cols = list(METRIC_COLUMNS.values())
+    missing_cols = [col for col in required_cols if col not in header_idx]
+    if missing_cols:
+        raise ValueError(f'Missing metric columns in {data_file}: {missing_cols}')
+
+    grouped_points = {param_key: [] for param_key in PARAMETER_CONFIG}
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or not stripped.startswith('multi-view'):
+            continue
+
+        tokens = [token.strip() for token in line.split('\t')]
+        row_name = tokens[0]
+        param_key, param_value = _match_parameter(row_name)
+        if param_key is None:
+            continue
+
+        metric_values = {}
+        try:
+            for metric_name, col_name in METRIC_COLUMNS.items():
+                col_idx = header_idx[col_name]
+                metric_values[metric_name] = float(tokens[col_idx]) * 100.0
+        except (IndexError, ValueError):
+            continue
+
+        grouped_points[param_key].append((param_value, metric_values))
+
+    plot_data = {}
+    for param_key, config in PARAMETER_CONFIG.items():
+        points = sorted(grouped_points[param_key], key=lambda item: item[0])
+        if not points:
+            continue
+
+        x_values = [p[0] for p in points]
+        metric_series = {
+            metric_name: [p[1][metric_name] for p in points]
+            for metric_name in METRIC_COLUMNS
+        }
+
+        baseline_value = config['baseline_value']
+        baseline_idx = next(
+            (i for i, value in enumerate(x_values) if abs(value - baseline_value) < 1e-9),
+            int(np.argmin(np.abs(np.array(x_values) - baseline_value))),
+        )
+
+        plot_data[param_key] = {
+            'param': config['param'],
+            'x_label': config['x_label'],
+            'values': x_values,
+            'baseline_idx': baseline_idx,
+            **metric_series,
+        }
+
+    return plot_data
+
+
+def create_sensitivity_plot(data_file=DEFAULT_DATA_FILE, show=False):
+    """Create 2x2 sensitivity analysis plot from raw sensitivity data file."""
+    data = load_sensitivity_data(data_file)
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
     axes = axes.flatten()
     
@@ -130,16 +197,16 @@ def create_sensitivity_plot():
         baseline_idx = param_data['baseline_idx']
         
         # Plot each metric
-        for metric in ['HR@10', 'MRR@10', 'HR_new@10']:
-            y = interpolate_missing(param_data[metric])
-            line, = ax.plot(x, y, 
-                           marker=markers[metric], 
-                           color=colors[metric],
-                           linewidth=2,
-                           markersize=8,
-                           label=metric,
-                           markeredgecolor='white',
-                           markeredgewidth=1.5)
+        for metric in ['HR@10', 'NDCG@10', 'MRR@10', 'HR_new@10']:
+            y = param_data[metric]
+            ax.plot(x, y,
+                    marker=markers[metric],
+                    color=colors[metric],
+                    linewidth=2,
+                    markersize=8,
+                    label=metric,
+                    markeredgecolor='white',
+                    markeredgewidth=1.5)
             
             # Mark baseline point
             ax.scatter([x[baseline_idx]], [y[baseline_idx]], 
@@ -152,6 +219,7 @@ def create_sensitivity_plot():
         
         # Set x-axis ticks
         ax.set_xticks(x)
+        ax.set_xticklabels(_format_tick_labels(x))
         
         # Grid styling
         ax.grid(True, alpha=0.3, linestyle='--')
@@ -161,9 +229,9 @@ def create_sensitivity_plot():
         if ax_idx == 0:
             ax.legend(loc='upper left', framealpha=0.9, edgecolor='gray')
     
-    # Add note about infer_boost interpolation
+    # Add note for data source and baseline marker
     fig.text(0.5, 0.01, 
-             'Note: infer=1.0 point in (d) is interpolated; baseline configuration circled',
+             f'Raw data source: {Path(data_file).name}; baseline configuration circled',
              ha='center', fontsize=9, style='italic', color='gray')
     
     plt.tight_layout(rect=[0, 0.03, 1, 0.97])
@@ -177,7 +245,10 @@ def create_sensitivity_plot():
     print(f"✅ Saved: {output_dir / 'sensitivity.pdf'}")
     print(f"✅ Saved: {output_dir / 'sensitivity.png'}")
     
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
     return fig
 
 
@@ -279,19 +350,39 @@ def create_trade_off_plot():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate paper figures.')
+    parser.add_argument(
+        '--data-file',
+        type=str,
+        default=str(DEFAULT_DATA_FILE),
+        help='Path to sensitivity raw data file (default: paper_sigir/sentitivity).',
+    )
+    parser.add_argument(
+        '--show',
+        action='store_true',
+        help='Display figures interactively.',
+    )
+    parser.add_argument(
+        '--all',
+        action='store_true',
+        help='Also generate legacy scale-law and trade-off figures.',
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("Generating Sensitivity Analysis Figures")
     print("=" * 60)
-    
+
     print("\n1. Creating sensitivity analysis plot...")
-    create_sensitivity_plot()
-    
-    print("\n2. Creating Scale Law verification plot...")
-    create_scale_law_plot()
-    
-    print("\n3. Creating HR-MRR trade-off plot...")
-    create_trade_off_plot()
-    
+    create_sensitivity_plot(data_file=args.data_file, show=args.show)
+
+    if args.all:
+        print("\n2. Creating Scale Law verification plot...")
+        create_scale_law_plot()
+
+        print("\n3. Creating HR-MRR trade-off plot...")
+        create_trade_off_plot()
+
     print("\n" + "=" * 60)
-    print("✅ All figures generated successfully!")
+    print("✅ Figure generation completed!")
     print("=" * 60)
