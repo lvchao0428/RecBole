@@ -35,7 +35,7 @@ recovers HR\_new@10 to 1.99\% while maintaining ranking gains.
 
 
 \begin{table*}[t]
-\caption{Main results under full ranking. Best results per dataset in \textbf{bold}. All values are percentages (\%). Results based on seed=2025; validated with seeds 42 and 2024 (std $<$0.15\%, see Table~\ref{tab:seed_stability}). Extended strata results in Appendix~\ref{app:strata}.}
+\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}; $^{**}$/$^{*}$ denotes paired $t$-test significance at $p<0.01$/$p<0.05$ vs.\ the strongest baseline (TF-IDF+LLM). All values are percentages (\%). Extended strata results in Appendix~\ref{app:strata}.}
 \label{tab:main}
 \centering
 \small
@@ -48,10 +48,10 @@ recovers HR\_new@10 to 1.99\% while maintaining ranking gains.
 & HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only, 50ep) & 4.69 & 2.69 & 2.07 & 1.71 & 1.01 & 0.79 \\
-\base + \tfidf & 5.63 & 3.73 & 3.15 & 1.68 & 1.23 & 1.06 \\
-\base + \tfidf + \llm (7B) & 5.74 & 3.77 & 3.17 & 1.65 & 1.20 & 1.02 \\
-\model (7B) & \textbf{6.07} & \textbf{3.93} & \textbf{3.27} & \textbf{1.81} & \textbf{1.26} & \textbf{1.06} \\
+\base (ID-only, 50ep) & 5.42$\pm$0.21 & 2.93$\pm$0.05 & 2.14$\pm$0.01 & 1.88$\pm$0.03 & 1.05$\pm$0.02 & 0.78$\pm$0.02 \\
+\base + \tfidf & 5.56$\pm$0.03 & 3.69$\pm$0.02 & 3.11$\pm$0.01 & 1.63$\pm$0.02 & 1.21$\pm$0.03 & 1.08$\pm$0.03 \\
+\base + \tfidf + \llm (7B) & 5.62$\pm$0.03 & 3.73$\pm$0.02 & 3.15$\pm$0.01 & 1.64$\pm$0.03 & 1.24$\pm$0.02 & 1.11$\pm$0.02 \\
+\model (7B) & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
 \base (ID-only, 50ep) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 \\
