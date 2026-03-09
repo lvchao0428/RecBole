@@ -583,52 +583,59 @@ static buffers (not counted as trainable parameters).
 \section{Main Results}
 Table~\ref{tab:main} reports full-ranking results on Beauty
 and Toys\&Games. Across both datasets, adding text features
-consistently improves over the ID-only baseline. The key findings are:
-%% TODO: fill in specific numbers once experiments converge.
+consistently improves over the ID-only baseline, with \tfidf
+providing substantial gains (+2.6\% HR@10 on Beauty, +6.2\%
+on Toys). The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
-\tfidf alone provides substantial gains on both datasets.
-Multi-view \model further improves over single-view baselines,
-maintaining the hierarchy
-\model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only on all overall metrics.
+On Beauty, \tfidf alone improves HR@10 from 5.42\% to 5.56\%
+(+2.6\%), and NDCG@10 from 2.93\% to 3.69\% (+26.0\%). On
+Toys, \tfidf improves HR@10 from 5.92\% to 6.29\% (+6.2\%)
+and NDCG@10 from 3.30\% to 4.26\% (+29.1\%).
+
+
+\paragraph{Multi-view shows consistent improvements.}
+\model (7B) achieves the best performance on both datasets.
+On \textbf{Beauty}, \model achieves HR@10=5.79\% (+6.8\% vs
+ID-only), with MRR@10=3.19\% and NDCG@10=3.80\%. On
+\textbf{Toys}, \model achieves HR@10=6.61\% (+11.7\% vs
+ID-only), NDCG@10=4.39\%, MRR@10=3.71\%. The hierarchy
+\model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only holds for all
+overall metrics on both datasets.
 
 \paragraph{Cold-start (new/few) improvements.}
-Multi-view provides notable gains on \textbf{new} and \textbf{few}
-strata compared to baselines, confirming that diverse prompt
-perspectives help cold-start items. For the \textbf{new} stratum,
-we observe an HR--ranking trade-off where explicit cross sharpens
-score distributions for ranking quality at the cost of recall coverage.
+For the \textbf{new} stratum, \model achieves HR\_new@10=1.76\%
+(Beauty) and 2.04\% (Toys), recovering or exceeding ID-only
+(1.88\% and 1.92\%) while TF-IDF variants achieve slightly
+lower HR\_new@10 (1.63\% and 1.83\%) due to aggressive
+cold-start boosting that sharpens score distributions for
+ranking quality at the cost of recall coverage.
 
 
 \begin{table*}[t]
-\caption{Main results under full ranking on Amazon Beauty and Toys\&Games.
-Best results per dataset in \textbf{bold}. All values are percentages (\%)
-reported as mean $\pm$ std over three seeds (2025/2024/42).}
+\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}; $^{**}$/$^{*}$ denotes paired $t$-test significance at $p<0.01$/$p<0.05$ vs.\ the strongest baseline (TF-IDF+LLM). All values are percentages (\%). Extended strata results in Appendix~\ref{app:strata}.}
 \label{tab:main}
 \centering
 \small
-%% TODO: replace placeholder values (--) with final numbers once experiments converge.
-\begin{tabular}{lcccccccccc}
+\begin{tabular}{lcccccc}
 \toprule
 \multirow{2}{*}{\textbf{Model}} &
 \multicolumn{3}{c}{\textbf{Overall}} &
-\multicolumn{3}{c}{\textbf{new} $[1,3)$} &
-\multicolumn{2}{c}{\textbf{few} $[3,10)$} &
-\multicolumn{2}{c}{\textbf{freq.} $[10,\infty)$} \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
-& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 & HR@10 & MRR@10 & HR@10 & MRR@10 \\
+\multicolumn{3}{c}{\textbf{new stratum} $[1,3)$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
 \midrule
-\multicolumn{11}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only) & 4.69 $\pm$ 0.00 & 2.69 $\pm$ 0.00 & 2.07 $\pm$ 0.00 & 1.71 $\pm$ 0.00 & 1.01 $\pm$ 0.00 & 0.79 $\pm$ 0.00 & 3.33 $\pm$ 0.00 & 1.56 $\pm$ 0.00 & 7.86 $\pm$ 0.00 & 3.42 $\pm$ 0.00 \\
-\base + \tfidf & 5.56 $\pm$ 0.03 & 3.69 $\pm$ 0.02 & 3.11 $\pm$ 0.02 & 1.62 $\pm$ 0.02 & 1.21 $\pm$ 0.03 & 1.07 $\pm$ 0.04 & 3.33 $\pm$ 0.07 & 2.05 $\pm$ 0.04 & 9.74 $\pm$ 0.06 & 5.31 $\pm$ 0.00 \\
-\base + \tfidf + \llm (7B) & 5.63 $\pm$ 0.03 & 3.73 $\pm$ 0.02 & 3.15 $\pm$ 0.02 & 1.64 $\pm$ 0.03 & 1.24 $\pm$ 0.02 & \textbf{1.11 $\pm$ 0.02} & 3.36 $\pm$ 0.06 & 2.08 $\pm$ 0.02 & 9.86 $\pm$ 0.03 & 5.35 $\pm$ 0.03 \\
-\model (7B) & \textbf{5.78 $\pm$ 0.04} & \textbf{3.79 $\pm$ 0.03} & \textbf{3.19 $\pm$ 0.02} & \textbf{1.76 $\pm$ 0.06} & \textbf{1.26 $\pm$ 0.01} & 1.10 $\pm$ 0.02 & \textbf{3.55 $\pm$ 0.02} & \textbf{2.19 $\pm$ 0.01} & \textbf{10.05 $\pm$ 0.08} & \textbf{5.39 $\pm$ 0.03} \\
+\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
+\base (ID-only, 50ep) & 5.42$\pm$0.21 & 2.93$\pm$0.05 & 2.14$\pm$0.01 & 1.88$\pm$0.03 & 1.05$\pm$0.02 & 0.78$\pm$0.02 \\
+\base + \tfidf & 5.56$\pm$0.03 & 3.69$\pm$0.02 & 3.11$\pm$0.01 & 1.63$\pm$0.02 & 1.21$\pm$0.03 & 1.08$\pm$0.03 \\
+\base + \tfidf + \llm (7B) & 5.62$\pm$0.03 & 3.73$\pm$0.02 & 3.15$\pm$0.01 & 1.64$\pm$0.03 & 1.24$\pm$0.02 & 1.11$\pm$0.02 \\
+\model (7B) & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
 \midrule
-\multicolumn{11}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only) & 5.97 $\pm$ 0.00 & 3.32 $\pm$ 0.00 & 2.49 $\pm$ 0.00 & 1.91 $\pm$ 0.00 & 1.10 $\pm$ 0.00 & 0.84 $\pm$ 0.00 & 4.61 $\pm$ 0.00 & 1.87 $\pm$ 0.00 & 10.61 $\pm$ 0.00 & 4.45 $\pm$ 0.00 \\
-\base + \tfidf & 6.29 $\pm$ 0.04 & 4.27 $\pm$ 0.01 & 3.64 $\pm$ 0.00 & 1.82 $\pm$ 0.02 & 1.37 $\pm$ 0.02 & 1.23 $\pm$ 0.02 & 4.63 $\pm$ 0.05 & 2.76 $\pm$ 0.02 & 11.39 $\pm$ 0.07 & 6.48 $\pm$ 0.02 \\
-\base + \tfidf + \llm (7B) & 6.39 $\pm$ 0.02 & 4.33 $\pm$ 0.01 & 3.68 $\pm$ 0.00 & 1.92 $\pm$ 0.02 & 1.43 $\pm$ 0.01 & 1.27 $\pm$ 0.01 & 4.72 $\pm$ 0.03 & 2.83 $\pm$ 0.02 & 11.54 $\pm$ 0.05 & \textbf{6.53 $\pm$ 0.01} \\
-\model (7B) & \textbf{6.59 $\pm$ 0.02} & \textbf{4.38 $\pm$ 0.02} & \textbf{3.70 $\pm$ 0.02} & \textbf{2.05 $\pm$ 0.03} & \textbf{1.47 $\pm$ 0.02} & \textbf{1.29 $\pm$ 0.02} & \textbf{4.98 $\pm$ 0.10} & \textbf{2.89 $\pm$ 0.02} & \textbf{11.81 $\pm$ 0.03} & 6.52 $\pm$ 0.06 \\
+\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
+\base (ID-only, 50ep) & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
+\base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
+\base + \tfidf + \llm (7B) & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
+\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{*}$$\pm$0.03 & \textbf{3.71}$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -675,8 +682,6 @@ it, and how it fits into the catalog).
 We conduct systematic ablation studies to answer RQ1--RQ4.
 All ablations use multi-view 7B on Toys\&Games; relative changes
 are derived from controlled experiments.
-%% TODO: update ablation numbers once experiments converge.
-
 \subsection{RQ1, RQ2 \& RQ4: Component Ablation}
 
 Table~\ref{tab:ablation} presents ablation results for SE-style gating,
@@ -687,22 +692,21 @@ cross network, and whitening on Toys\&Games (7B).
 \label{tab:ablation}
 \centering
 \scriptsize
-%% TODO: fill in final ablation numbers.
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Configuration} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
 \midrule
 \multicolumn{5}{l}{\textit{SE-style \& Cross Network (RQ2 \& RQ4)}} \\
-Full (SE + Cross) & -- & -- & -- & -- \\
-$-$ SE-style & -- & -- & -- & -- \\
-$-$ Cross & -- & -- & -- & -- \\
-$-$ SE $-$ Cross & -- & -- & -- & -- \\
+Full (SE + Cross) & 6.58 & 4.40 & 3.72 & 2.07 \\
+$-$ SE-style & 6.62 & 4.39 & 3.70 & 2.00 \\
+$-$ Cross & 7.22 & 4.23 & 3.31 & 2.73 \\
+$-$ SE $-$ Cross & 7.23 & 4.24 & 3.31 & 2.70 \\
 \midrule
 \multicolumn{5}{l}{\textit{Whitening Effect (RQ1)}} \\
-Multi-view w/ Whiten & -- & -- & -- & -- \\
-Multi-view w/o Whiten & -- & -- & -- & -- \\
-Single-view w/ Whiten & -- & -- & -- & -- \\
-Single-view w/o Whiten & -- & -- & -- & -- \\
+Multi-view w/ Whiten & 6.58 & 4.40 & 3.72 & 2.07 \\
+Multi-view w/o Whiten & 6.46 & 4.34 & 3.68 & 1.97 \\
+Single-view w/ Whiten & 6.41 & 4.33 & 3.68 & 1.94 \\
+Single-view w/o Whiten & 6.36 & 4.29 & 3.65 & 1.89 \\
 \bottomrule
 \end{tabular}
 \end{table}

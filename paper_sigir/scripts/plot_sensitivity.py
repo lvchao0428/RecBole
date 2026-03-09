@@ -2,14 +2,20 @@
 """
 plot_sensitivity.py - Generate sensitivity analysis figures for the paper.
 
-The sensitivity plot now reads raw experiment results directly from
-`paper_sigir/sentitivity` and extracts four hyperparameter groups:
-alignment weight, cold_text_boost, infer boost, and temperature.
+Reads raw experiment results from paper_sigir/sensitivity0309.txt and extracts
+four hyperparameter groups: alignment weight, cold_text_boost, infer boost, temperature.
+
+Modes:
+  - tradeoff: Hit vs NDCG/MRR dual-axis (seesaw 跷跷板) per hyperparameter
+  - pareto:   Scatter (Hit, NDCG) with Pareto frontier (帕累托边缘)
+  - full:     Both tradeoff and pareto figures
 """
 
 import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 import numpy as np
 from pathlib import Path
 import re
@@ -25,7 +31,7 @@ mpl.rcParams['legend.fontsize'] = 9
 mpl.rcParams['xtick.labelsize'] = 9
 mpl.rcParams['ytick.labelsize'] = 9
 
-DEFAULT_DATA_FILE = Path(__file__).parent.parent / 'sentitivity'
+DEFAULT_DATA_FILE = Path(__file__).parent.parent / 'sensitivity0309.txt'
 
 PARAMETER_CONFIG = {
     'lambda': {
@@ -106,6 +112,31 @@ def _format_tick_labels(values):
     return labels
 
 
+def _compute_pareto_frontier(x_vals, y_vals, labels=None):
+    """
+    Compute Pareto frontier for maximization of both x and y.
+    Returns indices of Pareto-optimal points, sorted by x ascending.
+    """
+    pts = np.column_stack([np.asarray(x_vals), np.asarray(y_vals)])
+    n = len(pts)
+    pareto_idx = []
+    for i in range(n):
+        dominated = False
+        for j in range(n):
+            if i == j:
+                continue
+            # j dominates i if j has both >= and at least one strictly >
+            if pts[j, 0] >= pts[i, 0] and pts[j, 1] >= pts[i, 1]:
+                if pts[j, 0] > pts[i, 0] or pts[j, 1] > pts[i, 1]:
+                    dominated = True
+                    break
+        if not dominated:
+            pareto_idx.append(i)
+    # Sort by x for drawing the frontier line
+    pareto_idx = sorted(pareto_idx, key=lambda i: pts[i, 0])
+    return pareto_idx
+
+
 def load_sensitivity_data(data_file=DEFAULT_DATA_FILE):
     """
     Parse raw sensitivity file and return plotting-ready data.
@@ -180,6 +211,298 @@ def load_sensitivity_data(data_file=DEFAULT_DATA_FILE):
         }
 
     return plot_data
+
+
+def load_all_sensitivity_points(data_file=DEFAULT_DATA_FILE):
+    """
+    Load all (Hit@10, NDCG@10, MRR@10, param_name) for Pareto / trade-off plots.
+    Returns list of dicts: {hr, ndcg, mrr, param_key, param_value, row_name}.
+    """
+    data = load_sensitivity_data(data_file)
+    all_pts = []
+    for param_key, param_data in data.items():
+        n = len(param_data['values'])
+        for i in range(n):
+            all_pts.append({
+                'hr': param_data['HR@10'][i],
+                'ndcg': param_data['NDCG@10'][i],
+                'mrr': param_data['MRR@10'][i],
+                'param_key': param_key,
+                'param_value': param_data['values'][i],
+                'label': f"{param_data['x_label']}={_format_tick_labels([param_data['values'][i]])[0]}",
+            })
+    return all_pts
+
+
+def create_sensitivity_tradeoff_plot(
+    data_file=DEFAULT_DATA_FILE,
+    second_metric='NDCG@10',
+    show=False,
+):
+    """
+    Create 2x2 sensitivity plot: Hit@10 vs NDCG@10 (or MRR@10) dual-axis.
+    Shows the seesaw (跷跷板) phenomenon: when one metric rises, the other may fall.
+    """
+    data = load_sensitivity_data(data_file)
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    axes = axes.flatten()
+
+    param_order = ['lambda', 'tau', 'cold_boost', 'infer_boost']
+    color_hr = colors['HR@10']
+    color_second = colors.get(second_metric, colors['NDCG@10'])
+
+    for ax_idx, param_key in enumerate(param_order):
+        ax = axes[ax_idx]
+        param_data = data[param_key]
+        x = param_data['values']
+        baseline_idx = param_data['baseline_idx']
+        y1 = param_data['HR@10']
+        y2 = param_data[second_metric]
+
+        ax2 = ax.twinx()
+        line1, = ax.plot(x, y1, 'o-', color=color_hr, markersize=8, linewidth=2, label='HR@10')
+        ax.set_ylabel('HR@10 (%)', color=color_hr)
+        ax.tick_params(axis='y', labelcolor=color_hr)
+
+        line2, = ax2.plot(x, y2, 's--', color=color_second, markersize=8, linewidth=2, label=second_metric)
+        ax2.set_ylabel(f'{second_metric} (%)', color=color_second)
+        ax2.tick_params(axis='y', labelcolor=color_second)
+
+        # Mark baseline
+        ax.axvline(x=x[baseline_idx], color='gray', linestyle=':', alpha=0.7, linewidth=1.2)
+
+        ax.set_xlabel(param_data['x_label'], fontweight='bold')
+        ax.set_title(f'({chr(97+ax_idx)}) {param_data["param"]}', fontweight='bold', pad=10)
+        ax.set_xticks(x)
+        ax.set_xticklabels(_format_tick_labels(x))
+        ax.grid(True, alpha=0.3, linestyle='--')
+        ax.set_axisbelow(True)
+
+    fig.legend([line1, line2], ['HR@10 (Overall)', second_metric],
+               loc='upper center', ncol=2, frameon=True, bbox_to_anchor=(0.5, 0.02))
+    fig.text(0.5, 0.01,
+             f'HR vs {second_metric} trade-off (seesaw); baseline config marked with vertical line',
+             ha='center', fontsize=9, style='italic', color='gray')
+
+    plt.tight_layout(rect=[0, 0.06, 1, 0.97])
+
+    output_dir = Path(__file__).parent.parent / 'figures'
+    output_dir.mkdir(exist_ok=True)
+    suffix = 'ndcg' if 'NDCG' in second_metric else 'mrr'
+    fig.savefig(output_dir / f'sensitivity_tradeoff_{suffix}.pdf', dpi=300, bbox_inches='tight')
+    fig.savefig(output_dir / f'sensitivity_tradeoff_{suffix}.png', dpi=300, bbox_inches='tight')
+    print(f"✅ Saved: sensitivity_tradeoff_{suffix}.pdf/.png")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+    return fig
+
+
+def create_pareto_plot(data_file=DEFAULT_DATA_FILE, metric_pair='ndcg', show=False):
+    """
+    Create Pareto frontier scatter: HR@10 vs NDCG@10 (or MRR@10).
+
+    Design goals for readability:
+    - Each hyperparameter group is a different color; each setting is a distinct marker.
+    - Baseline config per group is shown with a solid ring around the point.
+    - Pareto-frontier points are highlighted with a bold edge + dashed staircase line.
+    - Shaded region inside the frontier communicates the dominated area.
+    - Annotations on Pareto-frontier points show which hyperparam/value they correspond to.
+    - A trade-off arrow and legend quadrant note explain the HR↑ vs ranking-metric↓ tension.
+    """
+    data = load_sensitivity_data(data_file)
+
+    param_colors = {
+        'lambda':     '#2E86AB',  # blue
+        'tau':        '#28A745',  # green
+        'cold_boost': '#FD7E14',  # orange
+        'infer_boost':'#9B59B6',  # purple
+    }
+    param_markers = {
+        'lambda':     'o',
+        'tau':        's',
+        'cold_boost': '^',
+        'infer_boost':'D',
+    }
+    param_labels = {
+        'lambda':     r'$\lambda$ (align weight)',
+        'tau':        r'$\tau$ (temperature)',
+        'cold_boost': 'cold_text_boost',
+        'infer_boost':'infer_boost',
+    }
+
+    second_col = 'ndcg' if metric_pair == 'ndcg' else 'mrr'
+    metric_key  = 'NDCG@10' if metric_pair == 'ndcg' else 'MRR@10'
+    xlabel, ylabel = 'HR@10 (%)', f'{metric_key} (%)'
+
+    # Collect all points, remembering baseline membership
+    all_hr, all_other, all_param, all_val, all_baseline = [], [], [], [], []
+    for param_key, param_data in data.items():
+        for i, (x_val, hr_val, oth_val) in enumerate(
+            zip(param_data['values'], param_data['HR@10'], param_data[metric_key])
+        ):
+            all_hr.append(hr_val)
+            all_other.append(oth_val)
+            all_param.append(param_key)
+            all_val.append(x_val)
+            all_baseline.append(i == param_data['baseline_idx'])
+
+    # Compute Pareto frontier
+    pareto_idx = _compute_pareto_frontier(all_hr, all_other)
+    pareto_set = set(pareto_idx)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # --- Shaded dominated region ---
+    sorted_pf = sorted(pareto_idx, key=lambda i: all_hr[i])
+    pf_hr  = [all_hr[i]    for i in sorted_pf]
+    pf_oth = [all_other[i] for i in sorted_pf]
+    # Staircase fill: extend to axis limits
+    stair_x = [pf_hr[0]]
+    stair_y = [pf_oth[0]]
+    for xi, yi in zip(pf_hr[1:], pf_oth[1:]):
+        stair_x.append(xi)
+        stair_y.append(stair_y[-1])  # horizontal step
+        stair_x.append(xi)
+        stair_y.append(yi)           # vertical step
+    ax.fill_between(
+        stair_x + [stair_x[-1], stair_x[0]],
+        stair_y + [min(pf_oth) - 1, min(pf_oth) - 1],
+        alpha=0.07, color='gray', zorder=0,
+        label='Dominated region',
+    )
+
+    # --- All non-Pareto points, by group ---
+    legend_handles = {}
+    for i in range(len(all_hr)):
+        pk = all_param[i]
+        is_pareto = i in pareto_set
+        is_baseline = all_baseline[i]
+        c = param_colors[pk]
+        m = param_markers[pk]
+
+        # Base scatter
+        ax.scatter(
+            all_hr[i], all_other[i],
+            c=c, marker=m, s=70 if not is_pareto else 0,  # Pareto drawn later
+            alpha=0.55 if not is_baseline else 0.9,
+            edgecolors='white', linewidths=0.8,
+            zorder=2,
+        )
+
+        # Baseline ring
+        if is_baseline:
+            ax.scatter(
+                all_hr[i], all_other[i],
+                facecolors='none', edgecolors=c, marker=m,
+                s=200, linewidths=2.0, zorder=4,
+            )
+
+        if pk not in legend_handles:
+            legend_handles[pk] = mlines.Line2D(
+                [], [], color=c, marker=m, linestyle='None',
+                markersize=8, label=param_labels[pk],
+            )
+
+    # --- Pareto points (highlighted) ---
+    for i in sorted_pf:
+        pk = all_param[i]
+        c = param_colors[pk]
+        m = param_markers[pk]
+        ax.scatter(
+            all_hr[i], all_other[i],
+            c=c, marker=m, s=130,
+            edgecolors='black', linewidths=1.8, zorder=5,
+        )
+        # Annotation: show hyperparam=value
+        label_txt = _format_tick_labels([all_val[i]])[0]
+        ax.annotate(
+            f"{param_labels[pk].split('(')[-1].rstrip(')')}={label_txt}",
+            (all_hr[i], all_other[i]),
+            xytext=(6, 4), textcoords='offset points',
+            fontsize=7.5, color='black',
+            bbox=dict(boxstyle='round,pad=0.15', fc='white', alpha=0.65, ec='none'),
+            zorder=6,
+        )
+
+    # --- Pareto staircase line ---
+    ax.step(
+        pf_hr + [pf_hr[-1] + 0.05],
+        [pf_oth[0]] + pf_oth,
+        where='post', color='#DC3545', linewidth=2.0, linestyle='--',
+        alpha=0.85, zorder=3, label='Pareto frontier',
+    )
+
+    # --- Baseline marker in legend ---
+    legend_handles['_baseline'] = mlines.Line2D(
+        [], [], color='gray', marker='o', linestyle='None',
+        markersize=10, markerfacecolor='none', markeredgewidth=2.0,
+        label='Baseline config (per group)',
+    )
+    legend_handles['_pareto'] = mlines.Line2D(
+        [], [], color='#DC3545', linestyle='--', linewidth=2,
+        label='Pareto frontier',
+    )
+    legend_handles['_dominated'] = mpatches.Patch(
+        facecolor='gray', alpha=0.2, label='Dominated region',
+    )
+
+    # --- Trade-off arrow annotation ---
+    ax_xlim = (min(all_hr) - 0.03, max(all_hr) + 0.08)
+    ax_ylim = (min(all_other) - 0.02, max(all_other) + 0.06)
+    ax.set_xlim(*ax_xlim)
+    ax.set_ylim(*ax_ylim)
+    arrow_x = ax_xlim[1] - 0.07
+    arrow_y_hi = ax_ylim[1] - 0.01
+    arrow_y_lo = ax_ylim[0] + 0.02
+    ax.annotate(
+        '', xy=(arrow_x, arrow_y_lo), xytext=(arrow_x, arrow_y_hi),
+        arrowprops=dict(arrowstyle='->', color='#888', lw=1.5),
+    )
+    ax.annotate(
+        '', xy=(arrow_x + 0.07, arrow_y_hi), xytext=(arrow_x, arrow_y_hi),
+        arrowprops=dict(arrowstyle='->', color='#888', lw=1.5),
+    )
+    ax.text(arrow_x + 0.025, arrow_y_hi - 0.005, 'HR↑', fontsize=8, color='#555')
+    ax.text(arrow_x - 0.005, arrow_y_hi - 0.02,
+            f'{metric_key.split("@")[0]}↑', fontsize=8, color='#555', ha='right')
+    ax.text(
+        arrow_x - 0.01, (arrow_y_hi + arrow_y_lo) / 2,
+        'trade-\noff', fontsize=7.5, color='#888', style='italic', ha='center',
+    )
+
+    ax.set_xlabel(xlabel, fontweight='bold')
+    ax.set_ylabel(ylabel, fontweight='bold')
+    ax.set_title(
+        f'HR@10 vs {metric_key} Trade-off: Pareto Frontier across Hyperparameter Configs',
+        fontweight='bold', pad=10,
+    )
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+
+    ordered_handles = (
+        list(legend_handles[pk] for pk in param_colors if pk in legend_handles)
+        + [legend_handles['_baseline'], legend_handles['_pareto'], legend_handles['_dominated']]
+    )
+    ax.legend(handles=ordered_handles, loc='lower left', framealpha=0.9,
+              edgecolor='gray', fontsize=8.5)
+
+    plt.tight_layout()
+
+    output_dir = Path(__file__).parent.parent / 'figures'
+    output_dir.mkdir(exist_ok=True)
+    suffix = 'ndcg' if metric_pair == 'ndcg' else 'mrr'
+    fig.savefig(output_dir / f'sensitivity_pareto_{suffix}.pdf', dpi=300, bbox_inches='tight')
+    fig.savefig(output_dir / f'sensitivity_pareto_{suffix}.png', dpi=300, bbox_inches='tight')
+    print(f"✅ Saved: sensitivity_pareto_{suffix}.pdf/.png")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+    return fig
 
 
 def create_sensitivity_plot(data_file=DEFAULT_DATA_FILE, show=False):
@@ -309,13 +632,13 @@ def create_trade_off_plot():
     """Create HR vs MRR trade-off visualization."""
     fig, ax = plt.subplots(figsize=(8, 6))
     
-    # Data points from ablation experiments (Toys)
+    # Data points from ablation experiments (Toys, ablation0309.txt)
     # Format: (HR@10, MRR@10, label, color, marker)
     points = [
-        (6.92, 3.76, 'Full Model', '#2E86AB', 'o'),
-        (6.97, 3.78, '−SENet', '#28A745', 's'),
-        (7.45, 3.18, '−Cross', '#FD7E14', '^'),
-        (7.43, 3.19, '−SENet −Cross', '#DC3545', 'D'),
+        (6.58, 3.72, 'Full (SE+Cross)', '#2E86AB', 'o'),
+        (6.62, 3.70, '−SENet', '#28A745', 's'),
+        (7.22, 3.31, '−Cross', '#FD7E14', '^'),
+        (7.23, 3.31, '−SENet −Cross', '#DC3545', 'D'),
     ]
     
     for hr, mrr, label, color, marker in points:
@@ -355,12 +678,26 @@ if __name__ == '__main__':
         '--data-file',
         type=str,
         default=str(DEFAULT_DATA_FILE),
-        help='Path to sensitivity raw data file (default: paper_sigir/sentitivity).',
+        help='Path to sensitivity raw data file (default: paper_sigir/sensitivity0309.txt).',
     )
     parser.add_argument(
         '--show',
         action='store_true',
         help='Display figures interactively.',
+    )
+    parser.add_argument(
+        '--mode',
+        type=str,
+        choices=['tradeoff', 'pareto', 'full', 'legacy'],
+        default='tradeoff',
+        help='tradeoff: Hit vs NDCG/MRR seesaw; pareto: Pareto frontier; full: both; legacy: 4-metric plot.',
+    )
+    parser.add_argument(
+        '--metric-pair',
+        type=str,
+        choices=['ndcg', 'mrr'],
+        default='ndcg',
+        help='Second metric for tradeoff/pareto: ndcg or mrr (default: ndcg).',
     )
     parser.add_argument(
         '--all',
@@ -369,18 +706,36 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    second_metric = 'NDCG@10' if args.metric_pair == 'ndcg' else 'MRR@10'
+
     print("=" * 60)
     print("Generating Sensitivity Analysis Figures")
     print("=" * 60)
 
-    print("\n1. Creating sensitivity analysis plot...")
-    create_sensitivity_plot(data_file=args.data_file, show=args.show)
+    if args.mode in ('tradeoff', 'full'):
+        print("\n1. Creating Hit vs {} trade-off (seesaw) plot...".format(second_metric))
+        create_sensitivity_tradeoff_plot(
+            data_file=args.data_file,
+            second_metric=second_metric,
+            show=args.show,
+        )
+
+    if args.mode in ('pareto', 'full'):
+        print("\n2. Creating Pareto frontier plot...")
+        create_pareto_plot(
+            data_file=args.data_file,
+            metric_pair=args.metric_pair,
+            show=args.show,
+        )
+
+    if args.mode == 'legacy':
+        print("\n1. Creating legacy 4-metric sensitivity plot...")
+        create_sensitivity_plot(data_file=args.data_file, show=args.show)
 
     if args.all:
-        print("\n2. Creating Scale Law verification plot...")
+        print("\n3. Creating Scale Law verification plot...")
         create_scale_law_plot()
-
-        print("\n3. Creating HR-MRR trade-off plot...")
+        print("\n4. Creating HR-MRR trade-off plot (ablation)...")
         create_trade_off_plot()
 
     print("\n" + "=" * 60)

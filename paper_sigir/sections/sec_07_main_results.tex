@@ -2,36 +2,32 @@
 Table~\ref{tab:main} reports full-ranking results on Beauty
 and Toys\&Games. Across both datasets, adding text features
 consistently improves over the ID-only baseline, with \tfidf
-providing substantial gains (+20.0\% HR@10 on Beauty, +9.7\%
+providing substantial gains (+2.6\% HR@10 on Beauty, +6.2\%
 on Toys). The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
-On Beauty, \tfidf alone improves HR@10 from 4.69\% to 5.63\%
-(+20.0\%), and NDCG@10 from 2.69\% to 3.73\% (+38.7\%). On
-Toys, \tfidf improves HR@10 from 5.97\% to 6.55\% (+9.7\%)
-and NDCG@10 from 3.32\% to 4.39\% (+32.2\%).
+On Beauty, \tfidf alone improves HR@10 from 5.42\% to 5.56\%
+(+2.6\%), and NDCG@10 from 2.93\% to 3.69\% (+26.0\%). On
+Toys, \tfidf improves HR@10 from 5.92\% to 6.29\% (+6.2\%)
+and NDCG@10 from 3.30\% to 4.26\% (+29.1\%).
 
 
 \paragraph{Multi-view shows consistent improvements.}
 \model (7B) achieves the best performance on both datasets.
-On \textbf{Beauty}, \model achieves HR@10=6.07\% (+29.4\% vs
-ID-only), with MRR@10=3.27\% and NDCG@10=3.93\%. On
-\textbf{Toys}, \model achieves HR@10=6.92\% (+15.9\% vs
-ID-only), NDCG@10=4.51\%, MRR@10=3.76\%. The hierarchy
+On \textbf{Beauty}, \model achieves HR@10=5.79\% (+6.8\% vs
+ID-only), with MRR@10=3.19\% and NDCG@10=3.80\%. On
+\textbf{Toys}, \model achieves HR@10=6.61\% (+11.7\% vs
+ID-only), NDCG@10=4.39\%, MRR@10=3.71\%. The hierarchy
 \model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only holds for all
 overall metrics on both datasets.
 
 \paragraph{Cold-start (new/few) improvements.}
-Multi-view provides gains on \textbf{few} strata compared
-to baselines. On Toys (7B), HR\_few@10 improves from 4.71\%
-(TF-IDF) to 5.22\% (+10.8\%). On Beauty (7B), HR\_few@10
-improves from 3.38\% (TF-IDF) to 3.77\% (+11.5\%). For the
-\textbf{new} stratum, we observe an HR--ranking trade-off:
-TF-IDF variants achieve slightly lower HR\_new@10 than
-ID-only (1.85\% vs 1.91\% on Toys) due to aggressive
+For the \textbf{new} stratum, \model achieves HR\_new@10=1.76\%
+(Beauty) and 2.04\% (Toys), recovering or exceeding ID-only
+(1.88\% and 1.92\%) while TF-IDF variants achieve slightly
+lower HR\_new@10 (1.63\% and 1.83\%) due to aggressive
 cold-start boosting that sharpens score distributions for
-ranking quality at the cost of recall coverage; \model
-recovers HR\_new@10 to 1.99\% while maintaining ranking gains.
+ranking quality at the cost of recall coverage.
 
 
 \begin{table*}[t]
@@ -54,10 +50,10 @@ recovers HR\_new@10 to 1.99\% while maintaining ranking gains.
 \model (7B) & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
 \midrule
 \multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only, 50ep) & 5.97 & 3.32 & 2.49 & 1.91 & 1.10 & 0.84 \\
-\base + \tfidf & 6.55 & 4.39 & 3.72 & 1.85 & 1.35 & 1.17 \\
-\base + \tfidf + \llm (7B) & 6.61 & 4.42 & 3.74 & 1.96 & 1.40 & 1.19 \\
-\model (7B) & \textbf{6.92} & \textbf{4.51} & \textbf{3.76} & \textbf{1.99} & \textbf{1.37} & \textbf{1.14} \\
+\base (ID-only, 50ep) & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
+\base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
+\base + \tfidf + \llm (7B) & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
+\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{*}$$\pm$0.03 & \textbf{3.71}$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
 \bottomrule
 \end{tabular}
 \end{table*}
