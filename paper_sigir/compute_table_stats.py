@@ -51,6 +51,12 @@ METRIC_COL = {
     "HR_new@10":   43,   # Hit_new@10
     "NDCG_new@10": 25,   # NDCG_new@10
     "MRR_new@10":  34,   # MRR_new@10
+    "HR_few@10":   46,   # Hit_few@10
+    "NDCG_few@10": 28,   # NDCG_few@10
+    "MRR_few@10":  37,   # MRR_few@10
+    "HR_freq@10":  49,   # Hit_frequent@10
+    "NDCG_freq@10":31,   # NDCG_frequent@10
+    "MRR_freq@10": 40,   # MRR_frequent@10
 }
 
 MODEL_NAMES = [
@@ -111,7 +117,9 @@ def main():
     print("Seeds: %s\n" % seeds_list)
 
     metric_order = ["HR@10", "NDCG@10", "MRR@10",
-                    "HR_new@10", "NDCG_new@10", "MRR_new@10"]
+                    "HR_new@10", "NDCG_new@10", "MRR_new@10",
+                    "HR_few@10", "NDCG_few@10", "MRR_few@10",
+                    "HR_freq@10", "NDCG_freq@10", "MRR_freq@10"]
 
     for dataset in ["Beauty", "Toys"]:
         print("=" * 100)

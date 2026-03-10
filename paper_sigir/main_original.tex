@@ -57,7 +57,7 @@ We present \model, a fully open-sourced, plug-and-play framework that combines m
 %
 The entire pipeline---data preprocessing, feature extraction, training, and evaluation---is released as a single-command reproducible package built on RecBole, enabling one-click replication of every reported result.
 %
-Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% respectively, with notable cold-start gains (HR\_new@10 up to \textbf{2.04}\%, HR\_few@10 up to \textbf{4.88}\%).
+Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% respectively, with notable cold-start gains (HR\_new@10 up to \textbf{2.04}\%, HR\_few@10 up to \textbf{4.97}\%).
 %
 Through controlled ablations with only four tunable knobs, we expose an HR--ranking trade-off and provide two ready-to-use presets (Balanced and Cold/Tail-optimized), offering practitioners actionable guidance on when a frugal \tfidf-only configuration suffices versus when multi-view features pay off.
 All code, configurations, and auxiliary analyses are available at \texttt{\url{https://anonymous.4open.science/r/PLACEHOLDER}}.
@@ -80,8 +80,8 @@ strong, while \llm-derived embeddings can be richer yet
 substantially more expensive in extraction, storage, and serving.
 
 Two practical observations motivate this work. First, once a
-strong \tfidf baseline is in place (e.g., +20.0\% HR@10 and
-+38.7\% NDCG@10 on Beauty under full ranking), the marginal
+strong \tfidf baseline is in place (e.g., +2.6\% HR@10 and
++25.9\% NDCG@10 on Beauty under full ranking), the marginal
 gains from adding \llm features can be small and domain-dependent,
 making it unclear when multi-view prompting is worth the extra
 cost. Second, model selection in industry often relies on fast
@@ -149,7 +149,7 @@ and ablations, and conclude with analyses and takeaways.
 \caption{Overview of \model: a deployable text plug-in for sequential recommendation.
 \textbf{Left}: Cold-start items lack collaborative signals (new stratum: [1,3) interactions).
 \textbf{Middle}: Four-module recipe---\textit{Prepare} (normalize+whiten), \textit{Multi-view} (4 LLM prompts), \textit{Cross} (DCN-V2 ID$\times$Text), and \textit{Align} (InfoNCE with cold-start reweighting).
-\textbf{Right}: Full-ranking gains (+13.72\% HR@10, +36.7\% MRR@10) and cold-start improvements (+4.02\% HR\_new@10).
+\textbf{Right}: Full-ranking gains (+11.7\% HR@10, +49.6\% MRR@10) and cold-start improvements (+6.3\% HR\_new@10).
 Budget: 1$\times$256-d = 4$\times$64-d (same total).}
 \label{fig:cover}
 \end{figure*}
@@ -583,13 +583,13 @@ static buffers (not counted as trainable parameters).
 Table~\ref{tab:main} reports full-ranking results on Beauty
 and Toys\&Games. Across both datasets, adding text features
 consistently improves over the ID-only baseline, with \tfidf
-providing substantial gains (+2.6\% HR@10 on Beauty, +6.2\%
+providing substantial gains (+2.6\% HR@10 on Beauty, +6.3\%
 on Toys). The key findings are:
 
 \paragraph{Text features provide large gains over ID-only.}
 On Beauty, \tfidf alone improves HR@10 from 5.42\% to 5.56\%
-(+2.6\%), and NDCG@10 from 2.93\% to 3.69\% (+26.0\%). On
-Toys, \tfidf improves HR@10 from 5.92\% to 6.29\% (+6.2\%)
+(+2.6\%), and NDCG@10 from 2.93\% to 3.69\% (+25.9\%). On
+Toys, \tfidf improves HR@10 from 5.92\% to 6.29\% (+6.3\%)
 and NDCG@10 from 3.30\% to 4.26\% (+29.1\%).
 
 
@@ -763,38 +763,111 @@ at the cost of less precise top-1 ranking (lower MRR).
 
 \paragraph{Empirical evidence.}
 Table~\ref{tab:ablation} quantifies this trade-off:
-\textbf{removing cross} causes HR$\uparrow$ MRR$\downarrow$,
-while \textbf{enabling cross} causes HR$\downarrow$ MRR$\uparrow$
-(sharper ranking precision at the cost of recall coverage).
+\textbf{removing cross} raises HR@10 from 6.58\% to 7.22\% (+9.7\%)
+but drops MRR@10 from 3.72\% to 3.31\% ($-$11.0\%) and NDCG@10
+from 4.40\% to 4.23\% ($-$3.9\%).
+Conversely, \textbf{enabling cross} sharpens ranking precision
+at the cost of recall coverage.
 Figure~\ref{fig:tradeoff} visualizes this Pareto-like frontier
-between HR and MRR across ablation configurations.
-%% TODO: fill in exact relative changes once final numbers are available.
+across ablation configurations: the left panel shows the HR--MRR
+trade-off, while the right panel confirms the same pattern for
+HR--NDCG.
 
 \paragraph{Practitioner guidance.}
 This trade-off maps directly to deployment scenarios:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{Candidate generation / recall-oriented systems}:
-    Disable cross to achieve higher HR at the cost of lower MRR.
+    Disable cross to achieve higher HR at the cost of lower MRR/NDCG.
   \item \textbf{Final ranking / precision-oriented systems}:
     Enable cross to sharpen score distributions and improve MRR/NDCG.
 \end{itemize}
 
 \begin{figure}[t]
 \centering
-\IfFileExists{figures/tradeoff.pdf}{%
-  \includegraphics[width=0.8\linewidth]{figures/tradeoff.pdf}%
-}{%
-  \fbox{\parbox[c][0.15\textheight][c]{0.75\linewidth}{\centering
-  \textbf{Figure: HR--MRR Trade-off}\\
-  Scatter plot showing ablation points:\\
-  x-axis: HR@10, y-axis: MRR@10\\
-  Points: Full / -Cross / -Whiten / -SE-style}}%
-}
-\caption{HR--MRR trade-off on Toys (7B, Aggressive). Each point
-represents an ablation configuration. Removing cross network
-increases HR but decreases MRR, revealing a Pareto-like frontier
-between recall coverage and top-1 precision.}
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_mrr.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_mrr.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--MRR Trade-off}\\
+    Run \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ MRR@10}
+  \label{fig:tradeoff_mrr}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_ndcg.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_ndcg.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--NDCG Trade-off}\\
+    Run \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ NDCG@10}
+  \label{fig:tradeoff_ndcg}
+\end{subfigure}
+\caption{HR--ranking trade-off on Toys\&Games (7B). Each point
+represents an ablation configuration from Table~\ref{tab:ablation}.
+Removing the cross network increases HR@10 (+9.7\%) but decreases
+MRR@10 ($-$11.0\%) and NDCG@10 ($-$3.9\%), revealing a Pareto-like
+frontier between recall coverage and ranking precision.}
 \label{fig:tradeoff}
+\end{figure}
+
+\subsection{Hyperparameter Sensitivity}
+
+Figure~\ref{fig:sensitivity} shows the sensitivity of \model to its
+four key hyperparameters on Toys\&Games (7B), plotting HR@10 (left
+axis) and NDCG@10 (right axis) as each parameter varies while the
+others are held at their default values ($\lambda{=}0.10$,
+$\tau{=}0.05$, cold\_text\_boost${=}3.0$, infer\_boost${=}0.6$).
+
+\paragraph{Alignment weight $\lambda$ and temperature $\tau$.}
+Both contrastive hyperparameters show smooth, unimodal curves.
+HR@10 ranges from 6.50\% ($\lambda{=}0.05$) to 6.67\%
+($\lambda{=}0.20$), a spread of only 0.17 pp; NDCG@10 peaks at
+$\lambda{=}0.15$ (4.42\%) and remains within 0.05 pp across the
+grid. Temperature $\tau$ is similarly stable: HR@10 varies by
+0.06 pp and NDCG@10 by 0.03 pp over the tested range
+($0.03$--$0.10$). This confirms that the contrastive objective is
+robust to moderate tuning.
+
+\paragraph{Cold-start boost and inference boost.}
+The cold\_text\_boost parameter has minimal impact on overall
+metrics (HR@10 within 0.05 pp, NDCG@10 within 0.02 pp), as it
+primarily affects the training-time reweighting of low-popularity
+items. The infer\_boost parameter is similarly stable for overall
+performance (HR@10 within 0.01 pp), while its primary effect is on
+cold-start strata (not shown here; see repository for stratified
+sensitivity).
+
+\paragraph{Takeaway.}
+All four hyperparameters exhibit low sensitivity on overall metrics,
+with total variation under 0.2 pp for HR@10 and under 0.05 pp for
+NDCG@10. This makes \model easy to tune in practice: the default
+configuration performs near-optimally, and practitioners can adjust
+$\lambda$ or infer\_boost to trade off between overall and
+cold-start performance without risking large regressions.
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/sensitivity_tradeoff_ndcg.pdf}{%
+  \includegraphics[width=\linewidth]{figures/sensitivity_tradeoff_ndcg.pdf}%
+}{%
+  \fbox{\parbox[c][0.25\textheight][c]{0.9\linewidth}{\centering
+  \textbf{Sensitivity Analysis}\\
+  Run \texttt{plot\_sensitivity.py}}}%
+}
+\caption{Hyperparameter sensitivity on Toys\&Games (7B). Each panel
+varies one parameter while holding the others at default values
+(dashed vertical line). HR@10 (solid, left axis) and NDCG@10
+(dashed, right axis) remain stable across all four knobs, with
+total variation under 0.2 pp for HR@10 and under 0.05 pp for
+NDCG@10.}
+\label{fig:sensitivity}
 \end{figure}
 
 \section{Conclusion}
