@@ -543,11 +543,13 @@ def _train_and_eval_phase(
     progress_fields: dict | None = None,
     callback_fn=None,
     save_scores_path: str | None = None,
+    save_peruser_topk_path: str | None = None,
 ):
     """Run one training phase and return results and saved model path.
     
     Args:
         save_scores_path: If provided, saves test prediction scores to this path for visualization.
+        save_peruser_topk_path: If provided, saves per-user top-k hit indicators for paired t-test.
     """
     device = _resolve_device(trainer.config)
     _log_gpu_snapshot("before-fit", device)
@@ -586,7 +588,8 @@ def _train_and_eval_phase(
     try:
         test_result = trainer.evaluate(
             test_data, load_best_model=saved, show_progress=trainer.config["show_progress"],
-            save_scores_path=save_scores_path
+            save_scores_path=save_scores_path,
+            save_peruser_topk_path=save_peruser_topk_path,
         )
     except RuntimeError as err:
         if "CUDA" in str(err) or "cuda" in str(err):
@@ -676,6 +679,8 @@ def main(local_rank=None, queue=None, dist_config=None):
     # Score saving for visualization
     parser.add_argument("--save_test_scores", action="store_true", help="save test prediction scores for visualization/analysis")
     parser.add_argument("--scores_output_dir", type=str, default="ablation_study_doc/scores", help="directory to save test scores")
+    parser.add_argument("--save_peruser_topk", action="store_true", help="save per-user top-k hit indicators for paired significance testing")
+    parser.add_argument("--peruser_output_dir", type=str, default="saved/peruser", help="directory to save per-user top-k data")
     # Manual switching
     parser.add_argument("--only_phase_a", action="store_true", help="run Phase-A only")
     parser.add_argument("--only_phase_b", action="store_true", help="run Phase-B only")
@@ -1268,11 +1273,18 @@ def main(local_rank=None, queue=None, dist_config=None):
         if args.save_test_scores:
             variant_name = (args.variant_features or args.variant_label or "model").replace(" ", "_").replace("+", "_").replace(",", "_")
             phase_b_scores_path = os.path.join(args.scores_output_dir, f"{variant_name}_phase_b")
-        
+
+        # Build per-user topk save path if requested
+        phase_b_peruser_path = None
+        if args.save_peruser_topk:
+            variant_name = (args.variant_features or args.variant_label or "model").replace(" ", "_").replace("+", "_").replace(",", "_")
+            phase_b_peruser_path = os.path.join(args.peruser_output_dir, f"{variant_name}_topk.npy")
+
         res_b = _train_and_eval_phase(
             logger_b, trainer_b, train_b, valid_b, test_b, 
             saved=args.save,
-            save_scores_path=phase_b_scores_path
+            save_scores_path=phase_b_scores_path,
+            save_peruser_topk_path=phase_b_peruser_path,
         )
 
         # Final summary

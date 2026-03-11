@@ -598,7 +598,7 @@ class Trainer(AbstractTrainer):
     @torch.no_grad()
     def evaluate(
         self, eval_data, load_best_model=True, model_file=None, show_progress=False,
-        save_scores_path=None
+        save_scores_path=None, save_peruser_topk_path=None
     ):
         r"""Evaluate the model based on the eval data.
 
@@ -611,6 +611,10 @@ class Trainer(AbstractTrainer):
             show_progress (bool): Show the progress of evaluate epoch. Defaults to ``False``.
             save_scores_path (str, optional): Path to save prediction scores for visualization/analysis.
                                               If provided, saves scores as .npy file. Defaults to ``None``.
+            save_peruser_topk_path (str, optional): Path to save per-user top-k hit indicators
+                                              (rec.topk tensor) for paired significance testing.
+                                              The saved tensor has shape (n_users, max_topk + 1) where the
+                                              last column is pos_len. Defaults to ``None``.
 
         Returns:
             collections.OrderedDict: eval result, key is the eval metric and value in the corresponding metric value.
@@ -683,6 +687,10 @@ class Trainer(AbstractTrainer):
         if not self.config["single_spec"]:
             result = self._map_reduce(result, num_sample)
         self.wandblogger.log_eval_metrics(result, head="eval")
+
+        if save_peruser_topk_path is not None:
+            self._save_peruser_topk(save_peruser_topk_path, struct)
+
         return result
     
     def _save_eval_scores(self, save_path, all_scores, all_positive_u, all_positive_i):
@@ -727,6 +735,27 @@ class Trainer(AbstractTrainer):
         self.logger.info(f"Saved evaluation scores to {base_path}_*.npy")
         self.logger.info(f"  - scores shape: {scores_np.shape}")
         self.logger.info(f"  - top-{topk} scores saved for visualization")
+
+    def _save_peruser_topk(self, save_path, struct):
+        """Save per-user top-k hit indicators for paired significance testing.
+
+        The saved array has shape (n_users, max_topk + 1): first max_topk columns
+        are binary hit indicators at each rank position; last column is pos_len.
+        From this single file, per-user Hit@k, NDCG@k, and MRR@k can all be
+        recomputed offline for any k <= max_topk.
+        """
+        rec_topk = struct.get("rec.topk")
+        if rec_topk is None:
+            self.logger.warning("rec.topk not found in data struct; skipping save")
+            return
+        save_dir = os.path.dirname(save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        arr = rec_topk.cpu().numpy()
+        np.save(save_path, arr)
+        self.logger.info(
+            f"Saved per-user topk data to {save_path}  shape={arr.shape}"
+        )
 
     def _map_reduce(self, result, num_sample):
         gather_result = {}

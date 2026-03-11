@@ -1,0 +1,14 @@
+好的同学，我看了一下，主表已经比前面成熟很多了。Table 2现在用4个seed的mean和std，再配strongest baseline的显著性星号，这个我感觉已经够用了，不建议再把一堆具体p值塞进主文里，不然信息量太大，反而会把读者注意力从结果本身带跑。现在最重要的是把口径统一做干净。正文implementation那里如果还写的是单seed，就一定要改成和主表一致。还有Appendix??、匿名repo PLACEHOLDER这类占位符，也要一次性清掉，不然reviewer会立刻觉得稿子还没收口。
+图这块我感觉还有提升空间。同学现在Figure1和Figure2信息有点重叠。一个偏story/teaser，一个偏结构图。我的建议是，正文只留一个最能服务方法理解的图，另一个如果页数吃紧就挪到附录或匿名repo。就同学这版来说，我更倾向留Figure2，因为它和3.2–3.5的方法描述、公式、模块名字是一一对应的，读者读方法时更顺。Figure1虽然好看，但更像poster式总览。还有Figure3/4现在在双栏里稍微有点挤，尤其trade-off和sensitivity这两张，字号、线型、图例都可以再放大一点，尽量做到缩印以后也能一眼看懂。
+主结果表我建议继续收住，不要贪多。主文里Table2保留overall + new stratum我感觉是合理的，few/frequent放appendix/仓库就行，因为同学真正要打的claim还是overall稳定提升、new更明显。同学现在表里MV-Align在Beauty和Toys&Games上的overall指标都压过strongest baseline，这个已经够支撑主线了。7B/14B如果差距很小，就别在正文里硬强调更大一定更强，可以直接把7B当默认配置，把14B写成marginal gain/costlier option。
+统计这块，我感觉同学现在的做法方向是对的，主表报mean和std，关键overall指标打星，终端里那张详细p值/seed稳定性自己留着做sanity check就够了，不要原样放正文。真正需要补的不是更多p值，而是把显著性说明写清楚，到底是pairedt-test，跟谁比，比较的是哪些指标。pairedt-test本来就是针对配对观测设计的，所以同学这里更适合拿同一批测试样本上的paired指标去做，而不是把一堆汇总均值拿去硬检验。
+同学接下来我推荐先把正文里所有和主表口径不一致的地方改掉，尤其是seed、appendix编号、repo链接、Table/Figure占位符。再把图收敛成一个总览结构图+一张trade-off图+一张sensitivity图，不要让两张overview图抢版面。最后把统计表述收口，主文只保留mean±std+星号，完整seed稳定性和更多strata放匿名仓库/附录。
+另外提醒同学一句，如果这版最后真按RecSys目标走，近年的官方call一直强调论文要self-contained，appendix也算正文页数，不接单独supplementary，更鼓励匿名repo，所以同学现在这种主文收紧、额外结果进repo的思路是对的。还有按照我们最后两周课上和同学讲的，图表最好做到灰度下也能看懂，不要只靠颜色表达信息。
+
+
+RecSys 2026 main track不是“摘要和正文同一天”，而是abstract 4月14日 AoE，paper 4月21日 AoE，中间其实还有一周缓冲。同学最好每一次投稿都核实一下具体的截止日期，不过就按照4月14日来准备也没有问题。
+7B/14B我感觉现在不写scale law 是对的。scale law这种东西，至少要有一个读者一眼能看懂的切入点，比如“随着模型尺寸变大，HR_new单调涨，同时成本也单调涨”。如果7B和14B已经贴得很近，甚至解释不清为什么接近，那硬写只会分散主线。现在这篇更强的点还是full ranking下的balanced improvement，以及multi-view相对tfidf/tfidf+llm的稳定层级。scale最多留一句“我们在7B/14B上未观察到稳定、可解释的尺寸收益，因此不作为主结论”，或者放appendix一张小表交代掉就行。
+显著性这块，我的建议是std要保留，但std不等于显著性。mean和std回答的是“换seed以后稳不稳”，显著性检验回答的是“在同一批test users上，A是否真比B好，而不是偶然波动”。在IR/Rec这类“同一组query/user上比较两个系统”的设定里，paired test才是更自然的口径，因为它控制了user难度，而且paired t-test本身也是IR/Rec文献里最常见的一类做法。
+但这里还有一个现实问题：像Top-N推荐这种user很多的实验，样本一大，p值会非常容易变小，哪怕effect size其实不大，所以只报一个p<0.01 也不够，还是要把mean和std以及绝对提升幅度一起放出来。SIGIR/IR这边也有专门的分析指出，在大规模search/recommendation实验里，很多检验对很小的提升都会给出“显著”，这时候effect size更重要。
+所以我感觉最稳的写法是这样的：主表继续用mean and std over 4 seeds，这个不要删，然后只对HR@10/NDCG@10/MRR@10这三个核心指标、只相对strongest baseline做paired t-test（或者现有的p如果本来就是按同一批用户的paired结果算的，就不必强行换）。表里不用打一堆具体p值，保留星号就够了，footnote写清楚“* p<0.05, ** p<0.01, paired t-test against the strongest baseline on per-user metric differences”。这样reviewer既能看到稳定性，也能看到统计口径，不会嫌文章啰嗦。
+如果同学现在手里的p是按4个seed的均值直接比出来的，那我建议替换成paired t-test。如果同学现在的p本来就是基于每个user的paired指标差算的，那就不用折腾。总之，std负责稳定性，paired t-test负责显著性，二者不是替代关系。

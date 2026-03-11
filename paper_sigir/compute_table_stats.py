@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Compute mean +/- std over 5 seeds for the main table (Table 2),
-and run paired t-tests (MV-Align 7B vs strongest baseline).
+Compute mean +/- std over 4 seeds for the main table (Table 2).
+The seed-level paired t-tests here are for sanity-check only (n=4, low power).
+For paper-ready significance, use compute_peruser_significance.py which
+runs per-user paired t-tests (n = |test users|).
 
-Seeds: 42, 2023, 2024, 2025, 2026
+Seeds: 42, 2024, 2025, 2026
 
 Row layout per seed file (tab-separated):
   Row 0:  seed label
@@ -158,7 +160,7 @@ def main():
                 print(line)
 
         # ---- Mean +/- Std ----
-        print("\n" + ("--- Mean +/- Std (5 seeds) ---").center(106))
+        print("\n" + ("--- Mean +/- Std (4 seeds) ---").center(106))
         header2 = "%-26s" % "Model"
         for mname in metric_order:
             header2 += " %13s" % mname
