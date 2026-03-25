@@ -608,7 +608,7 @@ ranking quality at the cost of recall coverage.
 
 
 \begin{table*}[t]
-\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$, paired $t$-test against the strongest baseline on per-user metric differences. All values are percentages (\%). Extended strata results (few/frequent) are provided in the anonymous repository.}
+\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$; paired $t$-test on per-user metric differences against the strongest baseline (Beauty: 146{,}995 test users; Toys: 164{,}590 test users). All values are percentages (\%). Extended strata results (few/frequent) are provided in the anonymous repository.}
 \label{tab:main}
 \centering
 \small
@@ -630,7 +630,7 @@ ranking quality at the cost of recall coverage.
 \base (ID-only, 50ep) & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
 \base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
 \base + \tfidf + \llm (7B) & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
-\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{*}$$\pm$0.03 & \textbf{3.71}$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
+\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{**}$$\pm$0.03 & \textbf{3.71}$^{*}$$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
 \bottomrule
 \end{tabular}
 \end{table*}
