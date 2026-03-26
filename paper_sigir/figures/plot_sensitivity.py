@@ -31,6 +31,21 @@ mpl.rcParams['legend.fontsize'] = 12
 mpl.rcParams['xtick.labelsize'] = 12
 mpl.rcParams['ytick.labelsize'] = 12
 
+# Figure 3 style knobs (sensitivity_tradeoff_*.pdf)
+# Tune these values when adjusting readability after LaTeX scaling.
+FIG3_STYLE = {
+    'figsize': (7.2, 6.1),
+    'line_width': 2.1,
+    'marker_size': 7.2,
+    'tick_labelsize': 12.5,
+    'tick_color': '#111111',
+    'tick_width': 1.05,
+    'tick_labelweight': 'semibold',
+    'hr_color': '#1a1a1a',
+    'second_color': '#4a4a4a',
+    'legend_fontsize': 12,
+}
+
 DEFAULT_DATA_FILE = Path(__file__).parent.parent / 'sensitivity0309.txt'
 
 PARAMETER_CONFIG = {
@@ -251,12 +266,12 @@ def create_sensitivity_tradeoff_plot(
     Shows the seesaw (跷跷板) phenomenon: when one metric rises, the other may fall.
     """
     data = load_sensitivity_data(data_file)
-    fig, axes = plt.subplots(2, 2, figsize=(7, 6))
+    fig, axes = plt.subplots(2, 2, figsize=FIG3_STYLE['figsize'])
     axes = axes.flatten()
 
     param_order = ['lambda', 'tau', 'cold_boost', 'infer_boost']
-    color_hr = '#1a1a1a'
-    color_second = '#777777'
+    color_hr = FIG3_STYLE['hr_color']
+    color_second = FIG3_STYLE['second_color']
 
     for ax_idx, param_key in enumerate(param_order):
         ax = axes[ax_idx]
@@ -267,15 +282,34 @@ def create_sensitivity_tradeoff_plot(
         y2 = param_data[second_metric]
 
         ax2 = ax.twinx()
-        line1, = ax.plot(x, y1, 'o-', color=color_hr, markersize=7, linewidth=2.0,
+        line1, = ax.plot(
+            x, y1, 'o-', color=color_hr,
+            markersize=FIG3_STYLE['marker_size'],
+            linewidth=FIG3_STYLE['line_width'],
                          label='HR@10', markerfacecolor=color_hr)
         ax.set_ylabel('HR@10 (%)', color=color_hr)
-        ax.tick_params(axis='y', labelcolor=color_hr)
+        ax.tick_params(
+            axis='y',
+            labelcolor=FIG3_STYLE['tick_color'],
+            labelsize=FIG3_STYLE['tick_labelsize'],
+            width=FIG3_STYLE['tick_width'],
+            colors=FIG3_STYLE['tick_color'],
+        )
 
-        line2, = ax2.plot(x, y2, 's--', color=color_second, markersize=7, linewidth=2.0,
-                          label=second_metric, markerfacecolor='white', markeredgewidth=1.8)
+        line2, = ax2.plot(
+            x, y2, 's--', color=color_second,
+            markersize=FIG3_STYLE['marker_size'],
+            linewidth=FIG3_STYLE['line_width'],
+            label=second_metric, markerfacecolor='white', markeredgewidth=1.8
+        )
         ax2.set_ylabel(f'{second_metric} (%)', color=color_second)
-        ax2.tick_params(axis='y', labelcolor=color_second)
+        ax2.tick_params(
+            axis='y',
+            labelcolor=FIG3_STYLE['tick_color'],
+            labelsize=FIG3_STYLE['tick_labelsize'],
+            width=FIG3_STYLE['tick_width'],
+            colors=FIG3_STYLE['tick_color'],
+        )
 
         ax.axvline(x=x[baseline_idx], color='gray', linestyle=':', alpha=0.7, linewidth=1.2)
 
@@ -283,12 +317,20 @@ def create_sensitivity_tradeoff_plot(
         ax.set_title(f'({chr(97+ax_idx)}) {param_data["param"]}', fontweight='bold', pad=8)
         ax.set_xticks(x)
         ax.set_xticklabels(_format_tick_labels(x))
+        ax.tick_params(
+            axis='x',
+            labelsize=FIG3_STYLE['tick_labelsize'],
+            width=FIG3_STYLE['tick_width'],
+            colors=FIG3_STYLE['tick_color'],
+        )
         ax.grid(True, alpha=0.3, linestyle='--')
         ax.set_axisbelow(True)
+        for tick_label in ax.get_xticklabels() + ax.get_yticklabels() + ax2.get_yticklabels():
+            tick_label.set_fontweight(FIG3_STYLE['tick_labelweight'])
 
     fig.legend([line1, line2], ['HR@10 (solid)', f'{second_metric} (dashed)'],
                loc='upper center', ncol=2, frameon=True, bbox_to_anchor=(0.5, 0.02),
-               fontsize=12)
+               fontsize=FIG3_STYLE['legend_fontsize'])
 
     plt.tight_layout(rect=[0, 0.05, 1, 0.97])
 
