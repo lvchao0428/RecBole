@@ -12,3 +12,10 @@ RecSys 2026 main track不是“摘要和正文同一天”，而是abstract 4月
 但这里还有一个现实问题：像Top-N推荐这种user很多的实验，样本一大，p值会非常容易变小，哪怕effect size其实不大，所以只报一个p<0.01 也不够，还是要把mean和std以及绝对提升幅度一起放出来。SIGIR/IR这边也有专门的分析指出，在大规模search/recommendation实验里，很多检验对很小的提升都会给出“显著”，这时候effect size更重要。
 所以我感觉最稳的写法是这样的：主表继续用mean and std over 4 seeds，这个不要删，然后只对HR@10/NDCG@10/MRR@10这三个核心指标、只相对strongest baseline做paired t-test（或者现有的p如果本来就是按同一批用户的paired结果算的，就不必强行换）。表里不用打一堆具体p值，保留星号就够了，footnote写清楚“* p<0.05, ** p<0.01, paired t-test against the strongest baseline on per-user metric differences”。这样reviewer既能看到稳定性，也能看到统计口径，不会嫌文章啰嗦。
 如果同学现在手里的p是按4个seed的均值直接比出来的，那我建议替换成paired t-test。如果同学现在的p本来就是基于每个user的paired指标差算的，那就不用折腾。总之，std负责稳定性，paired t-test负责显著性，二者不是替代关系。
+
+
+好的，这样的话我感觉可以收口到两段显著性了，而且这样反而更干净。现在paired t-test跑出来以后，HR@10和NDCG@10基本都稳稳在p<0.01，而MRR@10落在p<0.05但没有到0.01，那就老老实实标成*就行，不需要强行把三个核心指标都抬到同一个星级。pairedt-test本来就是拿同一批test users上两套系统的per-user差值来判断是不是显著不同，放在这里比之前拿4个seed的汇总值去算p合理得多。
+然后之前和同学说过，mean和std还是要保留，不能拿显著性把它替掉。因为这两个东西回答的是两件不同的事：mean和std回答“换seed以后稳不稳”，paired t-test回答“在同一批用户上，这个提升是不是大概率不是偶然波动”。同学现在Beauty/Toys&Games的test users都是十几万级，p值变得很小其实很正常，但这不等于提升就一定很大，所以主表继续用mea和std，再配星号，反而最完整。统计学上的一些工作也普遍强调，不要只给p值，还要同时给均值差异/波动范围，不然很容易把统计显著误读成效果很大。
+我感觉同学现在最稳的写法是，主表里只放星号，不放具体p值。caption或table footnote里统一解释一次就够。比如可以写成：
+“Values are reported as mean ± std over four seeds. Significance markers are computed using a two-sided paired t-test on per-user metric differences against the strongest baseline under the canonical seed. * p<0.05, ** p<0.01.”
+如果同学想更严谨一点，再在同一个脚注里补一句test user数量，比如Beauty和Toys&Games分别多少用户，但只写一次，不要在每个单元格旁边重复写。至于具体p值，放到appendix或者匿名repo就行，主文不需要把2.23e-07、3.20e-04这种数字全摊开。

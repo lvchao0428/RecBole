@@ -59,7 +59,7 @@ The entire pipeline---data preprocessing, feature extraction, training, and eval
 Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% respectively, with notable cold-start gains (HR\_new@10 up to \textbf{2.04}\%, HR\_few@10 up to \textbf{4.97}\%).
 %
 Through controlled ablations with only four tunable knobs, we expose an HR--ranking trade-off and provide two ready-to-use presets (Balanced and Cold/Tail-optimized), offering practitioners actionable guidance on when a frugal \tfidf-only configuration suffices versus when multi-view features pay off.
-All code, configurations, and auxiliary analyses are available at \texttt{\url{https://anonymous.4open.science/r/PLACEHOLDER}}.
+All code, configurations, and auxiliary analyses are available at \texttt{\url{https://github.com/chaolv-rs/recbole-multiview}}.
 \end{abstract}
 
 \keywords{Sequential Recommendation, Reproducibility, Text Features, Multi-View Representation, Full-Ranking Evaluation, Open-Source Benchmark}
@@ -778,10 +778,6 @@ This trade-off maps directly to deployment scenarios:
     Enable cross to sharpen score distributions and improve MRR/NDCG.
 \end{itemize}
 
-%% TODO(advisor): Ensure all figures are grayscale-friendly —
-%%   use distinct line styles (solid/dashed/dotted) and markers,
-%%   not just color, to differentiate series. Enlarge font sizes
-%%   and legends so they remain legible in two-column print.
 \begin{figure}[t]
 \centering
 \begin{subfigure}[t]{0.48\linewidth}
@@ -903,7 +899,7 @@ effect on cold-start metrics; contrastive hyperparameters
 \textbf{Reproducibility.} All code, YAML configurations, pre-extracted
 embeddings, and auxiliary analyses (seed stability, sensitivity,
 sampled-vs-full-ranking sanity checks, extended strata results) are
-available at \texttt{\url{https://anonymous.4open.science/r/PLACEHOLDER}},
+available at \texttt{\url{https://github.com/chaolv-rs/recbole-multiview}},
 enabling one-click replication of every table and figure in this paper.
 
 \bibliographystyle{unsrt}
@@ -912,7 +908,7 @@ enabling one-click replication of every table and figure in this paper.
 %% ====================================================================
 %% APPENDIX REMOVED for RecSys Reproducibility Long submission.
 %% All auxiliary analyses are provided in the anonymous repository:
-%%   https://anonymous.4open.science/r/PLACEHOLDER
+%%   https://github.com/chaolv-rs/recbole-multiview
 %%
 %% Contents moved to repo:
 %%   - Sampled evaluation sanity check (uni100 vs. full ranking)
