@@ -49,17 +49,14 @@ Explicit Cross and Alignment for Reliable Full-Ranking Gains}
 % \email{email@example.com}
 
 \begin{abstract}
-% 五句法: 背景-痛点-方案-结果-可复现洞察
 Text-feature-enhanced sequential recommenders have attracted growing interest, yet published results are difficult to compare: single-view embeddings, inconsistent evaluation protocols (sampled vs.\ full-ranking), and unreported configuration details hamper reproducibility and may mislead model selection.
 %
-We present \model, a fully open-sourced, plug-and-play framework that combines multi-view text representations (\tfidf and \llm, with normalization and whitening for decorrelation), explicit ID$\times$Text cross interactions via DCN-V2, and contrastive alignment with cold-start reweighting.
+We present \model, a fully open-sourced, plug-and-play framework that combines multi-view text representations (\tfidf and \llm, with per-view whitening for decorrelation), explicit ID$\times$Text cross interactions via DCN-V2, and contrastive alignment with cold-start reweighting.
+The entire pipeline is released as a single-command reproducible package built on RecBole.
 %
-The entire pipeline---data preprocessing, feature extraction, training, and evaluation---is released as a single-command reproducible package built on RecBole, enabling one-click replication of every reported result.
-%
-Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% respectively, with notable cold-start gains (HR\_new@10 up to \textbf{2.04}\%, HR\_few@10 up to \textbf{4.97}\%).
-%
-Through controlled ablations with only four tunable knobs, we expose an HR--ranking trade-off and provide two ready-to-use presets (Balanced and Cold/Tail-optimized), offering practitioners actionable guidance on when a frugal \tfidf-only configuration suffices versus when multi-view features pay off.
-All code, configurations, and auxiliary analyses are available at \texttt{\url{https://github.com/chaolv-rs/recbole-multiview}}.
+Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), while \tfidf alone already provides a strong baseline (+2.6\% and +6.3\% HR@10).
+Through controlled ablations with four tunable knobs, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, most benefits cold-start items.
+All code and configurations are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
 \keywords{Sequential Recommendation, Reproducibility, Text Features, Multi-View Representation, Full-Ranking Evaluation, Open-Source Benchmark}
@@ -240,7 +237,7 @@ $\mathbf{e}_i \in \mathbb{R}^d$. We augment items with text
 features and fuse them into a \emph{fused item embedding}
 $\tilde{\mathbf{e}}_i$ used for scoring.
 
-\subsection{Multi-View Text Representations}
+\subsection{Multi-View Text Representations}\label{sec:whiten}
 We assume a lightweight \tfidf embedding $\mathbf{t}_i^{(0)} \in \mathbb{R}^{d_t}$
 as a base view and $V$ \llm prompt views
 $\{\mathbf{t}_i^{(v)} \in \mathbb{R}^{d_l}\}_{v=1}^V$ (e.g.,
@@ -320,7 +317,7 @@ back to $\mathbb{R}^d$:
 \end{equation}
 where $\mathbf{P} \in \mathbb{R}^{d \times (d_t + Vd)}$ is the fusion projection matrix.
 
-\subsection{Explicit Cross Fusion}
+\subsection{Explicit Cross Fusion}\label{sec:cross}
 Rather than relying solely on self-attention to capture
 high-order interactions between collaborative and textual
 signals, we introduce an \emph{explicit cross} module based on
@@ -348,7 +345,7 @@ The scalar $\alpha_i \in (0,1)$ includes a global text gate and
 optional per-item gating, scaled by temperature for stable
 fusion.
 
-\subsection{Multi-View Contrastive Alignment}
+\subsection{Multi-View Contrastive Alignment}\label{sec:align}
 We align each text view to the ID embedding space using
 \InfoNCE~\cite{oord2018cpc}. The alignment objective is:
 \textbf{text view $\to$ ID space}; positive pairs are
@@ -430,11 +427,10 @@ sacrificing performance on frequent items.
   \textbf{Framework figure placeholder.}\\
   Put `framework.pdf` under `paper_sigir/figures/`.}}%
 }
-\caption{Overview of the MV-Align framework. The architecture consists of three key components:
-\circled{1}~\textbf{Normalize \& Whiten}: each view (4 LLM prompts + TF-IDF) undergoes SVD, ZCA whitening, SE-style gating, and L2 normalization;
-\circled{2}~\textbf{Cross Network}: DCN-V2 captures explicit ID$\times$Text interactions;
-\circled{3}~\textbf{Multi-View Alignment}: InfoNCE loss with cold-start reweighting aligns each view to ID embeddings.
-Embedding budget: single-view uses 1$\times$256-d while multi-view uses 4$\times$64-d (LLM only; TF-IDF 256-d shared).}
+\caption{Overview of \model.
+\circled{1}~\textbf{Prepare}: per-view normalization and whitening (\S\ref{sec:whiten});
+\circled{2}~\textbf{Interact}: explicit ID$\times$Text cross via DCN-V2 (\S\ref{sec:cross});
+\circled{3}~\textbf{Align}: multi-view contrastive alignment with cold-start reweighting (\S\ref{sec:align}).}
 \label{fig:framework}
 \end{figure}
 
@@ -529,7 +525,7 @@ $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks,
 and $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times
 0.1$ in Phase-B.
 \paragraph{Grid.}
-For the main runs, we use the Aggressive configuration:
+For the main runs, we use the Balanced (default) configuration:
 $\lambda=0.10$ and $\tau=0.05$ on both datasets
 (complete hyperparameter settings including cold-start boosting
 are provided in the anonymous repository); additional grids can
@@ -598,13 +594,15 @@ We did not observe stable, interpretable gains when scaling the
 the default configuration (a small comparison table is provided
 in the anonymous repository).
 
-\paragraph{Cold-start (new/few) improvements.}
-For the \textbf{new} stratum, \model achieves HR\_new@10=1.76\%
-(Beauty) and 2.04\% (Toys), recovering or exceeding ID-only
-(1.88\% and 1.92\%) while TF-IDF variants achieve slightly
-lower HR\_new@10 (1.63\% and 1.83\%) due to aggressive
-cold-start boosting that sharpens score distributions for
-ranking quality at the cost of recall coverage.
+\paragraph{Cold-start (new) improvements.}
+For the \textbf{new} stratum, \model improves substantially
+over text baselines (\tfidf: 1.63\%/1.83\%, single-view \llm:
+1.64\%/1.89\%) and narrows the gap to ID-only on Beauty
+(1.76\% vs.\ 1.88\%), while exceeding it on Toys (2.04\%
+vs.\ 1.92\%). Notably, \model achieves the best NDCG\_new@10
+and MRR\_new@10 on both datasets, indicating stronger ranking
+quality among cold-start items even when recall coverage is
+slightly below the ID-only baseline on Beauty.
 
 
 \begin{table*}[t]
@@ -869,38 +867,29 @@ NDCG@10.}
 \section{Conclusion}
 We presented \model, a fully open-sourced, plug-and-play framework for
 text-enhanced sequential recommendation, released as a one-command
-reproducible package on RecBole. Our full-ranking experiments on
-Amazon Beauty and Toys\&Games, together with controlled ablations
-over only four tunable knobs, yield actionable practitioner guidance:
+reproducible package on RecBole. Full-ranking experiments on
+Amazon Beauty and Toys\&Games yield three actionable takeaways:
 
-\textbf{(1) TF-IDF is a surprisingly strong baseline---start there.}
-\tfidf alone provides substantial gains over ID-only baselines.
-This lightweight configuration should be the \emph{first} text
-enhancement before investing in heavier \llm embeddings.
+\textbf{(1) TF-IDF is a surprisingly strong baseline.}
+\tfidf alone provides substantial gains over ID-only baselines
+(+2.6\%/+6.3\% HR@10 on Beauty/Toys) and should be the
+\emph{first} text enhancement before investing in \llm embeddings.
 
-\textbf{(2) Multi-view benefits cold-start items.}
-Under equal embedding bandwidth, multi-view \llm prompting
-consistently outperforms single-view, with the most pronounced
-gains on the \textbf{new} stratum. When cold-start performance is
-critical, multi-view justifies the extra cost; for simpler catalogs,
-\tfidf alone may suffice.
+\textbf{(2) Multi-view benefits cold-start items under equal bandwidth.}
+Under equal embedding bandwidth ($4{\times}64$-d vs.\ $1{\times}256$-d),
+multi-view \llm prompting consistently outperforms single-view,
+with the most pronounced gains on the \textbf{new} stratum.
 
-\textbf{(3) Cross network controls the recall--precision trade-off.}
-Disabling cross yields higher HR (candidate generation); enabling
-cross sharpens MRR/NDCG (re-ranking). We provide two ready-to-use
-presets---Balanced and Cold/Tail-optimized---to cover both scenarios.
-
-\textbf{(4) \texttt{infer\_boost} enables deployment-time tuning without retraining.}
-Among the four knobs, \texttt{infer\_boost} has the strongest
-effect on cold-start metrics; contrastive hyperparameters
-($\lambda$, $\tau$) are robust across reasonable ranges.
+\textbf{(3) The cross network governs the HR--MRR/NDCG trade-off.}
+Enabling cross sharpens ranking quality (MRR/NDCG) at the cost of
+recall (HR); disabling it reverses this balance. This maps directly
+to deployment scenarios: disable cross for candidate generation,
+enable it for final re-ranking.
 
 \smallskip\noindent
-\textbf{Reproducibility.} All code, YAML configurations, pre-extracted
-embeddings, and auxiliary analyses (seed stability, sensitivity,
-sampled-vs-full-ranking sanity checks, extended strata results) are
-available at \texttt{\url{https://github.com/chaolv-rs/recbole-multiview}},
-enabling one-click replication of every table and figure in this paper.
+\textbf{Reproducibility.} All code, configurations, and auxiliary
+analyses are available at
+\texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 
 \bibliographystyle{unsrt}
 \bibliography{refs}
@@ -908,11 +897,11 @@ enabling one-click replication of every table and figure in this paper.
 %% ====================================================================
 %% APPENDIX REMOVED for RecSys Reproducibility Long submission.
 %% All auxiliary analyses are provided in the anonymous repository:
-%%   https://github.com/chaolv-rs/recbole-multiview
+%%   https://anonymous.4open.science/r/recbole-multiview-D83A
 %%
 %% Contents moved to repo:
 %%   - Sampled evaluation sanity check (uni100 vs. full ranking)
-%%   - Hyperparameter configurations (Balanced / Aggressive presets)
+%%   - Hyperparameter configurations (Balanced / Cold-Tail-optimized presets)
 %%   - LLM encoder scale law (7B / 14B / 32B)
 %%   - Sensitivity analysis on 4 key hyperparameters
 %%   - Seed stability analysis (4 seeds)
