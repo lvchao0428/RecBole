@@ -55,7 +55,7 @@ We present \model, a fully open-sourced, plug-and-play framework that combines m
 The entire pipeline is released as a single-command reproducible package built on RecBole.
 %
 Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), while \tfidf alone already provides a strong baseline (+2.6\% and +6.3\% HR@10).
-Through controlled ablations with four tunable knobs, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, most benefits cold-start items.
+Through controlled ablations with four tunable knobs, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, improves ranking quality on cold-start items over all text baselines.
 All code and configurations are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
@@ -482,10 +482,9 @@ interaction counts:
   \item \textbf{frequent}: $[10,\infty)$ interactions
 \end{itemize}
 We compute popularity strata from item interaction counts in
-the training data. We focus on full-ranking metrics in the
-main paper and omit uni100-style sampled metrics for clarity
-and reliability; a sanity check comparing sampled vs.\ full
-ranking is provided in the anonymous repository. Our evaluation
+the training data. We report only full-ranking metrics in the
+main paper, following prior findings that sampled evaluation
+can mis-rank recommender models~\cite{krichene2020sampledmetrics}. Our evaluation
 follows leave-one-out next-item prediction with a single
 ground-truth item per test case, under which HR@K, Hit@K, and
 Recall@K coincide; we use HR@K for brevity and rely on
@@ -518,7 +517,7 @@ batch size 512, and Adam with base learning rate $10^{-4}$.
 \paragraph{Two-phase schedule.}
 We follow Phase-A ($15$ epochs) $\rightarrow$ Phase-B ($50$
 epochs) with Phase-A selecting $(\lambda,\tau)$ on
-\texttt{MRR@10} for Beauty and \texttt{HR@10} for Toys\&Games.
+\texttt{MRR@10} for both Beauty and Toys\&Games.
 We use grouped learning rates:
 $\text{lr}_{\text{text}}=\num{1e-3}$ for text heads,
 $\text{lr}_{\text{cross}}=\num{5e-4}$ for cross/DNN blocks,
@@ -544,7 +543,7 @@ in the repository.
 \paragraph{Parameter counts.}
 Table~\ref{tab:params} shows the actual trainable parameter
 counts on Amazon Beauty ($|I|=12,102$, $d=256$, $d_t=256$,
-$d_l=1024$, $V=4$, $d_v=1024$).
+$d_l=1024$, $V=4$, $d_v=64$).
 The multi-view model adds only modest overhead (${\sim}6$M
 params) over the single-view baseline, while the \llm
 embeddings themselves are precomputed offline and stored as
@@ -589,10 +588,6 @@ ID-only), with MRR@10=3.19\% and NDCG@10=3.80\%. On
 ID-only), NDCG@10=4.39\%, MRR@10=3.71\%. The hierarchy
 \model $>$ TF-IDF+LLM $>$ TF-IDF $>$ ID-only holds for all
 overall metrics on both datasets.
-We did not observe stable, interpretable gains when scaling the
-\llm encoder from 7B to 14B parameters; we therefore use 7B as
-the default configuration (a small comparison table is provided
-in the anonymous repository).
 
 \paragraph{Cold-start (new) improvements.}
 For the \textbf{new} stratum, \model improves substantially
@@ -600,13 +595,14 @@ over text baselines (\tfidf: 1.63\%/1.83\%, single-view \llm:
 1.64\%/1.89\%) and narrows the gap to ID-only on Beauty
 (1.76\% vs.\ 1.88\%), while exceeding it on Toys (2.04\%
 vs.\ 1.92\%). Notably, \model achieves the best NDCG\_new@10
-and MRR\_new@10 on both datasets, indicating stronger ranking
-quality among cold-start items even when recall coverage is
-slightly below the ID-only baseline on Beauty.
+and MRR\_new@10 on both datasets, suggesting that the richer
+multi-view text signals primarily improve ranking quality on
+cold-start items, while recall coverage remains sensitive to
+the fusion configuration.
 
 
 \begin{table*}[t]
-\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$; paired $t$-test on per-user metric differences against the strongest baseline (Beauty: 146{,}995 test users; Toys: 164{,}590 test users). All values are percentages (\%). Extended strata results (few/frequent) are provided in the anonymous repository.}
+\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$; paired $t$-test on per-user metric differences against the strongest baseline (Beauty: 146{,}995 test users; Toys: 164{,}590 test users). All values are percentages (\%).}
 \label{tab:main}
 \centering
 \small
@@ -732,11 +728,12 @@ multi-view \model ($4\times 64$-d = 256-d total LLM budget) using
 data from Table~\ref{tab:main}.
 
 \paragraph{Takeaway.}
-Under equal embedding bandwidth, multi-view consistently outperforms
-single-view on both datasets, with gains most pronounced on the
-\textbf{new} stratum. Multi-view prompting provides reliable
-cold-start benefits, confirming that diverse prompt perspectives
-help low-popularity items.
+Under equal embedding bandwidth, multi-view outperforms
+single-view on all metrics on both datasets, with gains most
+pronounced on the \textbf{new} stratum: on Beauty it narrows the
+HR\_new gap to ID-only (1.76\% vs.\ 1.88\%), while on Toys it
+exceeds it (2.04\% vs.\ 1.92\%). Diverse prompt perspectives
+particularly help low-popularity items.
 
 \subsection{Understanding the HR--Ranking Trade-off}
 
@@ -875,10 +872,13 @@ Amazon Beauty and Toys\&Games yield three actionable takeaways:
 (+2.6\%/+6.3\% HR@10 on Beauty/Toys) and should be the
 \emph{first} text enhancement before investing in \llm embeddings.
 
-\textbf{(2) Multi-view benefits cold-start items under equal bandwidth.}
+\textbf{(2) Multi-view improves cold-start ranking under equal bandwidth.}
 Under equal embedding bandwidth ($4{\times}64$-d vs.\ $1{\times}256$-d),
-multi-view \llm prompting consistently outperforms single-view,
-with the most pronounced gains on the \textbf{new} stratum.
+multi-view \llm prompting improves over text baselines and yields the
+strongest ranking quality (NDCG/MRR) on the \textbf{new} stratum.
+On Beauty it narrows the HR\_new gap to ID-only
+(1.76\% vs.\ 1.88\%), while on Toys it exceeds it
+(2.04\% vs.\ 1.92\%).
 
 \textbf{(3) The cross network governs the HR--MRR/NDCG trade-off.}
 Enabling cross sharpens ranking quality (MRR/NDCG) at the cost of
