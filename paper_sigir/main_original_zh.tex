@@ -1,0 +1,466 @@
+%% 中文译文（对应 main_original.tex）
+%% 编译：xelatex main_original_zh.tex && bibtex main_original_zh && xelatex x2
+\documentclass[UTF8,a4paper]{ctexart}
+
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{ifthen}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+
+\newcommand{\model}{\textsc{MV-Align}\xspace}
+\newcommand{\base}{\textsc{SASRec}\xspace}
+\newcommand{\tfidf}{\textsc{TF-IDF}\xspace}
+\newcommand{\llm}{\textsc{LLM}\xspace}
+\newcommand{\InfoNCE}{InfoNCE\xspace}
+
+\usepackage{pifont}
+\newcommand*\circled[1]{\ding{\numexpr171+#1\relax}}
+
+\title{面向序列推荐的多视角文本特征：\\显式交叉与对齐以实现可靠的全排序收益}
+
+\author{（译文稿；作者信息见英文版投稿稿）}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+基于文本特征的序列推荐模型受到越来越多关注，但已发表结果难以横向比较：单视角嵌入、不一致的评估协议（采样负例与全排序），以及未报告的配置细节都会损害可复现性，并可能误导模型选择。
+
+本文提出 \model：一个完全开源、即插即用的框架，结合多视角文本表示（\tfidf 与 \llm，并对各视角分别白化以去相关）、通过 DCN-V2 实现的显式 ID$\times$文本交叉交互，以及带冷启动重加权的对比对齐。整条流水线基于 RecBole，以单命令可复现包的形式发布。
+
+在 Amazon Beauty 与 Toys\&Games 上的全排序评估中，\model 取得 HR@10 为 \textbf{5.79}\% 与 \textbf{6.61}\%（相对仅 ID 分别为 +6.8\% 与 +11.7\%），而仅 \tfidf 已构成强基线（HR@10 分别为 +2.6\% 与 +6.3\%）。通过对对比学习与冷启动超参数的受控消融，我们揭示了由交叉网络主导的 HR 与排序指标之间的权衡，并表明在嵌入带宽相同的前提下，多视角提示相对所有文本基线均能改善冷启动物品的排序质量。
+
+复现本文报告结果所需的全部代码与配置文件见：\texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}。
+\end{abstract}
+
+\noindent\textbf{关键词：}
+序列推荐；可复现性；文本特征；多视角表示；全排序评估；开源基准
+
+\section{引言}
+
+现代序列推荐模型如 \base~\cite{kang2018sasrec} 为建模用户行为序列提供了强骨干，但现实目录中冷启动与长尾物品占主导、协同信号稀疏。物品文本（标题、描述、评论）可提供语义线索以改善泛化，但也带来工程上的张力：轻量特征（如 \tfidf）成本低且往往出人意料地强，而 \llm 派生嵌入可能更丰富，但在抽取、存储与在线服务上昂贵得多。
+
+在大规模推荐中，团队通常沿三条轴控制成本：\emph{可训练参数}与优化器状态（显存）、\emph{前向 FLOPs}或实测延迟（推理）、以及文本的\emph{离线预处理}（如一次性编码器运行），后者在目录上摊销，且与单次请求的服务相分离。我们在 Beauty 配置下报告可训练参数与框架估计的 FLOPs（表~\ref{tab:params}），作为运行时成本的可比代理；并在第\ref{sec:complexity}节讨论离线 \llm 视角编码相对单视角的开销。
+
+两项实践观察驱动本文工作。第一，一旦建立较强的 \tfidf 基线（例如在 Beauty 全排序下 HR@10 +2.6\%、NDCG@10 +25.9\%），再叠加 \llm 特征的边际收益可能较小且依赖领域，从而难以判断多视角提示是否值得额外的离线编码与适度的可训练增量开销（第\ref{sec:experiments}节）。第二，工业界模型选择常依赖快速采样评估（uniform-100 负例），但采样指标可能与全排序指标不一致，甚至排错模型顺序~\cite{krichene2020sampledmetrics}；当改进集中在冷启动/长尾层时，这种错配尤其有害。
+
+\model 用简单的「准备—交互—对齐」配方应对上述矛盾（图~\ref{fig:framework}）：
+
+\textbf{(1) 准备}（表示层）：我们对每个文本视角分别归一化与白化，以应对三类失效模式——视角间尺度不匹配、视角间相关、以及跨视角冗余。白化使多视角通道去相关，使后续交互更易学习。
+
+\textbf{(2) 交互}（融合层）：我们使用显式交叉网络（DCN-V2）学习高阶 ID$\times$文本特征交叉。Transformer 自注意力建模序列级物品—物品依赖，但并不显式捕获 ID 嵌入与文本嵌入之间的特征级交互；DCN-V2 通过由可学习权重矩阵门控的元素乘积填补这一缺口。
+
+\textbf{(3) 对齐}（目标层）：我们通过 InfoNCE 对比损失将各文本视角对齐到协同 ID 嵌入空间。对齐方向为（文本视角 $\to$ ID 空间）；正样本对为（该物品的文本视角，该物品的 ID 嵌入）；负样本为批次内其他物品。冷启动重加权避免高频物品主导对齐信号，使低流行度物品获得足够的梯度更新。
+
+本文贡献有三。
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item 提出 \model：面向 \base 的可部署插件框架，在固定嵌入预算下既支持经济的仅 \tfidf 配置，也支持更强的多视角 \llm 特征。
+  \item 在两个 Amazon 领域上以\textbf{全排序}评估与按流行度分层分析（主表中突出 \textbf{new} 层）进行基准测试，并提供系统性消融（白化、SE 式门控、交叉）以及鲁棒性分析（超参敏感度/稳定性）。
+  \item 不仅报告收益，还解释关键现象：白化与显式交叉可提升排序质量（MRR/NDCG）同时略损召回（HR），揭示 HR—排序权衡，以指导何时选择轻量配置与更强配置。
+\end{itemize}
+围绕四个研究问题组织：\textbf{RQ1}~每视角白化是否改善文本特征质量？\textbf{RQ2}~SE 式通道门控是否有帮助？\textbf{RQ3}~在嵌入带宽相同时，多视角是否优于单视角？\textbf{RQ4}~显式交叉与对比对齐各自的贡献是什么？下文回顾相关工作，介绍 \model，给出全排序结果与消融，并以分析与总结收尾。
+
+\section{相关工作}
+\paragraph{序列推荐。}
+基于 Transformer 的序列模型如 \base~\cite{kang2018sasrec} 与 BERT4Rec~\cite{sun2019bert4rec}（双向掩码预测）是捕获用户行为模式的强骨干。GRU4Rec~\cite{hidasi2016gru4rec} 开创 RNN 会话建模；SASRec 将自注意力用于下一物品预测与因果掩码。近期高效变体包括采用低秩注意力分解以降低复杂度的 LightSANs~\cite{fan2021lightsans}。
+
+\paragraph{文本增强推荐。}
+\begin{sloppypar}
+物品文本特征（词袋、神经编码器或 \llm 嵌入）提供协同过滤之外的互补信号。早期工作使用 TF-IDF 与 Item2Vec~\cite{barkan2016item2vec}；CDL~\cite{wang2015cdl} 通过堆叠去噪自编码器联合建模文本。近期方法利用预训练语言模型：UniSRec~\cite{hou2022unisrec} 将 BERT 编码的物品文本作为可迁移表示；VQ-Rec~\cite{hou2023vqrec} 通过向量量化桥接语言与协同语义。大语言模型进一步拓展该方向：P5~\cite{geng2022p5} 以 text-to-text 统一推荐；TALLRec~\cite{bao2023tallrec} 通过指令微调对齐 LLM 与推荐。这些方法通常以单一提示或表示编码物品文本。本文探索通过多样化提示视角（身份、功能、受众、类别）得到的\emph{多视角} \llm 嵌入，配合显式融合与对齐，并说明相对更简单方案何时值得增加复杂度。
+\end{sloppypar}
+
+\paragraph{特征交互与交叉网络。}
+Deep \& Cross Network (DCN)~\cite{wang2017dcn} 及其后继 DCN-V2~\cite{wang2021dcnv2} 显式建模特征交叉，补充 DNN 学到的隐式交互。Squeeze-and-Excitation Networks (SENet)~\cite{hu2018senet} 引入通道注意力以实现自适应特征重标定；FiBiNET~\cite{huang2019fibinet} 将 SENet 适配 CTR 预测并引入双线性特征交互。推荐中交叉网络在 CTR 上已展现有效性；本文将其适配于序列场景下的 ID--文本融合，并对 \llm 特征使用 SE 式块做每视角通道门控。
+
+\paragraph{推荐中的多视角学习。}
+多视角学习利用不同特征源或模态的互补信息。受 CLIP~\cite{radford2021clip} 通过对齐视觉与文本的对比学习启发，我们设计多视角提示以从语言模型中引出多样语义。推荐中会话场景亦有多视角图神经方法~\cite{huang2025mvcgnn_session}。本文将多视角学习应用于 \llm 文本嵌入，在不同提示视角与白化去相关后再融合。
+
+\paragraph{推荐中的对比学习。}
+\InfoNCE~\cite{oord2018cpc} 等对比目标广泛用于自监督表示学习；推荐中对比方法常对齐跨视角的用户/物品表示~\cite{wu2021cl4rec}。本文将其扩展为多视角文本到 ID 的对齐，并加入冷启动重加权。
+
+\paragraph{评估协议。}
+采样评估可能误导模型选择~\cite{krichene2020sampledmetrics}；全排序评估更可靠但计算昂贵。本文采用全排序并结合分层分析以理解不同流行度层上的行为。
+
+\section{方法}
+图~\ref{fig:framework} 给出 \model 的整体结构。框架含三个关键部分：(1)~\textbf{归一化与白化}，各文本视角经逐视角归一化以缓解各向异性；(2)~\textbf{交叉网络}，通过 DCN-V2 捕获显式 ID$\times$文本交互；(3)~\textbf{多视角对齐}，使用带冷启动重加权的 InfoNCE 将文本视角与 ID 嵌入对齐。下文分述。
+
+\subsection{骨干：带文本融合的 SASRec}
+设用户交互序列为 $s_u = [i_1,\dots,i_n]$，最大长度为 $L$。\base 通过 Transformer 将 $s_u$ 编码为序列表示 $\mathbf{h}_u \in \mathbb{R}^d$。每个物品 $i$ 有 ID 嵌入 $\mathbf{e}_i \in \mathbb{R}^d$。我们用文本特征增强物品，并融合为用于打分的\emph{融合物品嵌入} $\tilde{\mathbf{e}}_i$。
+
+\subsection{多视角文本表示}\label{sec:whiten}
+设轻量 \tfidf 嵌入 $\mathbf{t}_i^{(0)} \in \mathbb{R}^{d_t}$ 为基视角，另有 $V$ 个 \llm 提示视角 $\{\mathbf{t}_i^{(v)} \in \mathbb{R}^{d_l}\}_{v=1}^V$（如身份/功能/受众/类别），$d_t$、$d_l$ 分别为 \tfidf 与原始 \llm 嵌入维度。
+
+\paragraph{每视角白化。}
+多视角 \llm 嵌入存在三类失效模式：\textbf{(i) 尺度不匹配}——不同视角的幅度分布可能差异很大，导致部分视角主导融合；\textbf{(ii) 视角相关}——引出相似语义的提示产生相关特征，冗余编码相同信息；\textbf{(iii) 跨视角冗余}——不去相关时，交叉网络会在各视角间学到冗余交互而非互补交叉。
+
+为此，先将各 \llm 视角从 $d_l$ 经截断 SVD 降至 $d_v$ 维，再对各视角独立施加 ZCA 白化~\cite{kessy2018zca}，以去相关多视角通道并使后续交互更易学习。给定视角 $v$ 上全体物品的降维嵌入矩阵 $\mathbf{X}^{(v)} \in \mathbb{R}^{|I| \times d_v}$，计算：
+\begin{align}
+  \mathbf{X}_c^{(v)} &= \mathbf{X}^{(v)} - \boldsymbol{\mu}^{(v)}, \\
+  \boldsymbol{\Sigma}^{(v)} &= \frac{1}{|I|}(\mathbf{X}_c^{(v)})^\top \mathbf{X}_c^{(v)}, \\
+  \mathbf{X}_w^{(v)} &= \mathbf{X}_c^{(v)} (\boldsymbol{\Sigma}^{(v)} + \epsilon \mathbf{I})^{-1/2},
+\end{align}
+其中 $\boldsymbol{\mu}^{(v)}$ 为均值嵌入，$\boldsymbol{\Sigma}^{(v)}$ 为协方差矩阵，$\epsilon$ 为小常数以保证数值稳定。白化统计在训练集上离线计算，训练/推理时固定。每视角使用独立白化参数（每视角白化），相较跨视角共享白化更能保留视角语义。
+
+\paragraph{SE 式通道门控。}
+我们采用 SE 式通道门控做自适应特征重标定，灵感来自 SENet~\cite{hu2018senet} 的通道注意力。原始 SENet 使用 squeeze（全局池化）与 excitation；本文实现直接对每个投影嵌入做基于 MLP 的门控，更适合逐物品表示（不在物品间池化）。每个白化视角投影到骨干维度 $d$ 后经：
+\begin{align}
+  \mathbf{z}_i^{(v)} &= \mathbf{W}_v \mathbf{t}_{w,i}^{(v)} \in \mathbb{R}^d,\\
+  \mathbf{r}_i^{(v)} &= \mathbf{z}_i^{(v)} \odot \sigma(\mathrm{MLP}_v(\mathbf{z}_i^{(v)})),
+\end{align}
+其中 $\mathbf{W}_v \in \mathbb{R}^{d \times d_v}$ 为投影矩阵，$\mathbf{t}_{w,i}^{(v)} \in \mathbb{R}^{d_v}$ 为物品 $i$ 在视角 $v$ 的白化嵌入，$\mathrm{MLP}_v: \mathbb{R}^d \to \mathbb{R}^d$ 为两层网络，压缩比为 $r$。
+
+\paragraph{每视角 $\ell_2$ 归一化。}
+SE 式门控后，我们对每个视角独立做 $\ell_2$ 归一化：(i) 保证各视角以可比尺度参与融合，避免大幅度视角主导；(ii) 为后续交叉网络提供良好条件的输入以稳定学习：
+\begin{equation}
+  \hat{\mathbf{r}}_i^{(v)} = \frac{\mathbf{r}_i^{(v)}}{\lVert \mathbf{r}_i^{(v)} \rVert_2 + \epsilon}.
+\end{equation}
+与白化配合，每视角归一化在保留各视角语义的同时缓解跨视角尺度不匹配：白化去相关各视角内部维度，$\ell_2$ 归一化使跨视角贡献幅度可比。
+
+\paragraph{视角门控与融合。}
+对每个视角学习标量门 $g_v=\sigma(\theta_v)\in(0,1)$，且\emph{不}施加跨视角归一化（各视角独立贡献于 $0$--$1$）。所有视角（及可选 \tfidf 基）拼接后投影回 $\mathbb{R}^d$：
+\begin{equation}
+  \mathbf{t}_i = \mathbf{P}\Big[\mathbf{t}_i^{(0)};\; g_1\hat{\mathbf{r}}_i^{(1)};\; \dots;\; g_V\hat{\mathbf{r}}_i^{(V)}\Big] \in \mathbb{R}^d,
+\end{equation}
+其中 $\mathbf{P} \in \mathbb{R}^{d \times (d_t + Vd)}$ 为融合投影矩阵。
+
+\subsection{显式交叉融合}\label{sec:cross}
+除依赖自注意力外，我们引入基于 DCN-V2~\cite{wang2021dcnv2} 的\emph{显式交叉}模块。\base 中的自注意力建模序列级物品依赖，但不显式建模 ID 与文本嵌入之间的特征级交叉；DCN-V2 通过可学习权重矩阵门控的元素乘积学习高阶 ID$\times$text 交互。
+
+设拼接特征 $\mathbf{x}_i=[\mathbf{e}_i;\alpha_i \mathbf{t}_i] \in \mathbb{R}^{2d}$，其中 $\mathbf{e}_i$ 为 ID 嵌入，$\mathbf{t}_i$ 为融合文本表示，则交叉层更新为：
+\begin{equation}
+  \mathbf{x}^{(l+1)} = \mathbf{x}^{(l)} + \mathbf{x}^{(0)} \odot (\mathbf{W}_l\mathbf{x}^{(l)} + \mathbf{b}_l),
+\end{equation}
+$\mathbf{W}_l \in \mathbb{R}^{2d \times 2d}$ 为满秩权重，$\mathbf{b}_l$ 为偏置；$\odot$ 为逐元素乘积。我们使用 DCN-V2 的满秩（非 mix）变体。交叉输出 $\mathbf{x}^{(C)} \in \mathbb{R}^{2d}$ 与浅层 MLP 经预测层得到融合嵌入 $\tilde{\mathbf{e}}_i \in \mathbb{R}^d$。标量 $\alpha_i \in (0,1)$ 含全局文本门与可选每物品门控，并以温度缩放以稳定融合。
+
+\subsection{多视角对比对齐}\label{sec:align}
+我们使用 \InfoNCE~\cite{oord2018cpc} 将各文本视角对齐到 ID 嵌入空间。对齐方向为\textbf{文本视角 $\to$ ID 空间}；正样本为（物品文本视角，该物品 ID）；负样本为批次内物品。这使文本表示携带协同信号，并在冷启动场景可作为 ID 嵌入的替代。
+
+对大小为 $B$ 的批次，定义余弦相似度矩阵 $\mathbf{S} \in \mathbb{R}^{B \times B}$，$\mathbf{S}_{ij} = \mathrm{cos}(\mathbf{e}_{i}, \hat{\mathbf{r}}_{j}^{(v)})$，温度为 $\tau$。每视角对齐损失为：
+\begin{equation}
+  \mathcal{L}_{\text{align}}^{(v)} =
+  \frac{1}{B}\sum_{i=1}^{B}
+  -\log \frac{\exp(\mathbf{S}_{ii}/\tau)}{\sum_{j=1}^{B}\exp(\mathbf{S}_{ij}/\tau)}.
+\end{equation}
+学习视角权重 $\pi_v=\mathrm{softmax}(\boldsymbol{\phi})_v$ 并组合：
+\begin{equation}
+  \mathcal{L}_{\text{mv-align}} = \sum_{v=1}^{V}\pi_v \mathcal{L}_{\text{align,w}}^{(v)}.
+\end{equation}
+
+我们通过两个阶段、两种互补机制增强冷启动物品表现：
+
+\paragraph{训练期冷启动重加权。}
+为避免对齐被高频物品主导，按物品流行度 $\mathrm{pop}(i)$（交互次数）对样本重加权：
+\begin{equation}
+  w_i = 1 + \beta\cdot \max\Big(0, \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
+  \label{eq:cold_reweight}
+\end{equation}
+$\beta>0$ 控制基于流行的重加权强度，$P_0$ 为冷启动阈值（$\mathrm{pop}(i) < P_0$ 的物品权重提升）。加权对齐损失为：
+\begin{equation}
+  \mathcal{L}_{\text{align,w}}^{(v)} =
+  \frac{1}{\sum_i w_i}\sum_{i=1}^{B} w_i \cdot
+  \left[-\log \frac{\exp(\mathbf{S}_{ii}/\tau)}{\sum_{j=1}^{B}\exp(\mathbf{S}_{ij}/\tau)}\right],
+\end{equation}
+其中 $w_i$ 仅重加权锚点（正）样本，使冷启动物品在对齐训练中获得足够梯度。
+
+\paragraph{推理期冷启动增强。}
+为与训练期重加权互补，推理时对文本做自适应加权。对流行度为 $\mathrm{pop}(i)$ 的物品 $i$，计算动态增强因子：
+\begin{equation}
+  \gamma_i = 1 + \beta_{\text{infer}} \cdot \max\Big(0, 
+  \frac{P_0-\mathrm{pop}(i)}{P_0}\Big),
+  \label{eq:infer_boost}
+\end{equation}
+融合层有效文本权重为 $\alpha_i' = \alpha_i \cdot \gamma_i$，在不改模型参数的前提下提高冷启动物品对文本的依赖。该解耦允许部署时调节而无需重训：较小的 $\beta_{\text{infer}}$ 使整体指标更均衡，较大值更强调冷启动。我们在验证集上联合调节 $\beta_{\text{infer}}$ 与 $(\lambda,\tau)$ 及训练重加权系数 $\beta$（式~\eqref{eq:cold_reweight}）；第\ref{sec:analysis}节默认（$\beta{=}3.0$，$\beta_{\text{infer}}{=}0.6$）体现了该权衡。
+
+二者共同保证冷启动物品在训练期通过对齐重加权获得更强学习信号，在推理期通过动态增强获得合适强调，从而在不过度损伤高频物品的前提下改善冷启动推荐。
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/framework.pdf}{%
+  \includegraphics[width=\linewidth]{figures/framework.pdf}%
+}{%
+  \fbox{\parbox[c][0.22\textheight][c]{0.95\linewidth}{\centering
+  \textbf{框架图占位。}\\
+  将 \texttt{framework.pdf} 置于 \texttt{paper\_sigir/figures/}.}}%
+}
+\caption{\model 概览。
+\circled{1}~\textbf{准备}：每视角归一化与白化（第\ref{sec:whiten}节）；
+\circled{2}~\textbf{交互}：DCN-V2 显式 ID$\times$文本交叉（第\ref{sec:cross}节）；
+\circled{3}~\textbf{对齐}：带冷启动重加权的多视角对比对齐（第\ref{sec:align}节）。}
+\label{fig:framework}
+\end{figure}
+
+\subsection{训练目标}
+优化：
+\begin{equation}
+  \mathcal{L} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{mv-align}},
+\end{equation}
+其中 $\mathcal{L}_{\text{rec}}$ 为标准序列推荐损失（训练中对采样正负的交叉熵），$\lambda$ 为对齐权重。
+
+\subsection{模型复杂度}\label{sec:complexity}
+\textbf{离线。} \tfidf 与 \llm 物品嵌入一次性预计算并存为静态缓冲；SVD 降维与 ZCA 白化在训练集离线完成。每个 \llm 视角需对每件物品单独一次编码器前向，故离线编码成本大致随视角数增长（例如四视角相对单视角）；为一次性或周期性刷新成本，在训练与服务上摊销，不增加单次请求延迟。
+\textbf{在线。} 在线路径增加每视角投影、一层 DCN-V2 交叉（$2d{\times}2d$）及融合 MLP。表~\ref{tab:params} 报告 Amazon Beauty 上的可训练参数与框架估计单次前向 FLOPs：文本融合与多视角头增加的可训练开销相对 \base 适中（约 ${\sim}1.8$M 参数），大部分参数仍在骨干与物品嵌入；相对仅 ID，前向 FLOPs 仅增约 ${\sim}3\%$。
+
+\subsection{两阶段训练协议}
+采用两阶段：\textbf{Phase-A}（预热）冻结骨干，以较高学习率训练文本头与交叉模块，在验证集上网格搜索 $(\lambda,\tau)$；\textbf{Phase-B}（联合微调）解冻全部参数并使用分组学习率。两种模态自第 0 轮起同时初始化，使文本头获得学习信号且 ID 嵌入仍可适配文本增强表示。完整日程见第\ref{sec:experiments}节。
+
+\section{实验}\label{sec:experiments}
+\subsection{数据集与评估}
+在两个 Amazon 商品评论领域~\cite{mcauley2015amazon,ni2019amazon} \textbf{Beauty} 与 \textbf{Toys\&Games} 上评估。采用时间划分，在 $K\in\{5,10,20\}$ 下报告\textbf{全排序}指标。除整体指标（HR、NDCG、MRR、Precision）外，按物品交互次数报告\textbf{按流行度分层}指标：
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+  \item \textbf{new}：$[1,3)$ 次交互
+  \item \textbf{few}：$[3,10)$ 次交互
+  \item \textbf{frequent}：$[10,\infty)$ 次交互
+\end{itemize}
+分层由训练数据中物品交互次数计算。\textbf{主表}（表~\ref{tab:main}）报告整体与对冷启动最有信息量的 \textbf{new} 层；为简洁省略 \textbf{few}、\textbf{frequent} 子表。正文仅报告全排序指标，因已有工作表明采样评估可能排错推荐模型~\cite{krichene2020sampledmetrics}。评估为留一法下一物品预测，每测试例一个真值；在此设定下 HR@K、Hit@K、Recall@K 一致；文中以 HR@K 简称，并以 MRR/NDCG 表征靠前位置质量。
+
+\subsection{基线}
+比较四类主配置：
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{\base（仅 ID）。} 无文本/交叉/对齐的纯序列基线。
+  \item \textbf{\base + \tfidf。} 预计算 \tfidf 嵌入，含显式交叉与对齐的轻量文本基线。
+  \item \textbf{\base + \tfidf + \llm（单视角）。} 在 \tfidf 上拼接单个 \llm 嵌入（Qwen2.5-7B~\cite{qwen2024qwen25}），含 SE 式门控与对齐。
+  \item \textbf{\model（多视角）。} \tfidf 基视角 + 4 个多视角 \llm 提示嵌入（身份/功能/受众/类别），每视角 SE 式块、显式交叉与多视角对比对齐。
+\end{itemize}
+
+\subsection{实现细节}
+除非另有说明，嵌入维度 $d=256$，最大序列长度 $L=50$，2 层 Transformer、2 个注意力头，batch 512，Adam 基础学习率 $10^{-4}$。
+\paragraph{两阶段日程。} Phase-A（15 epoch）$\to$ Phase-B（50 epoch）；Phase-A 在 Beauty 与 Toys\&Games 上均按 $\mathrm{MRR@10}$ 选择 $(\lambda,\tau)$。分组学习率：文本头 $\text{lr}_{\text{text}}=\num{1e-3}$，交叉/DNN 块 $\text{lr}_{\text{cross}}=\num{5e-4}$，Phase-B 骨干 $\text{lr}_{\text{backbone}}=\text{lr}_{\text{text}}\times 0.1$。
+\paragraph{网格。} 主实验采用 Balanced（默认）：$\lambda=0.10$，$\tau=0.05$，训练重加权 $\beta=3.0$（式~\eqref{eq:cold_reweight}），推理增强 $\beta_{\text{infer}}=0.6$（式~\eqref{eq:infer_boost}），两数据集相同（敏感度见第\ref{sec:analysis}节）。
+\paragraph{可复现性。} 每配置运行 4 个随机种子 $\{2024,2025,2026,2027\}$，报告 mean$\pm$std；全排序指标在 $K\in\{5,10,20\}$ 与分层阈值 \textbf{new}/\textbf{few}/\textbf{frequent} 如上。实现基于 RecBole~\cite{zhao2021recbole}；所有设置可由制品附带的配置与运行脚本复现。发布文件中的数值与本文记号一致（如第\ref{sec:experiments}节及式~\eqref{eq:cold_reweight}--\eqref{eq:infer_boost} 中的 $\lambda,\tau,\beta,\beta_{\text{infer}}$）。
+
+\paragraph{参数规模。}
+表~\ref{tab:params} 列出 Amazon Beauty（$|I|=12{,}102$，$d=256$，$d_t=256$，$d_l=1024$，$V=4$，$d_v=64$）的可训练参数与单次前向 FLOPs（TensorFlow 训练器输出）。多视角相对仅 ID 约增加 ${\sim}1.8$M 可训练参数；\llm 嵌入为离线缓冲，不计入可训练参数。
+
+\begin{table}[h]
+\caption{可训练参数与前向 FLOPs（Amazon Beauty）。}
+\label{tab:params}
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{模型} & \textbf{参数量} & \textbf{相对仅 ID} & \textbf{FLOPs} \\
+\midrule
+\base（仅 ID） & 67.2M & --- & 39.5M \\
+\base + \tfidf & 68.1M & +0.9M & 39.9M \\
+\base + \tfidf + \llm & 68.8M & +1.6M & 40.0M \\
+\model（多视角） & 68.9M & +1.8M & 40.7M \\
+\bottomrule
+\end{tabular}
+\vspace{0.35em}
+{\scriptsize 数值由训练日志四舍五入（精确：\num{67161345}、\num{68082433}、\num{68803585}、\num{68937733} 参数；FLOPs \num{39505256}、\num{39899496}、\num{39965032}、\num{40686440}）。}
+\end{table}
+
+\section{主要结果}
+表~\ref{tab:main} 给出 Beauty 与 Toys\&Games 的全排序结果。两数据集上加文本特征均稳定优于仅 ID，\tfidf 已带来可观提升（Beauty HR@10 +2.6\%，Toys +6.3\%）。要点如下：
+
+\paragraph{文本特征相对仅 ID 提升显著。}
+Beauty 上，仅 \tfidf 即将 HR@10 从 5.42\% 提至 5.56\%（+2.6\%），NDCG@10 从 2.93\% 至 3.69\%（+25.9\%）。Toys 上，\tfidf 将 HR@10 从 5.92\% 至 6.29\%（+6.3\%），NDCG@10 从 3.30\% 至 4.26\%（+29.1\%）。
+
+\paragraph{多视角稳定提升。}
+\model（7B）在两数据集上整体最优。\textbf{Beauty}：HR@10=5.79\%（相对仅 ID +6.8\%），MRR@10=3.19\%，NDCG@10=3.80\%。\textbf{Toys}：HR@10=6.61\%（+11.7\%），NDCG@10=4.39\%，MRR@10=3.71\%。层次关系 \model $>$ TF-IDF+LLM $>$ TF-IDF $>$ 仅 ID 在两数据集全部整体指标上成立。
+
+\paragraph{冷启动（new）层改进。}
+对 \textbf{new} 层，\model 相对文本基线（\tfidf：1.63\%/1.83\%，单视角 \llm：1.64\%/1.89\%）提升明显；Beauty 上缩小与仅 ID 的差距（1.76\% vs.\ 1.88\%），Toys 上超过仅 ID（2.04\% vs.\ 1.92\%）。值得注意的是，\model 在两数据集上 \textbf{new} 层的 NDCG@10、MRR@10 最佳，表明更丰富的多视角文本主要改善冷启动物品的排序质量，而召回覆盖仍对融合配置敏感。
+
+\begin{table}[t]
+\caption{全排序主结果（4 个种子的 mean$\pm$std）。每数据集最优加粗。$^{*}$ $p{<}0.05$，$^{**}$ $p{<}0.01$；与最强基线相比对用户级指标差做配对 $t$ 检验（Beauty：146{,}995 测试用户；Toys：164{,}590）。数值均为百分比（\%）。}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{模型}} &
+\multicolumn{3}{c}{\textbf{整体}} &
+\multicolumn{3}{c}{\textbf{new 层} $[1,3)$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
+\base（仅 ID，50ep） & 5.42$\pm$0.21 & 2.93$\pm$0.05 & 2.14$\pm$0.01 & 1.88$\pm$0.03 & 1.05$\pm$0.02 & 0.78$\pm$0.02 \\
+\base + \tfidf & 5.56$\pm$0.03 & 3.69$\pm$0.02 & 3.11$\pm$0.01 & 1.63$\pm$0.02 & 1.21$\pm$0.03 & 1.08$\pm$0.03 \\
+\base + \tfidf + \llm（7B） & 5.62$\pm$0.03 & 3.73$\pm$0.02 & 3.15$\pm$0.01 & 1.64$\pm$0.03 & 1.24$\pm$0.02 & 1.11$\pm$0.02 \\
+\model（7B） & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
+\base（仅 ID，50ep） & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
+\base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
+\base + \tfidf + \llm（7B） & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
+\model（7B） & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{**}$$\pm$0.03 & \textbf{3.71}$^{*}$$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{文本嵌入的提示模板}
+下文描述用于从 LLM 编码器（Qwen2.5）生成文本嵌入的提示模板。
+
+\paragraph{单视角嵌入。}
+单视角 \llm 嵌入使用基于标题的简单提示：
+\begin{quote}
+\texttt{[TITLE] \{text\}}
+\end{quote}
+其中 \texttt{\{text\}} 为物品标题。LLM 编码器处理该提示，我们对隐状态做 mean pooling 作为物品嵌入。
+
+\paragraph{多视角嵌入。}
+多视角使用四条提示，覆盖不同语义侧面：
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \textbf{身份/标题}：\texttt{Identify the item: [TITLE] \{text\}}
+  \item \textbf{功能/用途}：\texttt{What are the main functions and features of [TITLE] \{text\}?}
+  \item \textbf{目标受众}：\texttt{Who is the target audience or user group for [TITLE] \{text\}?}
+  \item \textbf{类别/语境}：\texttt{Categorize the item [TITLE] \{text\} and describe its context.}
+\end{enumerate}
+每视角独立编码，经 SVD 投影至 64 维，再经每视角 SE 式门控后融合。该设计鼓励模型捕获互补语义（物品是什么、做什么、谁在用、在目录中如何归类）。
+
+\section{分析}\label{sec:analysis}
+为回答 RQ1--RQ4 进行系统消融。所有消融均在 Toys\&Games 7B 多视角上完成；相对变化来自受控实验。
+\subsection{组件消融（RQ1--RQ4）}
+
+表~\ref{tab:ablation} 在 Toys\&Games（7B）上按研究问题分组：白化（RQ1），SE 式门控与显式交叉（RQ2；交叉亦属 RQ4），对比对齐（RQ4）。\textbf{RQ3}（等带宽下多视角 vs.\ 单视角）在 RQ1 块内比较 \emph{Multi-view w/ Whiten} 与 \emph{Single-view w/ Whiten}。
+
+\begin{table}[t]
+\caption{Toys\&Games（7B）组件消融，按 RQ1$\to$RQ2$\to$RQ4 排序。RQ3 通过 RQ1 中带标记的多视角与单视角白化两行对比阅读。数值单位为 \%。}
+\label{tab:ablation}
+\centering
+\scriptsize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{配置} & HR@10 & NDCG@10 & MRR@10 & HR\_new@10 \\
+\midrule
+\multicolumn{5}{l}{\textit{RQ1（白化）}} \\
+Multi-view w/ Whiten & 6.58 & 4.40 & 3.72 & 2.07 \\
+Multi-view w/o Whiten & 6.46 & 4.34 & 3.68 & 1.97 \\
+Single-view w/ Whiten & 6.41 & 4.33 & 3.68 & 1.94 \\
+Single-view w/o Whiten & 6.36 & 4.29 & 3.65 & 1.89 \\
+\midrule
+\multicolumn{5}{l}{\textit{RQ2（SE 式）；RQ4（显式交叉）}} \\
+Full (SE + Cross) & 6.58 & 4.40 & 3.72 & 2.07 \\
+$-$ SE-style & 6.62 & 4.39 & 3.70 & 2.00 \\
+$-$ Cross & 7.22 & 4.23 & 3.31 & 2.73 \\
+$-$ SE $-$ Cross & 7.23 & 4.24 & 3.31 & 2.70 \\
+\midrule
+\multicolumn{5}{l}{\textit{RQ4（对比对齐）}} \\
+$-$ Align & 6.41 & 4.35 & 3.71 & 1.83 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{白化有利于多视角、对单视角影响小（RQ1）。}
+多视角下去白化降低 HR@10，表明白化主要通过去相关多视角特征改善召回覆盖。单视角（TF-IDF+LLM）下去白化影响很小，说明单视角 \llm 特征已较良态。
+
+\paragraph{SE 式门控影响有限（RQ2）。}
+单独去掉 SE 式门控对多数指标仅边际变化。同时去掉 SE 与 Cross 时 HR\_new@10 变化最大，表明二者共同将模型校准向高频物品。
+
+\paragraph{交叉网络对排序质量至关重要（RQ4）。}
+去掉交叉模块会升高 HR@10，但\emph{显著损害}排序指标（MRR@10、NDCG@10）。这揭示基本的\textbf{HR—排序权衡}：无显式交叉时，分数分布更平滑，覆盖改善但 top-1 分辨力下降。
+
+\paragraph{对比对齐有助于整体与冷启动召回（RQ4）。}
+关闭多视角 InfoNCE 对齐使 HR@10 从 6.58\% 降至 6.41\%，HR\_new@10 从 2.07\% 至 1.83\%，NDCG@10、MRR@10 略降（4.40\%$\to$4.35\%，3.72\%$\to$3.71\%）。与交叉消融不同，这不是 HR—排序的「反转」：对齐整体加强文本—ID 耦合，在 \textbf{new} 层最明显。
+
+\subsection{RQ3：等带宽下多视角 vs.\ 单视角}
+在表~\ref{tab:main} 中比较单视角 TF-IDF+LLM（256 维 LLM）与多视角 \model（$4\times 64$=256 维总 LLM 预算）；表~\ref{tab:ablation} 中 RQ1 白化行在 Toys 受控消融下隔离同一对比。
+
+\paragraph{结论。}
+等嵌入带宽下，多视角在两数据集全部指标上优于单视角，在 \textbf{new} 层增益最大：Beauty 上缩小 HR\_new 与仅 ID 的差距（1.76\% vs.\ 1.88\%），Toys 上超过仅 ID（2.04\% vs.\ 1.92\%）。多样化提示视角尤其有利于低流行物品。
+
+\subsection{理解 HR—排序权衡}
+HR 与排序指标（MRR/NDCG）的权衡看似反直觉——更好排序常与更高命中率相关；但在\textbf{全排序}下该权衡自然出现。
+
+\paragraph{机制。}
+交叉网络产生\emph{更尖锐的分数分布}：少数物品得分显著更高，形成「赢者通吃」效应，利于 top-1（MRR），但可能使相关物品刚好落在 top-$K$ 之外（损害 HR@$K$）。相反，去掉交叉得到\emph{更平滑的分数分布}：更多物品聚集在决策边界附近，使更多真值进入 top-$K$（更高 HR），但以较低 top-1 精度（较低 MRR）为代价。
+
+\paragraph{实证。}
+表~\ref{tab:ablation} 量化该权衡：\textbf{去掉交叉}使 HR@10 从 6.58\% 升至 7.22\%（+9.7\%），但 MRR@10 从 3.72\% 降至 3.31\%（$-$11.0\%），NDCG@10 从 4.40\% 至 4.23\%（$-$3.9\%）。反之，\textbf{启用交叉}以召回覆盖为代价锐化排序精度。图~\ref{fig:tradeoff} 可视化表~\ref{tab:ablation} 中各消融点（含白化与 $-$Align）的 HR 与排序指标；虚线箭头强调交叉网络带来的 HR—排序权衡。
+
+\paragraph{实践建议。}
+该权衡可直接映射部署场景：
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{候选生成/偏召回系统}：可关闭交叉以更高 HR，代价为更低 MRR/NDCG。
+  \item \textbf{最终排序/偏精度系统}：启用交叉以锐化分数分布、提升 MRR/NDCG。
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_mrr.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_mrr.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--MRR 权衡}\\
+    运行 \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ MRR@10}
+  \label{fig:tradeoff_mrr}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_ndcg.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_ndcg.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--NDCG 权衡}\\
+    运行 \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ NDCG@10}
+  \label{fig:tradeoff_ndcg}
+\end{subfigure}
+\caption{Toys\&Games（7B）上的 HR—排序权衡。点对应表~\ref{tab:ablation}（RQ1--RQ4）。虚线对比 Full 与 $-$Cross：HR@10 更高（+9.7\%）但 MRR@10（$-$11.0\%）与 NDCG@10（$-$3.9\%）更低。$-$Align 点靠近 Full 但整体更低（第\ref{sec:analysis}节）。}
+\label{fig:tradeoff}
+\end{figure}
+
+\subsection{超参敏感度}
+图~\ref{fig:sensitivity} 展示 Toys\&Games（7B）上 \model 对 $\lambda$、$\tau$、$\beta$（式~\eqref{eq:cold_reweight}）与 $\beta_{\text{infer}}$（式~\eqref{eq:infer_boost}）的敏感度；每次只变一个超参，其余保持默认（$\lambda{=}0.10$，$\tau{=}0.05$，$\beta{=}3.0$，$\beta_{\text{infer}}{=}0.6$），纵轴为 HR@10（左）与 NDCG@10（右）。
+
+\paragraph{对齐权重 $\lambda$ 与温度 $\tau$。}
+两对比超参均呈平滑单峰曲线。HR@10 在 $\lambda{=}0.05$ 的 6.50\% 至 $\lambda{=}0.20$ 的 6.67\% 间，跨度仅 0.17 个百分点；NDCG@10 在 $\lambda{=}0.15$ 达峰 4.42\%，网格内变化不超过 0.05 个百分点。温度 $\tau$ 同样稳定：测试区间 HR@10 变化 0.06 个百分点，NDCG@10 变化 0.03 个百分点（$0.03$--$0.10$）。表明对比目标对适度调参鲁棒。
+
+\paragraph{冷启动训练系数与推理系数。}
+训练系数 $\beta$（式~\eqref{eq:cold_reweight}）对整体指标影响很小（HR@10 在 0.05 个百分点内，NDCG@10 在 0.02 个百分点内），因其主要影响低流行物品的训练期重加权。推理系数 $\beta_{\text{infer}}$ 对整体性能同样稳定（HR@10 在 0.01 个百分点内）。与式~\eqref{eq:infer_boost} 一致，它在推理时调节低流行物品对文本的依赖；在所测网格上整体 HR@10 与 NDCG@10 仍落在上述窄带内。
+
+\paragraph{结论。}
+这些超参在整体指标上敏感度低：HR@10 总变化小于 0.2 个百分点，NDCG@10 小于 0.05 个百分点。使 \model 在实践中易于调参：默认配置接近最优，实践者可调节 $\lambda$ 或 $\beta_{\text{infer}}$ 在整体与冷启动间权衡，而不易遭遇大幅回退。
+
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/sensitivity_tradeoff_ndcg.pdf}{%
+  \includegraphics[width=\linewidth]{figures/sensitivity_tradeoff_ndcg.pdf}%
+}{%
+  \fbox{\parbox[c][0.25\textheight][c]{0.9\linewidth}{\centering
+  \textbf{敏感度分析}\\
+  运行 \texttt{plot\_sensitivity.py}}}%
+}
+\caption{Toys\&Games（7B）超参敏感度。各子图只改变一个参数，其余为默认值（竖虚线）。HR@10（实线，左轴）与 NDCG@10（虚线，右轴）在所测设置下稳定：HR@10 总变化小于 0.2 个百分点，NDCG@10 小于 0.05 个百分点。}
+\label{fig:sensitivity}
+\end{figure}
+
+\section{结论}
+本文提出 \model：面向文本增强序列推荐、完全开源的即插即用框架，以 RecBole 上单命令可复现包发布。Amazon Beauty 与 Toys\&Games 上的全排序实验给出三条可操作建议：
+
+\textbf{(1) TF-IDF 是出人意料地强的基线。}
+仅 \tfidf 相对仅 ID 已有可观提升（Beauty/Toys 上 HR@10 +2.6\%/+6.3\%），在投资 \llm 嵌入前应作为\emph{第一步}文本增强。
+
+\textbf{(2) 等带宽下多视角改善冷启动排序。}
+在相等嵌入带宽（$4{\times}64$ 维 vs.\ $1{\times}256$ 维）下，多视角 \llm 提示优于文本基线，并在 \textbf{new} 层取得最强排序质量（NDCG/MRR）。Beauty 上缩小 HR\_new 与仅 ID 的差距（1.76\% vs.\ 1.88\%），Toys 上超过仅 ID（2.04\% vs.\ 1.92\%）。
+
+\textbf{(3) 交叉网络主导 HR 与 MRR/NDCG 的权衡。}
+启用交叉以召回（HR）为代价锐化排序（MRR/NDCG）；禁用则相反。可直接映射部署：候选生成阶段可关交叉，最终重排可开交叉。
+
+\smallskip\noindent
+\textbf{可复现性。} 复现本文实验与图表所需的全部代码与配置文件见 \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}。
+
+%% 附录已移至匿名仓库（采样 vs 全排序、扩展分层等）。
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\end{document}
