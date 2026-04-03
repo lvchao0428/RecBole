@@ -55,7 +55,7 @@ We present \model, a fully open-sourced, plug-and-play framework that combines m
 The entire pipeline is released as a single-command reproducible package built on RecBole.
 %
 Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), while \tfidf alone already provides a strong baseline (+2.6\% and +6.3\% HR@10).
-Through controlled ablations of contrastive and cold-start hyperparameters, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, improves ranking quality on cold-start items over all text baselines.
+Through controlled ablations of contrastive and cold-start hyperparameters, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, improves ranking quality on cold-start items compared with all text baselines.
 All code and configuration files needed to reproduce the reported results are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
@@ -460,8 +460,10 @@ We optimize:
 \end{equation}
 where $\mathcal{L}_{\text{rec}}$ is the standard sequential
 recommendation loss (cross-entropy over sampled
-positives/negatives in training), and $\lambda$ is the
-alignment weight.
+positives/negatives in training; note that negative sampling is
+used only for training efficiency---all evaluation metrics are
+computed under full ranking over the entire item set), and
+$\lambda$ is the alignment weight.
 
 \subsection{Model Complexity}\label{sec:complexity}
 \textbf{Offline.} \tfidf and \llm item embeddings are precomputed once
@@ -713,7 +715,9 @@ within the RQ1 block.
 
 \begin{table}[t]
 \caption{Component ablation on Toys\&Games (7B), ordered by RQ1$\rightarrow$RQ2$\rightarrow$RQ4.
-RQ3 is read by comparing the two whitening rows marked for multi-view vs.\ single-view. All values in \%.}
+RQ3 is read by comparing the two whitening rows marked for multi-view vs.\ single-view.
+The Full row (HR@10=6.58) differs slightly from Table~\ref{tab:main} (6.61) because ablations use a single representative seed rather than the 4-seed mean.
+All values in \%.}
 \label{tab:ablation}
 \centering
 \scriptsize
