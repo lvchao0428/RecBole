@@ -55,7 +55,7 @@ We present \model, a fully open-sourced, plug-and-play framework that combines m
 The entire pipeline is released as a single-command reproducible package built on RecBole.
 %
 Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), while \tfidf alone already provides a strong baseline (+2.6\% and +6.3\% HR@10).
-Through controlled ablations of contrastive and cold-start hyperparameters, we expose an HR--ranking trade-off governed by the cross network and show that multi-view prompting, under equal embedding bandwidth, improves ranking quality on cold-start items compared with all text baselines.
+Through controlled ablations we expose an HR--ranking trade-off governed by the cross network and show that, under equal embedding bandwidth, multi-view prompting narrows the cold-start HR\_new gap to ID-only on Beauty (1.76\% vs.\ 1.88\%) while exceeding it on Toys (2.04\% vs.\ 1.92\%), and achieves the best cold-start ranking quality (NDCG\_new and MRR\_new) on both datasets.
 All code and configuration files needed to reproduce the reported results are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
