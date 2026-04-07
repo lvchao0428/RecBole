@@ -200,20 +200,20 @@
 \node[draw=gray!40, dashed, rounded corners=4pt, 
       fit=(v1)(v2)(v3)(v4)(tfidf)(dim1)(dim2)(dim3)(dim4)(dimt), 
       inner xsep=10pt, inner ysep=6pt, fill=gray!5] (offbox) {};
-\node[font=\scriptsize\sffamily, text=gray!70, fill=white, inner sep=1.5pt, anchor=south west] 
-  at ([xshift=0.15cm, yshift=0.06cm]offbox.north west) {\textit{Offline}};
+\node[font=\scriptsize\sffamily, text=black!65, fill=white, inner sep=1.5pt, anchor=south east] 
+  at ([xshift=0.0cm, yshift=0.06cm]offbox.north east) {\textit{Offline}};
 
-% LLM 标注放在括号上方 - 仅标注 v1-v4
+% LLM 标注放在括号上方 - 仅标注 v1-v4，左移避免与线重叠
 \draw[decorate, decoration={brace, amplitude=4pt, raise=1pt}, line width=0.7pt, color=black!50]
   (0.35, -0.65) -- (6.15, -0.65);
-\node[font=\scriptsize\sffamily, text=black!65] at (3.25, -0.3) {LLM (4 Prompts)};
+\node[font=\scriptsize\sffamily, text=black!65] at (1.5, -0.3) {LLM (4 Prompts)};
 
-% Online区域 - 标签放到右上角; inner_ysep 收小避免上边缘探出到 Offline 框下方
+% Online区域 - 标签放到右上角，与 Offline 对称
 \node[draw=black!40, dashed, rounded corners=4pt,
       fit=(svd1)(svd2)(svd3)(svd4)(svdt)(l21)(l22)(l23)(l24)(l2t)(concat)(crossnode)(out),
       inner xsep=12pt, inner ysep=6pt, fill=black!2] (onbox) {};
 \node[font=\scriptsize\sffamily, text=black!65, fill=white, inner sep=1.5pt, anchor=south east]
-  at ([xshift=-0.15cm, yshift=0.06cm]onbox.north east) {\textit{Online}};
+  at ([xshift=0.0cm, yshift=0.06cm]onbox.north east) {\textit{Online}};
 \end{scope}
 
 % ==================== 输入箭头 ====================

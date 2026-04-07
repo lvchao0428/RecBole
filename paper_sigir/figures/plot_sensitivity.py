@@ -12,8 +12,9 @@ Modes:
 """
 
 import argparse
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import numpy as np
@@ -32,18 +33,20 @@ mpl.rcParams['xtick.labelsize'] = 12
 mpl.rcParams['ytick.labelsize'] = 12
 
 # Figure 3 style knobs (sensitivity_tradeoff_*.pdf)
-# Tune these values when adjusting readability after LaTeX scaling.
+# Sized for ACM sigconf single-column width (~3.33in) scaled to full textwidth.
+# Increase figsize to give subplots more room; bump tick/legend sizes for
+# readability at 100% zoom in the two-column PDF.
 FIG3_STYLE = {
-    'figsize': (7.2, 6.1),
-    'line_width': 2.1,
-    'marker_size': 7.2,
-    'tick_labelsize': 12.5,
+    'figsize': (7.8, 6.8),
+    'line_width': 2.2,
+    'marker_size': 8.0,
+    'tick_labelsize': 11,
     'tick_color': '#111111',
     'tick_width': 1.05,
-    'tick_labelweight': 'semibold',
+    'tick_labelweight': 'normal',
     'hr_color': '#1a1a1a',
     'second_color': '#4a4a4a',
-    'legend_fontsize': 12,
+    'legend_fontsize': 11,
 }
 
 DEFAULT_DATA_FILE = Path(__file__).parent.parent / 'sensitivity0309.txt'
@@ -323,16 +326,25 @@ def create_sensitivity_tradeoff_plot(
             width=FIG3_STYLE['tick_width'],
             colors=FIG3_STYLE['tick_color'],
         )
+
+        y1_range = max(y1) - min(y1) if max(y1) != min(y1) else 0.01
+        y2_range = max(y2) - min(y2) if max(y2) != min(y2) else 0.001
+        ax.set_ylim(min(y1) - y1_range * 0.25, max(y1) + y1_range * 0.25)
+        ax2.set_ylim(min(y2) - y2_range * 0.25, max(y2) + y2_range * 0.25)
+
+        ax2.yaxis.set_major_locator(plt.MaxNLocator(nbins=5))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=5))
+
         ax.grid(True, alpha=0.3, linestyle='--')
         ax.set_axisbelow(True)
         for tick_label in ax.get_xticklabels() + ax.get_yticklabels() + ax2.get_yticklabels():
             tick_label.set_fontweight(FIG3_STYLE['tick_labelweight'])
 
     fig.legend([line1, line2], ['HR@10 (solid)', f'{second_metric} (dashed)'],
-               loc='upper center', ncol=2, frameon=True, bbox_to_anchor=(0.5, 0.02),
+               loc='upper center', ncol=2, frameon=True, bbox_to_anchor=(0.5, 0.015),
                fontsize=FIG3_STYLE['legend_fontsize'])
 
-    plt.tight_layout(rect=[0, 0.05, 1, 0.97])
+    plt.tight_layout(rect=[0, 0.055, 1, 0.97], h_pad=1.2, w_pad=1.0)
 
     output_dir = Path(__file__).parent.parent / 'figures'
     output_dir.mkdir(exist_ok=True)

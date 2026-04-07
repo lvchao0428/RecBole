@@ -600,7 +600,7 @@ parameters.
 FLOPs \num{39505256}, \num{39899496}, \num{39965032}, \num{40686440}).}
 \end{table}
 
-\section{Main Results}
+\section{Main Results}\label{sec:main_results}
 Table~\ref{tab:main} reports full-ranking results on Beauty
 and Toys\&Games. Across both datasets, adding text features
 consistently improves over the ID-only baseline, with \tfidf
@@ -784,9 +784,8 @@ isolate the same comparison under controlled ablations on Toys\&Games.
 \paragraph{Takeaway.}
 Under equal embedding bandwidth, multi-view outperforms
 single-view on all metrics on both datasets, with gains most
-pronounced on the \textbf{new} stratum: on Beauty it narrows the
-HR\_new gap to ID-only (1.76\% vs.\ 1.88\%), while on Toys it
-exceeds it (2.04\% vs.\ 1.92\%). Diverse prompt perspectives
+pronounced on the \textbf{new} stratum (cf.\ the cold-start
+analysis in \S\ref{sec:main_results}). Diverse prompt perspectives
 particularly help low-popularity items.
 
 \subsection{Understanding the HR--Ranking Trade-off}

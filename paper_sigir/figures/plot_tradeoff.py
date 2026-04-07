@@ -10,18 +10,20 @@ Usage:
     python plot_tradeoff.py
 """
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['Times New Roman', 'DejaVu Serif'],
-    'font.size': 13,
-    'axes.labelsize': 14,
-    'axes.titlesize': 14,
-    'xtick.labelsize': 12,
-    'ytick.labelsize': 12,
-    'legend.fontsize': 10,
+    'font.size': 11,
+    'axes.labelsize': 12,
+    'axes.titlesize': 12,
+    'xtick.labelsize': 11,
+    'ytick.labelsize': 11,
+    'legend.fontsize': 9,
     'figure.dpi': 300,
     'savefig.dpi': 300,
     'savefig.bbox': 'tight',
@@ -44,11 +46,11 @@ ablation_data = {
                         'marker': 'D', 'color': '#666666', 'facecolor': 'white'},
 }
 
-whiten_data = {
-    'w/ Whiten':  {'hr': 6.58, 'ndcg': 4.40, 'mrr': 3.72,
-                   'marker': 'o', 'color': '#1a1a1a', 'facecolor': '#1a1a1a'},
+extra_data = {
     'w/o Whiten': {'hr': 6.46, 'ndcg': 4.34, 'mrr': 3.68,
                    'marker': 'v', 'color': '#999999', 'facecolor': '#999999'},
+    '\u2212Align':    {'hr': 6.41, 'ndcg': 4.35, 'mrr': 3.71,
+                   'marker': 'P', 'color': '#444444', 'facecolor': '#444444'},
 }
 
 # =============================================================================
@@ -57,19 +59,19 @@ whiten_data = {
 
 def plot_tradeoff(y_key, y_label, title_suffix, fname_suffix):
     """Draw one HR-vs-{y_key} scatter plot and save PDF+PNG."""
-    fig, ax = plt.subplots(figsize=(3.8, 3.8))
+    fig, ax = plt.subplots(figsize=(4.0, 4.0))
 
     for label, d in ablation_data.items():
         ax.scatter(d['hr'], d[y_key],
                    marker=d['marker'], c=d.get('facecolor', d['color']),
-                   s=120, label=label,
+                   s=100, label=label,
                    edgecolors=d['color'], linewidths=1.3, zorder=3)
 
-    wd = whiten_data['w/o Whiten']
-    ax.scatter(wd['hr'], wd[y_key],
-               marker=wd['marker'], c=wd.get('facecolor', wd['color']),
-               s=120, label='w/o Whiten',
-               edgecolors=wd['color'], linewidths=1.3, zorder=3)
+    for label, d in extra_data.items():
+        ax.scatter(d['hr'], d[y_key],
+                   marker=d['marker'], c=d.get('facecolor', d['color']),
+                   s=100, label=label,
+                   edgecolors=d['color'], linewidths=1.3, zorder=3)
 
     full = ablation_data['Full (SE+Cross)']
     cross = ablation_data['\u2212Cross']
@@ -83,19 +85,19 @@ def plot_tradeoff(y_key, y_label, title_suffix, fname_suffix):
     mid_y = (full[y_key] + cross[y_key]) / 2
     ax.text(mid_x, mid_y + 0.04,
             f'HR$\\uparrow$ {y_label.split("@")[0]}$\\downarrow$\n(trade-off)',
-            fontsize=9, ha='center', va='bottom',
+            fontsize=10, ha='center', va='bottom',
             color='gray', style='italic')
 
     ax.set_xlabel('HR@10 (%)', fontweight='bold')
     ax.set_ylabel(f'{y_label} (%)', fontweight='bold')
     ax.set_title(f'HR\u2013{title_suffix} Trade-off on Toys&Games (7B)',
-                 fontweight='bold', pad=6)
+                 fontweight='bold', pad=8)
     ax.tick_params(axis='both', which='major', width=1.0, colors='#111111')
 
-    all_x = [d['hr'] for d in ablation_data.values()] + [wd['hr']]
-    all_y = [d[y_key] for d in ablation_data.values()] + [wd[y_key]]
-    pad_x = (max(all_x) - min(all_x)) * 0.25
-    pad_y = (max(all_y) - min(all_y)) * 0.25
+    all_x = [d['hr'] for d in ablation_data.values()] + [d['hr'] for d in extra_data.values()]
+    all_y = [d[y_key] for d in ablation_data.values()] + [d[y_key] for d in extra_data.values()]
+    pad_x = (max(all_x) - min(all_x)) * 0.30
+    pad_y = (max(all_y) - min(all_y)) * 0.30
     ax.set_xlim(min(all_x) - pad_x, max(all_x) + pad_x)
     ax.set_ylim(min(all_y) - pad_y, max(all_y) + pad_y)
 
@@ -103,21 +105,21 @@ def plot_tradeoff(y_key, y_label, title_suffix, fname_suffix):
 
     leg = ax.legend(
         loc='lower left',
-        ncol=2,
+        ncol=1,
         framealpha=0.92,
         edgecolor='#cccccc',
         fancybox=False,
-        markerscale=0.9,
-        columnspacing=0.6,
+        markerscale=0.65,
+        columnspacing=0.8,
         handletextpad=0.3,
-        labelspacing=0.35,
+        labelspacing=0.3,
         borderpad=0.4,
-        fontsize=9,
+        fontsize=8.5,
     )
     leg.get_frame().set_linewidth(0.6)
 
     ax.grid(True, alpha=0.25, linestyle='-', linewidth=0.4)
-    fig.tight_layout(pad=0.5)
+    fig.tight_layout(pad=0.6)
 
     pdf_name = f'tradeoff_{fname_suffix}.pdf'
     png_name = f'tradeoff_{fname_suffix}.png'
@@ -129,7 +131,8 @@ def plot_tradeoff(y_key, y_label, title_suffix, fname_suffix):
     print("-" * 55)
     for label, d in ablation_data.items():
         print(f"  {label:20s}: HR@10={d['hr']:.2f}%, {y_label}={d[y_key]:.2f}%")
-    print(f"  {'w/o Whiten':20s}: HR@10={wd['hr']:.2f}%, {y_label}={wd[y_key]:.2f}%")
+    for label, d in extra_data.items():
+        print(f"  {label:20s}: HR@10={d['hr']:.2f}%, {y_label}={d[y_key]:.2f}%")
 
     plt.show()
     return fig
