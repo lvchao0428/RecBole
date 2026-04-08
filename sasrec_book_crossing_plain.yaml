@@ -19,7 +19,7 @@ LIST_SUFFIX: _list
 MAX_ITEM_LIST_LENGTH: 50
 POSITION_FIELD: position_id
 load_col:
-  inter: [user_id, item_id, rating]
+  inter: [user_id, item_id, rating, timestamp]
   item: [item_id]
 
 epochs: 20
@@ -31,7 +31,7 @@ stopping_step: 20
 clip_grad_norm: { max_norm: 5 }
 eval_args:
   group_by: user
-  order: RO
+  order: TO
   split: {'LS': 'valid_and_test'}
   mode:  {'valid': 'uni100','test':'full'}
 eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}

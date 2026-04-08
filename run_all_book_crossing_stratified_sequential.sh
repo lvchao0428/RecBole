@@ -10,7 +10,7 @@
 #   RUN_ID=20260101_120000        # 与 LOG_DIR 二选一：默认自动生成时间戳子目录
 #   DATASET_BOOK_CROSSING_DIR=... # book-crossing 数据目录，默认 <ROOT>/dataset/book-crossing
 
-set -euo pipefail
+#set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"

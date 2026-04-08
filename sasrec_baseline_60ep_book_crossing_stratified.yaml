@@ -1,6 +1,7 @@
 ---
 # Pure SASRec baseline (60 epochs) + Stratified Evaluation (book-crossing)
 # 训练轮数与 two_phase 脚本中 Phase A 20 + Phase B 40 对齐（合计 60）
+# 顺序模型要求 eval_args.order=TO，.inter 需含 timestamp（无则运行 tools/preprocess_book_crossing_inter_add_timestamp.py）
 # No text features, no alignment, pure ID-based
 
 model: SASRecAlign
@@ -26,7 +27,7 @@ LIST_SUFFIX: _list
 MAX_ITEM_LIST_LENGTH: 50
 POSITION_FIELD: position_id
 load_col:
-  inter: [user_id, item_id, rating]
+  inter: [user_id, item_id, rating, timestamp]
   item: [item_id, book_title]
 
 epochs: 60
@@ -38,7 +39,7 @@ stopping_step: 20
 clip_grad_norm: { max_norm: 5 }
 eval_args:
   group_by: user
-  order: RO
+  order: TO
   split: {'LS': 'valid_and_test'}
   mode:  {'valid': 'full','test':'full'}
 eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
