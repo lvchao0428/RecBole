@@ -23,6 +23,7 @@ import sys
 from typing import List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -150,8 +151,14 @@ def main() -> int:
 
     os.chdir(ROOT_DIR)
 
-    cfg = Config(model="BPR", dataset="book-crossing", config_file_list=list(args.config))
-    dataset = create_dataset(cfg)
+    # RecBole Config scans sys.argv for --key=value only; strip our argparse to avoid warnings.
+    _argv = sys.argv
+    sys.argv = [_argv[0]]
+    try:
+        cfg = Config(model="BPR", dataset="book-crossing", config_file_list=list(args.config))
+        dataset = create_dataset(cfg)
+    finally:
+        sys.argv = _argv
     n_items = dataset.num(dataset.iid_field)
 
     print("=" * 60)
@@ -185,6 +192,23 @@ def main() -> int:
     mapping_csv = os.path.join(DATASET_DIR, "item_index_mapping.csv")
     if os.path.isfile(mapping_csv):
         _ok(f"item_index_mapping.csv present ({mapping_csv})")
+        try:
+            df = pd.read_csv(mapping_csv)
+            n_rows = len(df)
+            mx = int(df["internal_item_id"].max())
+            nu = int(df["internal_item_id"].nunique())
+            exp_max = n_items - 1
+            print(
+                f"  mapping: rows={n_rows} max_internal_id={mx} unique_ids={nu} "
+                f"(expect rows={n_items} max_id={exp_max})"
+            )
+            if n_rows != n_items or mx != exp_max or nu != n_items:
+                print(
+                    "  HINT  Qwen 行数由 mapping CSV 决定；若比 n_items 多 1 行，"
+                    "请重新 export mapping 或裁剪向量，见 tools/trim_embedding_to_n_items.py"
+                )
+        except Exception as e:
+            print(f"  WARN  could not parse mapping CSV: {e}")
     else:
         print(f"  SKIP  item_index_mapping.csv not found (optional for LLM pipeline)")
 
