@@ -62,6 +62,7 @@ def _choose_title_field(df: pd.DataFrame) -> Optional[str]:
         df,
         [
             "title",
+            "book_title",
             "item_title",
             "name",
             "item_name",

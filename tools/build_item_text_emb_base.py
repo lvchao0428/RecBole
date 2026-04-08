@@ -84,6 +84,7 @@ def _choose_title_field(df: pd.DataFrame, preferred: Optional[str]) -> Optional[
             return col
     candidates = [
         "title",
+        "book_title",
         "item_title",
         "name",
         "item_name",

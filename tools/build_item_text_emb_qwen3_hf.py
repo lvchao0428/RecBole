@@ -34,10 +34,64 @@ from typing import List, Union, Optional
 import numpy as np
 import pandas as pd
 import torch
+import importlib
+import transformers as _transformers
 from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from tqdm import tqdm
+
+
+def _patch_transformers_namespace_for_stream_generator():
+    """Qwen ``trust_remote_code`` may pull in ``transformers_stream_generator``, whose
+    ``main.py`` does ``from transformers import BeamSearchScorer, ...``. Recent
+    ``transformers`` releases moved or removed these from the top-level package;
+    re-export from submodules or add minimal stubs so that import succeeds.
+
+    This embedding script never uses beam search or streaming generation; only
+    ``from_pretrained`` needs to load remote code without ``ImportError``.
+    """
+    tf = _transformers
+
+    def _ensure(name: str, modules: tuple[str, ...]) -> None:
+        if hasattr(tf, name):
+            return
+        for mod_name in modules:
+            try:
+                mod = importlib.import_module(mod_name)
+                if hasattr(mod, name):
+                    setattr(tf, name, getattr(mod, name))
+                    return
+            except Exception:
+                continue
+        # Removed entirely in some versions (e.g. transformers v5+): placeholder class.
+        setattr(tf, name, type(name, (), {}))
+
+    # transformers_stream_generator/main.py (lines 1–11) — beam / constraint symbols.
+    _ensure("BeamSearchScorer", ("transformers.generation.beam_search",))
+    _ensure("ConstrainedBeamSearchScorer", ("transformers.generation.beam_search",))
+    _ensure("DisjunctiveConstraint", ("transformers.generation.beam_constraints",))
+    _ensure("PhrasalConstraint", ("transformers.generation.beam_constraints",))
+
+
+_patch_transformers_namespace_for_stream_generator()
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import normalize as l2_normalize
+
+
+def _tokenizer_has_usable_chat_template(tokenizer) -> bool:
+    """Return True only if ``apply_chat_template`` can run (template string is set).
+
+    Many tokenizers define ``apply_chat_template`` but raise
+    ``ValueError: ... chat_template is not set`` when the model repo omits
+    ``chat_template`` in ``tokenizer_config.json`` (e.g. incomplete local copy).
+    """
+    if not hasattr(tokenizer, "apply_chat_template"):
+        return False
+    ct = getattr(tokenizer, "chat_template", None)
+    if ct is None:
+        return False
+    if isinstance(ct, str) and not ct.strip():
+        return False
+    return True
 
 # Make local project importable when running from repo root
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -950,7 +1004,22 @@ def main():
         model = model.to(device)
     model.eval()
 
-    use_chat = hasattr(tokenizer, "apply_chat_template") and (not args.no_chat_template)
+    use_chat = (
+        _tokenizer_has_usable_chat_template(tokenizer) and (not args.no_chat_template)
+    )
+    if not use_chat and not args.no_chat_template:
+        if args.use_chat_template:
+            print(
+                "[WARN] --use_chat_template set but tokenizer.chat_template is missing or empty; "
+                "using raw prompts. Fix: add chat_template to tokenizer_config.json under "
+                "--model_name_or_path, or pass --no_chat_template to silence this."
+            )
+        else:
+            print(
+                "[INFO] tokenizer.chat_template is unset; using raw prompts (no chat wrapping)."
+            )
+    elif use_chat:
+        print("[INFO] Using tokenizer.apply_chat_template() for prompts.")
 
     # --- 4. Encoding Loop ---
     # We will process items in batches. For each batch, we generate embeddings for ALL prompts.
