@@ -1,5 +1,5 @@
 \documentclass[sigconf,natbib=true,anonymous]{acmart}
-%% RecSys 2026 — Main Track Long Paper (8 pages content + unlimited references)
+%% RecSys 2026 — Reproducibility Long Paper (8 pages content + unlimited references)
 %% Uses ACM sigconf format (two-column layout), double-blind review.
 %% Camera-ready: remove 'anonymous' and add author info.
 
@@ -39,8 +39,8 @@
 
 \begin{document}
 
-\title{MV-Align: Multi-View Text Alignment with Explicit Feature Crossing\\
-for Sequential Recommendation}
+\title{Multi-View Text Features for Sequential Recommendation:\\
+Explicit Cross and Alignment for Reliable Full-Ranking Gains}
 
 % Review version: anonymous authors.
 % Camera-ready example:
@@ -49,17 +49,17 @@ for Sequential Recommendation}
 % \email{email@example.com}
 
 \begin{abstract}
-Incorporating text features into sequential recommenders can substantially improve generalization, especially for cold-start items, yet prior methods typically rely on a single text representation and fuse it with ID embeddings only implicitly through shared attention layers.
-We argue that this design misses two opportunities: (i)~diverse prompt-driven \llm views capture complementary item semantics that a single embedding cannot, and (ii)~explicit feature crossing between ID and text signals---well established in CTR prediction but unexplored in sequential recommendation---can sharpen ranking quality.
+Text-feature-enhanced sequential recommenders have attracted growing interest, yet published results are difficult to compare: single-view embeddings, inconsistent evaluation protocols (sampled vs.\ full-ranking), and unreported configuration details hamper reproducibility and may mislead model selection.
 %
-We propose \model, which introduces three novel components on top of a \base backbone: \emph{per-view whitening} that decorrelates multi-view \llm embeddings before fusion, \emph{explicit ID$\times$Text cross interactions} via DCN-V2, and \emph{multi-view contrastive alignment} with cold-start reweighting.
-Through controlled ablations under full-ranking evaluation on Amazon Beauty and Toys\&Games, we expose a previously unreported \textbf{HR--ranking trade-off}: enabling the cross network improves ranking precision (MRR/NDCG) at the cost of recall (HR), while disabling it reverses this balance---a finding that directly maps to deployment choices between candidate generation and final re-ranking.
+We present \model, a fully open-sourced, plug-and-play framework that combines multi-view text representations (\tfidf and \llm, with per-view whitening for decorrelation), explicit ID$\times$Text cross interactions via DCN-V2, and contrastive alignment with cold-start reweighting.
+The entire pipeline is released as a single-command reproducible package built on RecBole.
 %
-\model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), and under equal embedding bandwidth, multi-view prompting narrows the cold-start HR\_new gap to ID-only on Beauty (1.76\% vs.\ 1.88\%) while exceeding it on Toys (2.04\% vs.\ 1.92\%), achieving the best cold-start ranking quality (NDCG\_new and MRR\_new) on both datasets.
-Code and configurations are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
+Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), while \tfidf alone already provides a strong baseline (+2.6\% and +6.3\% HR@10).
+Through controlled ablations we expose an HR--ranking trade-off governed by the cross network and show that, under equal embedding bandwidth, multi-view prompting narrows the cold-start HR\_new gap to ID-only on Beauty (1.76\% vs.\ 1.88\%) while exceeding it on Toys (2.04\% vs.\ 1.92\%), and achieves the best cold-start ranking quality (NDCG\_new and MRR\_new) on both datasets.
+All code and configuration files needed to reproduce the reported results are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
-\keywords{Sequential Recommendation, Text-Enhanced Recommendation, Multi-View Representation, Feature Crossing, Contrastive Alignment, Cold-Start}
+\keywords{Sequential Recommendation, Reproducibility, Text Features, Multi-View Representation, Full-Ranking Evaluation, Open-Source Benchmark}
 
 \maketitle
 
@@ -75,10 +75,16 @@ lightweight features (e.g., \tfidf) are cheap and surprisingly
 strong, while \llm-derived embeddings can be richer yet
 substantially more expensive in extraction, storage, and serving.
 
-A natural question is whether multi-view \llm features justify
-the added complexity. We quantify this by reporting trainable
-parameters and forward-pass FLOPs (Table~\ref{tab:params}) and
-analyzing offline encoding cost in \S\ref{sec:complexity}.
+In large-scale recommendation, teams typically budget cost along
+three axes: \emph{trainable parameters} and optimizer state (memory),
+\emph{forward-pass FLOPs} or measured latency (inference), and
+\emph{offline preprocessing} for text (e.g., one-time encoder runs),
+which is amortized over the catalog and separate from per-request
+serving.
+We report trainable parameters and framework-estimated FLOPs for our
+Beauty configurations (Table~\ref{tab:params}) as comparable proxies
+for runtime cost, and we discuss offline \llm view encoding relative
+to single-view in \S\ref{sec:complexity}.
 
 Two practical observations motivate this work. First, once a
 strong \tfidf baseline is in place (e.g., +2.6\% HR@10 and
@@ -120,25 +126,20 @@ low-popularity items receive sufficient gradient updates.
 
 Our contributions are threefold.
 \begin{itemize}[leftmargin=*,itemsep=1pt]
-  \item \textbf{Systematic method design.} We propose \model, a
-    principled framework that combines explicit cross networks (DCN-V2)
-    with multi-view \llm text features for sequential recommendation.
-    The ``prepare--interact--align'' design jointly leverages per-view
-    whitening, explicit ID$\times$Text crossing, and contrastive
-    alignment with cold-start reweighting---a combination that, to our
-    knowledge, has not been explored in this setting.
-  \item \textbf{New empirical finding.} Through controlled ablations
-    under full-ranking evaluation on two Amazon domains with
-    popularity-stratified analysis, we expose a previously unreported
-    \textbf{HR--ranking trade-off}: the cross network sharpens ranking
-    quality (MRR/NDCG) at the cost of recall (HR), providing
-    actionable guidance for practitioners choosing between candidate
-    generation and final re-ranking configurations.
-  \item \textbf{Practical design insights.} We show that lightweight
-    \tfidf alone is a surprisingly strong baseline, and that under
-    equal embedding bandwidth ($4{\times}64$-d vs.\ $1{\times}256$-d),
-    multi-view prompting consistently outperforms single-view,
-    with the largest gains on cold-start items.
+  \item We propose \model, a deployable plug-in framework for
+    \base that supports a frugal \tfidf-only configuration as
+    well as stronger multi-view \llm features under a fixed
+    embedding budget.
+  \item We benchmark on two Amazon domains (Beauty and
+    Toys\&Games) with \textbf{full-ranking} evaluation and
+    popularity-stratified analysis (with the \textbf{new} stratum in the main tables), and provide systematic
+    ablations (whitening, SE-style gating, cross) alongside robustness
+    analyses (hyperparameter sensitivity/stability).
+  \item We go beyond reporting gains by explaining a key
+    phenomenon: whitening and explicit cross can improve
+    ranking quality (MRR/NDCG) while slightly hurting recall
+    (HR), revealing an HR--ranking trade-off that guides when
+    to choose lightweight versus stronger configurations.
 \end{itemize}
 We organize our study around four research questions:
 \textbf{RQ1}~Does per-view whitening improve text feature quality?
@@ -458,10 +459,11 @@ We optimize:
   \mathcal{L} = \mathcal{L}_{\text{rec}} + \lambda \cdot \mathcal{L}_{\text{mv-align}},
 \end{equation}
 where $\mathcal{L}_{\text{rec}}$ is the standard sequential
-recommendation loss (cross-entropy with sampled negatives), and
-$\lambda$ is the alignment weight. Negative sampling is used only
-for training efficiency; all evaluation metrics are computed under
-full ranking over the entire item set.
+recommendation loss (cross-entropy over sampled
+positives/negatives in training; note that negative sampling is
+used only for training efficiency---all evaluation metrics are
+computed under full ranking over the entire item set), and
+$\lambda$ is the alignment weight.
 
 \subsection{Model Complexity}\label{sec:complexity}
 \textbf{Offline.} \tfidf and \llm item embeddings are precomputed once
@@ -479,15 +481,9 @@ single-forward FLOPs on Amazon Beauty: text fusion and multi-view heads
 add modest trainable overhead (${\sim}1.8$M parameters vs.\ \base) while
 most parameters remain in the backbone and item embeddings; forward FLOPs
 increase by only ${\sim}3\%$ from ID-only to multi-view.
-The majority of parameters (${\sim}66$M) reside in the item embedding
-table ($|I|{\times}d$); the remaining ${\sim}1$--$3$M cover Transformer
-layers, text projections, and cross modules.
 
 \subsection{Two-Phase Training Protocol}
-Joint end-to-end training from scratch risks the text heads
-overfitting before the backbone converges, because the randomly
-initialized projections receive much larger gradients than the
-pre-existing ID embeddings. We therefore adopt a two-phase schedule:
+We adopt a two-phase schedule:
 \textbf{Phase-A} (warmup) freezes the backbone and trains
 text heads and cross modules with a higher learning rate,
 grid-searching $(\lambda,\tau)$ on validation;
@@ -502,7 +498,7 @@ Full schedule details are given in \S\ref{sec:experiments}.
 \subsection{Datasets and Evaluation}
 We evaluate on two Amazon product review domains~\cite{mcauley2015amazon,ni2019amazon}: \textbf{Beauty} and
 \textbf{Toys\&Games}. We follow time-ordered splits and
-report metrics under \textbf{full ranking} at $K{=}10$.
+report metrics under \textbf{full ranking} at $K\in\{5,10,20\}$.
 In addition to overall metrics (HR, NDCG, MRR, Precision),
 we report \textbf{popularity-stratified} metrics by item
 interaction counts:
@@ -511,25 +507,8 @@ interaction counts:
   \item \textbf{few}: $[3,10)$ interactions
   \item \textbf{frequent}: $[10,\infty)$ interactions
 \end{itemize}
-Table~\ref{tab:dataset} summarizes the dataset statistics.
 We compute popularity strata from item interaction counts in
 the training data.
-
-\begin{table}[h]
-\caption{Dataset statistics after 5-core filtering.}
-\label{tab:dataset}
-\centering
-\small
-\begin{tabular}{lrrrc}
-\toprule
-\textbf{Dataset} & \textbf{\#Users} & \textbf{\#Items} & \textbf{\#Inter.} & \textbf{Density} \\
-\midrule
-Beauty      & 1,210,272 & 259,217 & 2,023,071 & 0.0006\% \\
-Toys\&Games & 1,342,912 & 336,080 & 2,252,772 & 0.0005\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \textbf{Main tables} (Table~\ref{tab:main}) report overall metrics and the
 \textbf{new} stratum, which is most informative for cold-start;
 \textbf{few} and \textbf{frequent} subtables are omitted for brevity
@@ -543,11 +522,7 @@ Recall@K coincide; we use HR@K for brevity and rely on
 MRR/NDCG to capture top-position quality.
 
 \subsection{Baselines}
-Our comparison design deliberately isolates the contribution of each
-text-feature component under a shared backbone (\base), so that
-observed gains are attributable to the text augmentation pipeline
-rather than confounded by architectural differences across models.
-We compare four progressively enriched configurations:
+We compare four primary configurations:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{\base (ID-only).} Pure sequential baseline
     without text/cross/align.
@@ -562,11 +537,6 @@ We compare four progressively enriched configurations:
     (identity/function/audience/category) with per-view SE-style blocks,
     explicit cross, and multi-view contrastive alignment.
 \end{itemize}
-\noindent This layered design answers a specific question that
-cross-architecture comparisons cannot: \emph{when is each additional
-text component worth its cost?} The ablation study
-(\S\ref{sec:analysis}) further removes individual modules
-(whitening, SE, cross, alignment) to quantify their marginal effects.
 
 \subsection{Implementation Details}
 Unless stated otherwise, we use embedding size $d=256$, max
@@ -587,10 +557,10 @@ $\lambda=0.10$, $\tau=0.05$, training reweighting coefficient
 $\beta=3.0$ (Eq.~\eqref{eq:cold_reweight}), and inference boost
 $\beta_{\text{infer}}=0.6$ (Eq.~\eqref{eq:infer_boost}) on both datasets
 (sensitivity in \S\ref{sec:analysis}).
-\paragraph{Training and evaluation protocol.}
+\paragraph{Reproducibility.}
 We run each configuration with 4 random seeds
 $\{2024, 2025, 2026, 2027\}$ and report mean$\pm$std;
-full-ranking metrics are evaluated at $K{=}10$
+full-ranking metrics are evaluated over $K\in\{5,10,20\}$
 with popularity stratification thresholds
 \textbf{new}: $[1,3)$, \textbf{few}: $[3,10)$,
 \textbf{frequent}: $[10,\infty)$. Our implementation is based on
@@ -600,21 +570,11 @@ bundled with the artifact.
 The released files use the same numerical values as the notation in this paper
 (e.g., $\lambda$, $\tau$, $\beta$, and $\beta_{\text{infer}}$ in
 \S\ref{sec:experiments} and Eqs.~\eqref{eq:cold_reweight}--\eqref{eq:infer_boost}).
-\paragraph{Prompt templates.}
-For single-view \llm embeddings we use \texttt{[TITLE] \{text\}} and
-extract mean-pooled hidden states from Qwen2.5-7B.
-For multi-view embeddings we design four prompts:
-(1)~\emph{Identity}: \texttt{Identify the item: [TITLE] \{text\}};
-(2)~\emph{Function}: \texttt{What are the main functions and features of [TITLE] \{text\}?};
-(3)~\emph{Audience}: \texttt{Who is the target audience or user group for [TITLE] \{text\}?};
-(4)~\emph{Category}: \texttt{Categorize the item [TITLE] \{text\} and describe its context.}
-Each view is independently encoded, reduced to $d_v{=}64$ via SVD,
-and processed through per-view SE-style gating before fusion.
 
 \paragraph{Parameter counts.}
 Table~\ref{tab:params} lists trainable parameters and single-forward
-FLOPs (framework-estimated) on Amazon Beauty ($|I|{=}259{,}217$,
-$d{=}256$, $d_t{=}256$, $d_l{=}1024$, $V{=}4$, $d_v{=}64$).
+FLOPs (TensorFlow trainer output) on Amazon Beauty ($|I|=12,102$,
+$d=256$, $d_t=256$, $d_l=1024$, $V=4$, $d_v=64$).
 Multi-view adds ${\sim}1.8$M trainable parameters over ID-only; \llm
 embeddings are offline buffers and are not counted as trainable
 parameters.
@@ -634,6 +594,10 @@ parameters.
 \model (multi-view) & 68.9M & +1.8M & 40.7M \\
 \bottomrule
 \end{tabular}
+\vspace{0.35em}
+{\scriptsize Values rounded from training logs (exact counts:
+\num{67161345}, \num{68082433}, \num{68803585}, \num{68937733} parameters;
+FLOPs \num{39505256}, \num{39899496}, \num{39965032}, \num{40686440}).}
 \end{table}
 
 \section{Main Results}\label{sec:main_results}
@@ -699,6 +663,43 @@ the fusion configuration.
 \end{tabular}
 \end{table*}
 
+\subsection{Prompt Templates for Text Embeddings}
+We describe the prompt templates used to generate text
+embeddings from the LLM encoder (Qwen2.5).
+
+\paragraph{Single-view embedding.}
+For single-view LLM embeddings, we use a simple title-based
+prompt:
+\begin{quote}
+\texttt{[TITLE] \{text\}}
+\end{quote}
+where \texttt{\{text\}} is the item title. The LLM encoder
+processes this prompt and we extract the mean-pooled hidden
+states as the item embedding.
+
+\paragraph{Multi-view embeddings.}
+For multi-view embeddings, we design four prompts capturing
+different semantic perspectives:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+  \item \textbf{Identity/Title}:
+    \texttt{Identify the item: [TITLE] \{text\}}
+  \item \textbf{Function/Utility}:
+    \texttt{What are the main functions and features of
+    [TITLE] \{text\}?}
+  \item \textbf{Target Audience}:
+    \texttt{Who is the target audience or user group for
+    [TITLE] \{text\}?}
+  \item \textbf{Category/Context}:
+    \texttt{Categorize the item [TITLE] \{text\} and describe
+    its context.}
+\end{enumerate}
+Each view is independently encoded, projected via SVD to 64
+dimensions, and then processed through per-view SE-style gating
+before fusion.
+This design encourages the model to capture complementary
+semantic aspects (what the item is, what it does, who uses
+it, and how it fits into the catalog).
+
 \section{Analysis}\label{sec:analysis}
 
 We conduct systematic ablation studies to answer RQ1--RQ4.
@@ -752,13 +753,9 @@ features are already well-conditioned.
 
 \paragraph{SE-style gating has minor impact (RQ2).}
 Removing SE-style gating alone causes only marginal changes on
-most metrics. This is expected: per-view whitening already
-decorrelates feature dimensions and $\ell_2$ normalization
-equalizes view magnitudes, leaving little residual scale
-mismatch for channel gating to correct.
-The combination of removing both SE and Cross shows the largest
-HR\_new@10 gains, indicating that these components together
-calibrate toward frequent items.
+most metrics. The combination of removing both SE and Cross
+shows the largest HR\_new@10 gains, indicating that these
+components together calibrate toward frequent items.
 
 \paragraph{Cross Network is essential for ranking quality (RQ4).}
 Removing the cross module increases HR@10 but \emph{sharply degrades}
@@ -792,41 +789,6 @@ analysis in \S\ref{sec:main_results}). Diverse prompt perspectives
 particularly help low-popularity items.
 
 \subsection{Understanding the HR--Ranking Trade-off}
-
-\begin{figure}[t]
-\centering
-\begin{subfigure}[t]{0.48\linewidth}
-  \centering
-  \IfFileExists{figures/tradeoff_mrr.pdf}{%
-    \includegraphics[width=\linewidth]{figures/tradeoff_mrr.pdf}%
-  }{%
-    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
-    \textbf{HR--MRR Trade-off}\\
-    Run \texttt{plot\_tradeoff.py}}}%
-  }
-  \caption{HR@10 vs.\ MRR@10}
-  \label{fig:tradeoff_mrr}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\linewidth}
-  \centering
-  \IfFileExists{figures/tradeoff_ndcg.pdf}{%
-    \includegraphics[width=\linewidth]{figures/tradeoff_ndcg.pdf}%
-  }{%
-    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
-    \textbf{HR--NDCG Trade-off}\\
-    Run \texttt{plot\_tradeoff.py}}}%
-  }
-  \caption{HR@10 vs.\ NDCG@10}
-  \label{fig:tradeoff_ndcg}
-\end{subfigure}
-\caption{HR--ranking trade-off on Toys\&Games (7B). Points follow
-Table~\ref{tab:ablation} (RQ1--RQ4). The dashed arrow
-contrasts Full vs.\ $-$Cross: higher HR@10 (+9.7\%) but lower MRR@10
-($-$11.0\%) and NDCG@10 ($-$3.9\%). The $-$Align point lies near Full
-but is uniformly lower (\S\ref{sec:analysis}).}
-\label{fig:tradeoff}
-\end{figure}
 
 We observe a trade-off between HR and ranking metrics (MRR/NDCG) that
 may seem counter-intuitive---better ranking quality typically correlates
@@ -865,25 +827,42 @@ This trade-off maps directly to deployment scenarios:
     Enable cross to sharpen score distributions and improve MRR/NDCG.
 \end{itemize}
 
-\subsection{Hyperparameter Sensitivity}
-
 \begin{figure}[t]
 \centering
-\IfFileExists{figures/sensitivity_tradeoff_ndcg.pdf}{%
-  \includegraphics[width=\linewidth]{figures/sensitivity_tradeoff_ndcg.pdf}%
-}{%
-  \fbox{\parbox[c][0.25\textheight][c]{0.9\linewidth}{\centering
-  \textbf{Sensitivity Analysis}\\
-  Run \texttt{plot\_sensitivity.py}}}%
-}
-\caption{Hyperparameter sensitivity on Toys\&Games (7B). Each panel
-varies one parameter while holding the others at default values
-(dashed vertical line). HR@10 (solid, left axis) and NDCG@10
-(dashed, right axis) remain stable across these settings, with
-total variation under 0.2 pp for HR@10 and under 0.05 pp for
-NDCG@10.}
-\label{fig:sensitivity}
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_mrr.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_mrr.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--MRR Trade-off}\\
+    Run \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ MRR@10}
+  \label{fig:tradeoff_mrr}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \IfFileExists{figures/tradeoff_ndcg.pdf}{%
+    \includegraphics[width=\linewidth]{figures/tradeoff_ndcg.pdf}%
+  }{%
+    \fbox{\parbox[c][0.15\textheight][c]{0.9\linewidth}{\centering
+    \textbf{HR--NDCG Trade-off}\\
+    Run \texttt{plot\_tradeoff.py}}}%
+  }
+  \caption{HR@10 vs.\ NDCG@10}
+  \label{fig:tradeoff_ndcg}
+\end{subfigure}
+\caption{HR--ranking trade-off on Toys\&Games (7B). Points follow
+Table~\ref{tab:ablation} (RQ1--RQ4). The dashed arrow
+contrasts Full vs.\ $-$Cross: higher HR@10 (+9.7\%) but lower MRR@10
+($-$11.0\%) and NDCG@10 ($-$3.9\%). The $-$Align point lies near Full
+but is uniformly lower (\S\ref{sec:analysis}).}
+\label{fig:tradeoff}
 \end{figure}
+
+\subsection{Hyperparameter Sensitivity}
 
 Figure~\ref{fig:sensitivity} shows the sensitivity of \model to
 $\lambda$, $\tau$, $\beta$ (Eq.~\eqref{eq:cold_reweight}), and
@@ -920,11 +899,29 @@ configuration performs near-optimally, and practitioners can adjust
 $\lambda$ or $\beta_{\text{infer}}$ to trade off between overall and
 cold-start performance without risking large regressions.
 
+\begin{figure}[t]
+\centering
+\IfFileExists{figures/sensitivity_tradeoff_ndcg.pdf}{%
+  \includegraphics[width=\linewidth]{figures/sensitivity_tradeoff_ndcg.pdf}%
+}{%
+  \fbox{\parbox[c][0.25\textheight][c]{0.9\linewidth}{\centering
+  \textbf{Sensitivity Analysis}\\
+  Run \texttt{plot\_sensitivity.py}}}%
+}
+\caption{Hyperparameter sensitivity on Toys\&Games (7B). Each panel
+varies one parameter while holding the others at default values
+(dashed vertical line). HR@10 (solid, left axis) and NDCG@10
+(dashed, right axis) remain stable across these settings, with
+total variation under 0.2 pp for HR@10 and under 0.05 pp for
+NDCG@10.}
+\label{fig:sensitivity}
+\end{figure}
+
 \section{Conclusion}
-We presented \model, a method that brings explicit cross networks and
-multi-view \llm text alignment to sequential recommendation.
-Full-ranking experiments on Amazon Beauty and Toys\&Games yield three
-actionable takeaways:
+We presented \model, a fully open-sourced, plug-and-play framework for
+text-enhanced sequential recommendation, released as a one-command
+reproducible package on RecBole. Full-ranking experiments on
+Amazon Beauty and Toys\&Games yield three actionable takeaways:
 
 \textbf{(1) TF-IDF is a surprisingly strong baseline.}
 \tfidf alone provides substantial gains over ID-only baselines
@@ -933,10 +930,10 @@ actionable takeaways:
 
 \textbf{(2) Multi-view improves cold-start ranking under equal bandwidth.}
 Under equal embedding bandwidth ($4{\times}64$-d vs.\ $1{\times}256$-d),
-multi-view \llm prompting yields the best cold-start ranking quality:
-\model achieves the highest NDCG\_new@10 and MRR\_new@10 on both
-datasets, while narrowing the HR\_new gap to ID-only on Beauty
-(1.76\% vs.\ 1.88\%) and exceeding it on Toys
+multi-view \llm prompting improves over text baselines and yields the
+strongest ranking quality (NDCG/MRR) on the \textbf{new} stratum.
+On Beauty it narrows the HR\_new gap to ID-only
+(1.76\% vs.\ 1.88\%), while on Toys it exceeds it
 (2.04\% vs.\ 1.92\%).
 
 \textbf{(3) The cross network governs the HR--MRR/NDCG trade-off.}
@@ -946,14 +943,15 @@ to deployment scenarios: disable cross for candidate generation,
 enable it for final re-ranking.
 
 \smallskip\noindent
-All code and configuration files are available at
+\textbf{Reproducibility.} All code and configuration files needed to
+reproduce the experiments and figures reported in this paper are available at
 \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 
 \bibliographystyle{unsrt}
 \bibliography{refs}
 
 %% ====================================================================
-%% APPENDIX REMOVED for RecSys Main Track Long submission (8pp + refs).
+%% APPENDIX REMOVED for RecSys Reproducibility Long submission.
 %% All auxiliary analyses are provided in the anonymous repository:
 %%   https://anonymous.4open.science/r/recbole-multiview-D83A
 %%
