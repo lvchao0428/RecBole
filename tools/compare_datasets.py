@@ -15,6 +15,27 @@ from pathlib import Path
 import json
 
 
+def _col_by_base(df: pd.DataFrame, base: str) -> str:
+    """RecBole 表头常为 `user_id:token` 形式，按字段基名解析。"""
+    if base in df.columns:
+        return base
+    for c in df.columns:
+        if str(c).split(":")[0].strip() == base:
+            return c
+    raise KeyError(f"missing column base name {base!r}, got {list(df.columns)}")
+
+
+def _title_col(df_item: pd.DataFrame):
+    """Amazon `title` 或 Book-Crossing `book_title`。"""
+    for base in ("title", "book_title"):
+        if base in df_item.columns:
+            return base
+        for c in df_item.columns:
+            if str(c).split(":")[0].strip() == base:
+                return c
+    return None
+
+
 def load_dataset_info(dataset_name, base_dir="/home/charlie/project/RecBole/dataset"):
     """Load dataset files and extract key statistics."""
     dataset_path = Path(base_dir) / dataset_name
@@ -31,13 +52,15 @@ def load_dataset_info(dataset_name, base_dir="/home/charlie/project/RecBole/data
     if inter_file.exists():
         try:
             df = pd.read_csv(inter_file, sep='\t')
+            uc = _col_by_base(df, "user_id")
+            ic = _col_by_base(df, "item_id")
             info['interactions'] = {
                 'total': len(df),
-                'unique_users': df['user_id'].nunique(),
-                'unique_items': df['item_id'].nunique(),
-                'density': len(df) / (df['user_id'].nunique() * df['item_id'].nunique()),
-                'avg_interactions_per_user': len(df) / df['user_id'].nunique(),
-                'avg_interactions_per_item': len(df) / df['item_id'].nunique(),
+                'unique_users': df[uc].nunique(),
+                'unique_items': df[ic].nunique(),
+                'density': len(df) / (df[uc].nunique() * df[ic].nunique()),
+                'avg_interactions_per_user': len(df) / df[uc].nunique(),
+                'avg_interactions_per_item': len(df) / df[ic].nunique(),
             }
             print(f"✓ Loaded interactions for {dataset_name}: {len(df)} records")
         except Exception as e:
@@ -48,10 +71,11 @@ def load_dataset_info(dataset_name, base_dir="/home/charlie/project/RecBole/data
     if item_file.exists():
         try:
             df_item = pd.read_csv(item_file, sep='\t')
-            
-            if 'title' in df_item.columns:
+            title_key = _title_col(df_item)
+
+            if title_key is not None:
                 # Analyze text lengths
-                title_lengths = df_item['title'].fillna('').str.len()
+                title_lengths = df_item[title_key].fillna('').str.len()
                 info['items'] = {
                     'total': len(df_item),
                     'title_length_mean': float(title_lengths.mean()),
@@ -62,7 +86,7 @@ def load_dataset_info(dataset_name, base_dir="/home/charlie/project/RecBole/data
                 }
                 
                 # Word count analysis
-                word_counts = df_item['title'].fillna('').str.split().str.len()
+                word_counts = df_item[title_key].fillna('').str.split().str.len()
                 info['items']['words_per_title_mean'] = float(word_counts.mean())
                 info['items']['words_per_title_std'] = float(word_counts.std())
                 

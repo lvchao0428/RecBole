@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Two-phase TF-IDF + Qwen3 LLM V3 with Stratified Evaluation (book-crossing)
+# 依赖: dataset/book-crossing/item_text_emb.base.npy 与 item_text_emb.qwen3.base.npy
+
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
+GPU_ID=${GPU_ID:-0}
+METRIC_BASELINE=${METRIC_BASELINE:-0.015}
+
+echo "Using GPU: $GPU_ID"
+echo "METRIC_BASELINE (MRR@10): $METRIC_BASELINE"
+
+echo "========================================="
+echo "TF-IDF + LLM (Qwen3) V3 with Stratified Metrics (book-crossing)"
+echo "========================================="
+echo "Model: SASRecAlignV3"
+echo "Dataset: book-crossing"
+echo "V3 Simplified Weights: align_weight, cold_text_boost, infer_boost"
+echo ""
+
+python scripts/two_phase_train.py \
+	--model SASRecAlignV3 \
+	--dataset book-crossing \
+	--config_files "sasrec_align_book_crossing_qwen3_stratified_v3.yaml" \
+	--config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
+	--gpu_id $GPU_ID \
+	--phase_a_grid \
+	--align_grid "0.10" \
+	--tau_grid "0.05" \
+	--backbone_burnin_epochs 0 \
+	--burnin_eval_step 2 \
+	--phase_a_epochs 20 \
+	--phase_a_eval_step 1 \
+	--phase_a_valid_metric "MRR@10" \
+	--metric_baseline $METRIC_BASELINE \
+	--metric_gain_threshold 0.01 \
+	--lr_text_head 2e-3 \
+	--lr_dnn_cross 5e-4 \
+	--phase_a_auto_to_b \
+	--phase_b_epochs 40 \
+	--backbone_lr_scale 0.1 \
+	--checkpoint_dir ./saved/two_phase_run_tfidf_llm_v3_book_crossing_stratified \
+	--seed 2025 \
+	--variant_features "sasrec,tfidf,llm,qwen3,v3,book_crossing,stratified" \
+	--watchdog_disable \
+	--save
+
+echo ""
+echo "========================================="
+echo "✅ Training Done!"
+echo "========================================="

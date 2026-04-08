@@ -17,6 +17,14 @@ export NUMEXPR_NUM_THREADS=$(nproc)
 export TF_CPP_MIN_LOG_LEVEL=2
 export TF_ENABLE_ONEDNN_OPTS=0
 
+# 补 timestamp（已存在则脚本直接跳过）；顺序训练/TO 排序依赖此列
+echo "[1/5] Ensure book-crossing.inter has timestamp (row-order 0..n-1)..."
+python tools/preprocess_book_crossing_inter_add_timestamp.py \
+  --dataset_dir dataset/book-crossing \
+  --in_place \
+  --backup
+echo ""
+
 echo "========================================"
 echo "book-crossing 文本特征生成（优化版）"
 echo "========================================"
@@ -24,7 +32,7 @@ echo "CPU cores: $(nproc)"
 echo "OMP threads: $OMP_NUM_THREADS"
 echo ""
 
-echo "[1/4] Generating TF-IDF (base) embeddings with center+whiten..."
+echo "[2/5] Generating TF-IDF (base) embeddings with center+whiten..."
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -47,7 +55,7 @@ echo "   - 统计文件: dataset/book-crossing/item_text_emb.base_whiten_stats.n
 echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
-echo "[2/4] Exporting item index mapping for LLM embedding..."
+echo "[3/5] Exporting item index mapping for LLM embedding..."
 python tools/export_internal_item_mapping.py \
   --dataset book-crossing \
   --config sasrec_book_crossing_plain.yaml \
@@ -57,7 +65,7 @@ echo "✅ Mapping文件生成完成"
 echo "   - dataset/book-crossing/item_index_mapping.csv"
 echo ""
 
-echo "[3/4] Generating Qwen3 single-view embeddings with center+whiten..."
+echo "[4/5] Generating Qwen3 single-view embeddings with center+whiten..."
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
@@ -84,7 +92,7 @@ echo "   - 统计文件: dataset/book-crossing/item_text_emb.qwen3.base_whiten_s
 echo "完成时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
-echo "[4/4] Generating Qwen3 multi-view embeddings (4 views) with per-view projection..."
+echo "[5/5] Generating Qwen3 multi-view embeddings (4 views) with per-view projection..."
 echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
