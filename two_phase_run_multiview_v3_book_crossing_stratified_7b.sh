@@ -2,15 +2,23 @@
 # Multi-View V3 Training with Stratified Evaluation (book-crossing)
 # 脚本名沿用 toys 的 _7b 命名；向量目录为 Qwen3 四视图: dataset/book-crossing/qwen3_4views
 # 依赖: dataset/book-crossing/item_text_emb.base.npy 与 qwen3_4views/ 下分视图向量
+# SEED 由环境变量传入，默认 2025。多 seed：two_phase_run_multiview_v3_book_crossing_stratified_7b_multiseed.sh
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
 
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 GPU_ID=${GPU_ID:-0}
 METRIC_BASELINE=${METRIC_BASELINE:-0.015}
+SEED="${SEED:-2025}"
 
 echo "Using GPU: $GPU_ID"
 echo "METRIC_BASELINE (MRR@10): $METRIC_BASELINE"
+echo "SEED: $SEED"
 
 echo "========================================="
 echo "Multi-View V3 with Stratified Metrics (book-crossing, Qwen3 4-view)"
@@ -42,9 +50,9 @@ python scripts/two_phase_train.py \
 	--phase_a_auto_to_b \
 	--phase_b_epochs 40 \
 	--backbone_lr_scale 0.1 \
-	--checkpoint_dir ./saved/two_phase_run_multiview_v3_book_crossing_stratified_7b \
-	--seed 2025 \
-	--variant_features "sasrec,multiview_v3,qwen3,book_crossing,stratified" \
+	--checkpoint_dir "./saved/two_phase_run_multiview_v3_book_crossing_stratified_7b_seed${SEED}" \
+	--seed "$SEED" \
+	--variant_features "sasrec,multiview_v3,qwen3,book_crossing,stratified,seed_${SEED}" \
 	--watchdog_disable \
 	--save
 
