@@ -155,7 +155,7 @@ related work, introduce \model, present full-ranking results
 and ablations, and conclude with analyses and takeaways.
 
 %% [Figure 1 (cover/teaser) removed per advisor feedback — overlaps with Figure 2.
-%%  Retained in anonymous repository for poster / presentation use.]
+%%  Retained in anonymous repo for poster / presentation use.]
 
 \section{Related Work}
 \paragraph{Sequential recommendation.}
@@ -540,7 +540,7 @@ Toys\&Games & 1,342,912 & 336,080 & 2,252,772 & 0.0005\% \\
 \textbf{Main tables} (Table~\ref{tab:main}) report overall metrics and the
 \textbf{new} stratum, which is most informative for cold-start;
 \textbf{few} and \textbf{frequent} subtables are omitted for brevity
-and included in the anonymous repository.
+and included in the released artifact.
 We report only full-ranking metrics in the
 main paper, following prior findings that sampled evaluation
 can mis-rank recommender models~\cite{krichene2020sampledmetrics}. Our evaluation
@@ -607,15 +607,20 @@ with popularity stratification thresholds
 \textbf{frequent}: $[10,\infty)$. Our implementation is based on
 RecBole~\cite{zhao2021recbole}; all exact settings are
 reproducible from the provided configuration files and run scripts
-bundled with the anonymous repository.
+bundled with the artifact.
 The released files use the same numerical values as the notation in this paper
 (e.g., $\lambda$, $\tau$, $\beta$, and $\beta_{\text{infer}}$ in
 \S\ref{sec:experiments} and Eqs.~\eqref{eq:cold_reweight}--\eqref{eq:infer_boost}).
 \paragraph{Prompt templates.}
-Single-view encodes the item title via mean-pooled Qwen2.5-7B hidden states.
-Multi-view designs four prompts that elicit complementary semantics---identity,
-function, audience, and category---each independently encoded and mean-pooled,
-reduced to $d_v{=}64$ via SVD, and refined by per-view SE-style gating before fusion.
+For single-view \llm embeddings we use \texttt{[TITLE] \{text\}} and
+extract mean-pooled hidden states from Qwen2.5-7B.
+For multi-view embeddings we design four prompts:
+(1)~\emph{Identity}: \texttt{Identify the item: [TITLE] \{text\}};
+(2)~\emph{Function}: \texttt{What are the main functions and features of [TITLE] \{text\}?};
+(3)~\emph{Audience}: \texttt{Who is the target audience or user group for [TITLE] \{text\}?};
+(4)~\emph{Category}: \texttt{Categorize the item [TITLE] \{text\} and describe its context.}
+Each view is independently encoded, reduced to $d_v{=}64$ via SVD,
+and processed through per-view SE-style gating before fusion.
 
 \paragraph{Parameter counts.}
 Table~\ref{tab:params} lists trainable parameters and single-forward
@@ -643,35 +648,6 @@ parameters.
 \end{table}
 
 \section{Main Results}\label{sec:main_results}
-
-\begin{table*}[t]
-\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$; paired $t$-test on per-user metric differences against the strongest baseline (Beauty: 146{,}995 test users; Toys: 164{,}590 test users). All values are percentages (\%).}
-\label{tab:main}
-\centering
-\small
-\begin{tabular}{lcccccc}
-\toprule
-\multirow{2}{*}{\textbf{Model}} &
-\multicolumn{3}{c}{\textbf{Overall}} &
-\multicolumn{3}{c}{\textbf{new stratum} $[1,3)$} \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-7}
-& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
-\midrule
-\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
-\base (ID-only, 50ep) & 5.42$\pm$0.21 & 2.93$\pm$0.05 & 2.14$\pm$0.01 & 1.88$\pm$0.03 & 1.05$\pm$0.02 & 0.78$\pm$0.02 \\
-\base + \tfidf & 5.56$\pm$0.03 & 3.69$\pm$0.02 & 3.11$\pm$0.01 & 1.63$\pm$0.02 & 1.21$\pm$0.03 & 1.08$\pm$0.03 \\
-\base + \tfidf + \llm (7B) & 5.62$\pm$0.03 & 3.73$\pm$0.02 & 3.15$\pm$0.01 & 1.64$\pm$0.03 & 1.24$\pm$0.02 & 1.11$\pm$0.02 \\
-\model (7B) & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
-\midrule
-\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
-\base (ID-only, 50ep) & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
-\base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
-\base + \tfidf + \llm (7B) & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
-\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{**}$$\pm$0.03 & \textbf{3.71}$^{*}$$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
 Table~\ref{tab:main} reports full-ranking results on Beauty
 and Toys\&Games. Across both datasets, adding text features
 consistently improves over the ID-only baseline, with \tfidf
@@ -704,6 +680,35 @@ and MRR\_new@10 on both datasets, suggesting that the richer
 multi-view text signals primarily improve ranking quality on
 cold-start items, while recall coverage remains sensitive to
 the fusion configuration.
+
+
+\begin{table*}[t]
+\caption{Main results under full ranking (mean$\pm$std over 4 seeds). Best results per dataset in \textbf{bold}. $^{*}$~$p{<}0.05$, $^{**}$~$p{<}0.01$; paired $t$-test on per-user metric differences against the strongest baseline (Beauty: 146{,}995 test users; Toys: 164{,}590 test users). All values are percentages (\%).}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Model}} &
+\multicolumn{3}{c}{\textbf{Overall}} &
+\multicolumn{3}{c}{\textbf{new stratum} $[1,3)$} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+& HR@10 & NDCG@10 & MRR@10 & HR@10 & NDCG@10 & MRR@10 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Beauty}} \\
+\base (ID-only, 50ep) & 5.42$\pm$0.21 & 2.93$\pm$0.05 & 2.14$\pm$0.01 & 1.88$\pm$0.03 & 1.05$\pm$0.02 & 0.78$\pm$0.02 \\
+\base + \tfidf & 5.56$\pm$0.03 & 3.69$\pm$0.02 & 3.11$\pm$0.01 & 1.63$\pm$0.02 & 1.21$\pm$0.03 & 1.08$\pm$0.03 \\
+\base + \tfidf + \llm (7B) & 5.62$\pm$0.03 & 3.73$\pm$0.02 & 3.15$\pm$0.01 & 1.64$\pm$0.03 & 1.24$\pm$0.02 & 1.11$\pm$0.02 \\
+\model (7B) & \textbf{5.79}$^{**}$$\pm$0.04 & \textbf{3.80}$^{**}$$\pm$0.02 & \textbf{3.19}$^{*}$$\pm$0.02 & \textbf{1.76}$\pm$0.05 & \textbf{1.28}$\pm$0.02 & \textbf{1.12}$\pm$0.03 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Amazon Toys\&Games}} \\
+\base (ID-only, 50ep) & 5.92$\pm$0.03 & 3.30$\pm$0.02 & 2.48$\pm$0.02 & 1.92$\pm$0.03 & 1.08$\pm$0.02 & 0.81$\pm$0.02 \\
+\base + \tfidf & 6.29$\pm$0.03 & 4.26$\pm$0.01 & 3.64$\pm$0.01 & 1.83$\pm$0.03 & 1.38$\pm$0.02 & 1.23$\pm$0.02 \\
+\base + \tfidf + \llm (7B) & 6.39$\pm$0.02 & 4.32$\pm$0.01 & 3.67$\pm$0.01 & 1.89$\pm$0.05 & 1.41$\pm$0.03 & 1.26$\pm$0.02 \\
+\model (7B) & \textbf{6.61}$^{**}$$\pm$0.03 & \textbf{4.39}$^{**}$$\pm$0.03 & \textbf{3.71}$^{*}$$\pm$0.02 & \textbf{2.04}$\pm$0.03 & \textbf{1.47}$\pm$0.02 & \textbf{1.29}$\pm$0.02 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \section{Analysis}\label{sec:analysis}
 
