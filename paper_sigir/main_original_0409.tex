@@ -23,8 +23,6 @@
 \usepackage{xspace}
 \usepackage{enumitem}
 \usepackage{microtype}
-% Extra stretch in two-column mode reduces overfull lines (ACM sigconf).
-\setlength{\emergencystretch}{3em}
 \usepackage{ifthen}
 \usepackage{balance}  % Balance columns on last page
 \usepackage{hyperref} % Required for \url{} in abstract & body
@@ -38,9 +36,6 @@
 % Circled numbers for figure captions (using textcomp to avoid tikz/amssymb conflict)
 \usepackage{pifont}
 \newcommand*\circled[1]{\ding{\numexpr171+#1\relax}}
-
-% Breakable slash lists (e.g., view names) — unbreakable `/` runs often overfill columns.
-\newcommand{\slashbreak}{/\allowbreak{}}
 
 \begin{document}
 
@@ -57,14 +52,14 @@ for Sequential Recommendation}
 Incorporating text features into sequential recommenders can substantially improve generalization, especially for cold-start items, yet prior methods typically rely on a single text representation and fuse it with ID embeddings only implicitly through shared attention layers.
 We argue that this design misses two opportunities: (i)~diverse prompt-driven \llm views capture complementary item semantics that a single embedding cannot, and (ii)~explicit feature crossing between ID and text signals---well established in CTR prediction but unexplored in sequential recommendation---can sharpen ranking quality.
 %
-We propose \model, which introduces three coordinated design choices on top of a \base backbone: \emph{per-view whitening} that decorrelates multi-view \llm embeddings before fusion, \emph{explicit ID$\times$Text cross interactions} via DCN-V2, and \emph{multi-view contrastive alignment} with cold-start reweighting.
-Through controlled ablations under full-ranking evaluation on Amazon Beauty and Toys\&Games, we empirically characterize an \textbf{HR--ranking trade-off} under full ranking: enabling the cross network improves ranking precision (MRR/NDCG) at the cost of recall (HR), while disabling it reverses this balance---a finding that directly maps to deployment choices between candidate generation and final re-ranking.
+We propose \model, which introduces three novel components on top of a \base backbone: \emph{per-view whitening} that decorrelates multi-view \llm embeddings before fusion, \emph{explicit ID$\times$Text cross interactions} via DCN-V2, and \emph{multi-view contrastive alignment} with cold-start reweighting.
+Through controlled ablations under full-ranking evaluation on Amazon Beauty and Toys\&Games, we expose a previously unreported \textbf{HR--ranking trade-off}: enabling the cross network improves ranking precision (MRR/NDCG) at the cost of recall (HR), while disabling it reverses this balance---a finding that directly maps to deployment choices between candidate generation and final re-ranking.
 %
 \model achieves HR@10 of \textbf{5.79}\% and \textbf{6.61}\% (+6.8\% and +11.7\% over ID-only), and under equal embedding bandwidth, multi-view prompting narrows the cold-start HR\_new gap to ID-only on Beauty (1.76\% vs.\ 1.88\%) while exceeding it on Toys (2.04\% vs.\ 1.92\%), achieving the best cold-start ranking quality (NDCG\_new and MRR\_new) on both datasets.
 Code and configurations are available at \texttt{\url{https://anonymous.4open.science/r/recbole-multiview-D83A}}.
 \end{abstract}
 
-\keywords{Sequential Recommendation, Text-Enhanced Recommendation, \mbox{Multi-View} Representation, Feature Crossing, Contrastive Alignment, \mbox{Cold-Start}}
+\keywords{Sequential Recommendation, Text-Enhanced Recommendation, Multi-View Representation, Feature Crossing, Contrastive Alignment, Cold-Start}
 
 \maketitle
 
@@ -119,8 +114,8 @@ gated by learned weight matrices.
 to the collaborative ID embedding space via InfoNCE contrastive
 loss. Alignment targets are (text view $\to$ ID space); positive
 pairs are (item's text view, item's ID embedding); negatives are
-in-batch items. \mbox{Cold-start} reweighting prevents frequent items
-from dominating the align\-ment signal, ensuring that
+in-batch items. Cold-start reweighting prevents frequent items
+from dominating the alignment signal, ensuring that
 low-popularity items receive sufficient gradient updates.
 
 Our contributions are threefold.
@@ -194,7 +189,6 @@ complexity is justified versus simpler alternatives.
 \end{sloppypar}
 
 \paragraph{Feature interaction and cross networks.}
-\begin{sloppypar}
 Deep \& Cross Network (DCN)~\cite{wang2017dcn} and its
 successor DCN-V2~\cite{wang2021dcnv2} explicitly model feature
 crosses, complementing implicit interactions learned by DNNs.
@@ -206,7 +200,6 @@ recommendation, cross networks have shown effectiveness in CTR
 prediction; we adapt them for ID-text fusion in sequential
 settings, and use SE-style blocks for per-view channel gating of \llm
 features.
-\end{sloppypar}
 
 \paragraph{Multi-view learning in recommendation.}
 Multi-view learning leverages complementary information from
@@ -260,7 +253,7 @@ $\tilde{\mathbf{e}}_i$ used for scoring.
 We assume a lightweight \tfidf embedding $\mathbf{t}_i^{(0)} \in \mathbb{R}^{d_t}$
 as a base view and $V$ \llm prompt views
 $\{\mathbf{t}_i^{(v)} \in \mathbb{R}^{d_l}\}_{v=1}^V$ (e.g.,
-identity\slashbreak{}function\slashbreak{}audience\slashbreak{}category views), where $d_t$ and $d_l$ denote the
+identity/function/audience/category views), where $d_t$ and $d_l$ denote the
 \tfidf and raw \llm embedding dimensions, respectively.
 
 \paragraph{Per-view whitening.}
@@ -288,7 +281,7 @@ for view $v$ over all items, we compute:
 where $\boldsymbol{\mu}^{(v)}$ is the mean embedding, $\boldsymbol{\Sigma}^{(v)}$
 is the covariance matrix, and $\epsilon$ is a small constant for numerical
 stability. The whitening statistics are computed offline on the training set
-and fixed during training\slashbreak{}inference. Each view uses its own whitening
+and fixed during training/inference. Each view uses its own whitening
 parameters (per-view whitening), which better preserves view-specific
 semantics than shared whitening across views.
 
@@ -557,7 +550,7 @@ rather than confounded by architectural differences across models.
 We compare four progressively enriched configurations:
 \begin{itemize}[leftmargin=*,itemsep=2pt]
   \item \textbf{\base (ID-only).} Pure sequential baseline
-    without text\slashbreak{}cross\slashbreak{}align.
+    without text/cross/align.
   \item \textbf{\base + \tfidf.} A lightweight text baseline
     using precomputed \tfidf embeddings with explicit cross
     and alignment.
@@ -566,16 +559,12 @@ We compare four progressively enriched configurations:
     \tfidf, using SE-style gating and alignment.
   \item \textbf{\model (multi-view).} \tfidf base view + 4
     multi-view \llm prompt embeddings
-    (identity\slashbreak{}function\slashbreak{}audience\slashbreak{}category) with per-view SE-style blocks,
+    (identity/function/audience/category) with per-view SE-style blocks,
     explicit cross, and multi-view contrastive alignment.
 \end{itemize}
 \noindent This layered design answers a specific question that
 cross-architecture comparisons cannot: \emph{when is each additional
-text component worth its cost?}
-All text-enhanced variants share the same fusion/training scaffold
-whenever applicable, so the comparison isolates representation choice
-rather than backbone differences.
-The ablation study
+text component worth its cost?} The ablation study
 (\S\ref{sec:analysis}) further removes individual modules
 (whitening, SE, cross, alignment) to quantify their marginal effects.
 
