@@ -15,7 +15,7 @@
 #   LOG_DIR=...  RUN_ID=...
 #   DATASET_BOOK_CROSSING_DIR=...
 
-set -euo pipefail
+#set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
