@@ -1,8 +1,0 @@
-我看了一下，现在是已经到可以投Main track的状态了，而且这次不是勉强能投，是主线已经比较完整、后面主要做submission-level收尾的状态。现在摘要、方法、主结果、ablation、trade-off、sensitivity这几块是能闭环的。Abstract先把问题和贡献讲清楚，方法里prepare-interact-align三步是完整的，主结果表、-Align/-Cross/-Whiten的消融，还有Figure 2/3的trade-off与sensitivity也都能互相支撑。
-这版最大的进步的话，我感觉是论文味道已经从前几版那种reproducibility/benchmark风格，收回到了focused method paper。关键词、摘要、结论都在讲方法和full-ranking下的发现，而不是强调open-source本身。同时也没有再硬写scale law，这个判断是对的。现在7B/14B这么接近，如果强讲scale，反而会把主线冲散。现阶段最强的卖点，其实就是三件事：TF-IDF是强baseline、equal bandwidth下multi-view优于single-view、cross决定HR-MRR/NDCG的trade-off。这个结构在当前文章里已经是站得住的。
-我这边看下来的话，剩下值得改的已经不是大问题，而是几处小改动。第一，Table 3尽量再往前提一点。现在主结果在第5节里讲了不少，但Table 3作为核心证据出现在后面页面，读者会先读到一些分析再看到主表，节奏上稍微有点别扭。能提到Section 5首次引用附近会更顺。第二，artifact/released artifact/anonymous repository这些说法再统一一下。我会建议全部收成一个口径，比如都叫anonymous repository。因为RecSys官方要求主文匿名且self-contained，匿名repo是补充复现，而不是正文证据的替代。这版已经基本满足这个方向，所以措辞也尽量统一。第三，Prompt templates那一小段现在虽然已经往前放了，但如果版面还紧的话，我推荐继续压缩成2-3句，把详细模板留在repo里。主文里只保留single-view用title prompt，multi-view用identity/function/audience/category四视角，均值池化得到embedding就够了。
-接下来的话就是纯提交清单了，我建议同学只做这三件事，不再开新实验：
-(1）再通读一遍全文，只查口径一致性。seed是否始终是{42, 2024, 2025, 2026}，Beauty/Toys的主结果数字、摘要、结论、Table 3是否逐句一致。
-(2）再做一遍匿名性检查。匿名repo能访问、PDF metadata不带作者信息、正文和仓库里都不要出现能反查到同学的线索。RecSys main track官方要求匿名提交，这块别在最后时刻出岔子。
-(3）如果Book-Crossing在deadline前跑得特别顺，而且层级关系和现在一致，可以加一句robustness。如果不顺，就完全不要动主文。现在这版已经能独立成立，不值得为一个bonus数据集打乱叙事。
-现阶段的话，一句话总结，这版已经不是还要不要继续做的问题，而是把提交层面的细节收干净就可以交的问题。我建议同学从现在开始进入submission mode，不再加结构、不再开大网格，只做口径、匿名、版面这三类收尾。
