@@ -31,4 +31,3 @@ docs/build/
 wandb/*
 /ray_log*
 release/
-paper_recsys/

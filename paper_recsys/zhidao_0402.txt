@@ -1,0 +1,7 @@
+好的我看了一下，匿名作者、匿名repo、Balanced默认配置、4个seed的mean±std、paired t-test星号，这几个关键口径现在基本都统一了，主线也比前面稳很多。强TF-IDF baseline、equal bandwidth下的multi-view、full-ranking的主结果、再加trade-off和4个旋钮的敏感性，读起来是顺的。
+我感觉现在最需要注意的，不是再加内容，而是注意一下过强的表述和实现细节里的不一致。一个比较明显的点是4.3里参数说明现在写成了d_v = 1024，但Figure 1、方法section和equal-bandwidth叙事一直在说multi-view是4×64-d的LLM预算。这个地方reviewer一眼就会看出来，最好马上统一。更稳的写法是把d_l = 1024说成原始LLM hidden size，d_v = 64说成每个view的降维结果，d = 256是最终backbone/fusion维度。
+第二个点是claim还可以略微改一下。同学现在正文主结果里写得比较好了，Beauty的HR_new@10只是缩小了和ID-only的差距，Toys上才是超过。而NDCG_new/MRR_new才是两边都最好。这个说法我觉得比直接说recover or exceed更稳，所以摘要和结论最好都跟主表保持同一个说法，不要在不同位置切换。尤其结论里那句multi-view benefits cold-start items under equal bandwidth我会建议改成更贴近表2的版本，比如improves over text baselines and yields the strongest ranking quality on the new stratum. on Beauty it narrows the gap to ID-only in HR_new, while on Toys it exceeds it.这样和表里的1.76 vs 1.88、2.04 vs 1.92是完全一致的。
+还有一个我感觉要注意的是主文自洽。RecSys 2026 main track要求匿名、8页content，而且paper要self-contained。匿名repo/auxiliary material是鼓励的，但reviewer不一定会看。也就是说，repo可以放扩展strata、更多baseline、sampled-vs-full sanity、完整配置和额外图，但凡是同学在摘要、引言、结论里拿来支撑主张的证据，主文里一定要能自圆其说。同学现在把few/frequent、14B对比、更多敏感性放到匿名repo是可以的，只要主文里的claim主要由Table 2、Table 3、Figure 2、Figure 3支撑就行。
+我会建议同学先把摘要、主结果、结论全部对齐到Table 2的说法，尤其是cold-start那句。d_v=1024这种符号/实现不一致优先修掉。
+然后主文自洽性方面，Figure 1可以保留，Figure 2/3也够了。repo里放扩展结果，但正文里不要依赖repo去证明主claim。RecSys的官方说法就是self-contained，匿名repo只是增强复现。
+最后我建议把所有consistent/benefits/strongest这种词只留给表里真正站得住的地方，Beauty上new的HR就老实说是narrows the gap，别再往exceed上靠。这样reviewer反而会觉得结论可信。

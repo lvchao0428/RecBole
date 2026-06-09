@@ -1,0 +1,57 @@
+paper_sigir/figures/plot_tradeoff.py 已经按 paper_sigir/ablation0309.txt 更新好了，我没有执行，等你手动跑即可。现在脚本里的 Figure 3 关键点已经改成新数据：Full=6.58/3.72、-SE=6.62/3.70、-Cross=7.22/3.31、-SE-Cross=7.23/3.31、w/o Whiten=6.46/3.68，箭头和坐标范围也一起校正了。ReadLints 只报了本地环境里的 matplotlib / numpy 解析警告，不是这次改动本身的问题。
+
+下面是我建议的下一步计划，先不改正文，等你确认：
+
+需要更新的地方
+paper_sigir/main_original.tex 的 Abstract
+
+重新核对一句话里的 best overall / cold-start 结论。
+现在摘要里的数值大概率要跟主表、Table 3 完全对齐，尤其是 HR@10、HR_new@10、HR_few@10 的表述。
+paper_sigir/main_original.tex 的 Introduction
+
+目前封面图说明里有旧的增幅表述，比如 +13.72% HR@10、+36.7% MRR@10、+4.02% HR_new@10，这部分明显需要按新主表重算。
+引言中关于“multi-view 何时值得”的总结，也要和新主表、Table 3、trade-off 结论一致。
+paper_sigir/main_original.tex 的 Main Results
+
+主表下方三段文字需要整体重写为“基于新主表的结果解读”。
+这里最值得改的不是机械替换数字，而是把结论写准：
+TF-IDF 仍然是强 baseline。
+multi-view 在两个数据集 overall 上都最好。
+new stratum 的说法现在不能再写成“recovering or exceeding ID-only”这种一刀切结论，因为 Beauty 上 1.76 < 1.88，但 Toys 上 2.04 > 1.92，要分数据集写。
+paper_sigir/main_original.tex 的 Analysis
+
+Table~\ref{tab:ablation} 周围文字和新 ablation0309.txt 不完全一致，建议重点改 4 处：
+Cross Network is essential for ranking quality
+现在可以明确写：去掉 cross 后，HR@10 明显升高，但 MRR@10/NDCG@10 明显下降，trade-off 更清楚了。
+SE-style gating has minor impact
+这个结论还成立，但建议弱化措辞，写成“影响较小、主要起 calibration 作用”。
+Whitening benefits multi-view but not single-view
+这句现在偏旧。按你新数据看，whitening 对 multi-view 更明显，但对 single-view 也不是“完全没帮助”，建议改成“对 multi-view 收益更稳定、更显著”。
+Understanding the HR--Ranking Trade-off
+这里建议补上更精确的定量描述，用 Figure 3 和 Table 3 联动解释。
+paper_sigir/main_original.tex 的 Conclusion
+
+结论 4 点里，第 2 点和第 3 点需要和新结果完全对齐：
+第 2 点：multi-view 的价值，建议强调“overall consistently wins, cold-start gains are stronger on Toys than Beauty”。
+第 3 点：cross 控制 recall-vs-ranking trade-off，这一点现在证据更强，可以写得更明确。
+如果 Table 3 结果也变了，第 4 点里关于 deployment-time tuning 的强弱排序也需要顺手核一下。
+我建议的改写策略
+先只改 main_original.tex，不碰别的 section 文件。
+改法以“重写结论句”为主，不做逐字修补。
+所有数字只保留最有信息量的几组：
+主表：ID-only -> TF-IDF -> single-view -> multi-view
+Table 3：Full / -SE / -Cross / -SE-Cross / w/o Whiten
+结论上重点突出两件事：
+TF-IDF 是强且便宜的默认起点。
+Cross 和 Whitening 不是单纯“全面提升”，而是在 recall / ranking / cold-start 之间重新分配收益。
+额外提醒
+如果你最终是从 paper_sigir/main.tex 的分章节版本编译，而不是直接用 paper_sigir/main_original.tex，那还需要同步这些文件，不然会出现正文不一致：
+
+paper_sigir/sections/sec_01_introduction.tex
+paper_sigir/sections/sec_07_main_results.tex
+paper_sigir/sections/sec_08_analysis.tex
+paper_sigir/sections/sec_09_conclusion.tex
+如果你愿意，我下一步可以直接做两件事之一：
+
+只给你一版“文中哪些句子要怎么改”的详细修改提纲。
+直接动手改 paper_sigir/main_original.tex。

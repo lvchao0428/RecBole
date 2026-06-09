@@ -1,0 +1,9 @@
+Thank you for the reviews. We respectfully clarify key points.
+
+Two domains, not one (R2-W3). We evaluate two Amazon domains (Beauty, Toys&Games) under full-ranking with popularity-stratified analysis (Sec 4.1).
+
+Text baselines are included (R1, R2-W1). SASRec+TF-IDF and SASRec+TF-IDF+LLM (single-view) are text-feature baselines (Sec 4.2). The shared-backbone layered design isolates each text component's incremental value—cross-architecture comparisons confound text contribution with backbone differences.
+
+Cold-start definition (R2-W4). We study low-interaction items (new=[1,3) interactions, Sec 4.1), not zero-interaction insertion. On Beauty, MV-Align narrows but does not exceed the HR_new gap to ID-only, while achieving the best NDCG_new and MRR_new on both datasets (Sec 5).
+
+Complexity vs. findings (R3-W1, R3-Q1, R2-W6). The paper's goal is to identify, under a shared scaffold, which text components are actually necessary, and Table 4 and Sec 6 already quantify this. Some components are deliberately reported as marginal (e.g., SE gating)—this is itself one of our findings. Others have clear, interpretable effects: removing Align lowers HR@10 (6.58→6.41) and HR_new@10 (2.07→1.83), and removing Cross raises HR@10 (6.58→7.22) while lowering MRR@10 (3.72→3.31) and NDCG@10 (4.40→4.23), an HR-ranking trade-off mapping to candidate-generation vs. re-ranking. The controlled design is intended to quantify both material and marginal contributions under full-ranking evaluation.

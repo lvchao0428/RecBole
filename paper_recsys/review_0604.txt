@@ -1,0 +1,213 @@
+None selected 
+
+Skip to content
+Using Gmail with screen readers
+1 of 24
+RecSys 2026 – Rebuttal (submission 196)
+Inbox
+
+RecSys 2026 <recsys2026@easychair.org>
+4:26 AM (7 hours ago)
+to me
+
+Dear Chao,
+
+The reviewing deadline for the RecSys 2026 Main Track has passed. Thanks to the dedication of PC members and subreviewers, each submission received at least 3 independent reviews (with a few exceptions for which a third review is expected soon).
+
+The rebuttal period for your submission has begun. You can now view the reviews and submit a rebuttal in EasyChair for:
+
+196: MV-Align: Multi-View Text Alignment with Explicit Feature Crossing for Sequential Recommendation
+Chao Lyu and Wenjun Rao
+
+The deadline for submitting a rebuttal is:
+
+Tuesday, June 9, 2026, 23:59 AoE (Anywhere on Earth).
+
+Please note:
+
+1. Purpose of the rebuttal. The rebuttal is intended only to point out factual errors, misunderstandings, or inaccuracies in the reviews. If you believe a review contains incorrect statements, unsupported claims, or hallucinations, please clearly indicate this.
+
+2. Format. The rebuttal must be submitted through the EasyChair rebuttal field, which is limited to 200 words and accepts text only. Do not include new results, proposed revisions, or additional material. Rebuttals that do so may be excluded from the discussion process.
+
+3. Anonymity. Your rebuttal will be visible to the reviewers and SPC members involved in the discussion of your paper. Please remain constructive and **do not reveal your identity**.
+
+4. Reviews are preliminary. The reviews you see are not final decisions. Reviewer discussions are ongoing and will continue after the rebuttal deadline. Reviews may be updated, and additional reviews may be solicited if needed.
+
+The reviews of your paper are attached to this email. To submit a rebuttal, log in to EasyChair and open your submission page.
+
+Submitting a rebuttal is optional. If you believe the reviews accurately reflect your paper, you do not need to respond.
+
+Best regards,
+
+Martijn, Bart, and Minmin
+RecSys 2026 Program Chairs
+program2026@recsys.acm.org
+
+----------------------- REVIEW 1 ---------------------
+
+SUBMISSION: 196
+TITLE: MV-Align: Multi-View Text Alignment with Explicit Feature Crossing for Sequential Recommendation
+
+----------- Strong Points -----------
+- The method is described in sufficient detail to support reproducibility, plus the code is share.
+- The model is explicitly designed with cold-start scenarios in mind.
+- The results are clearly discussed, and practical guidelines for practitioners are provided. The paper includes an analysis of model complexity.
+----------- Weak Points -----------
+Introduction needs improvement
+- There is a significant misalignment between the research problem and objectives presented in the abstract and those introduced in the introduction. As a result, both the research problem and the contribution remain unclear and are insufficiently situated within the current body of research on the topic.
+- The research questions are rather simplistic and mostly concern the impact of design decisions on evaluation outcomes. As a rule of thumb, research questions should be complex enough to require critical analysis rather than simple yes/no answers. They should also be clearly aligned with the research problem. In addition, the research questions should be presented *after* the research problem and *before* introducing the contributions.
+
+Design choices are insufficiently motivated
+- Why was SASRec selected instead of another sequential recommendation model?
+- Several failure modes are mentioned, but these are not supported either by prior literature or by dedicated experiments.
+- Why is it important to model feature-level interactions between ID embeddings and text embeddings?
+- Why were these particular multi-view representations selected?
+
+Related work
+- The related work section is rather superficial.
+- Moreover, the comparison between prior work and the proposed approach is not clearly articulated, making it difficult to assess the originality and actual contribution of the paper.
+
+Baselines
+- Baselines are effectively ablations of the proposed model rather than strong, independent baselines from related work.
+----------- Relevance to the Track -----------
+SCORE: 5 (Strong fit)
+----------- Originality -----------
+SCORE: 3 (Moderate)
+----------- Coverage of Related Literature -----------
+SCORE: 2 (Weak)
+----------- Technical Soundness -----------
+SCORE: 3 (Adequate Technical Soundness)
+----------- Overall Presentation -----------
+SCORE: 3 (Adequate)
+----------- Impact -----------
+SCORE: 3 (Moderate)
+----------- Reproducibility of Methods (N/A for Past, Present and Future papers) -----------
+SCORE: 4 (Highly  Reproducible)
+----------- Review -----------
+Additional comments
+
+Acronyms such as LLMs, CTR, HR, and DCN are not defined when first introduced.
+
+Introduction
+- The first paragraph lacks references supporting its claims.
+- The failure modes discussed in the “prepare” step of the introduction are unclear. The description should be improved and accompanied by examples. Their meaning only becomes somewhat understandable much later in the methodology section.
+
+Limitations and future work
+- The paper does not discuss limitations.
+- A future work section is also missing, despite the fact that the page limit does not appear to have been fully utilized.
+
+
+----------------------- REVIEW 2 ---------------------
+
+SUBMISSION: 196
+TITLE: MV-Align: Multi-View Text Alignment with Explicit Feature Crossing for Sequential Recommendation
+
+----------- Strong Points -----------
+- S1: The paper presents an interesting idea that represents item text with multiple views and explicitly models feature crossing.
+- S2: Code is available.
+- S3: The paper carried out experiments in rigorous settings (adopting the full-ranking setting rather than the infamous sampled setting; reporting mean and stdev scores based on four independent runs with different seeds).
+----------- Weak Points -----------
+- W1: The paper lacks baselines that use text features.
+- W2: Only one backbone model was used in the experiments.
+- W3: Only one domain was considered in the experiments.
+- W4: It seems like the proposed method cannot handle new items.
+- W5: The details and effectiveness of each view are unclear.
+- W6: The cross-network component tends to deteriorate the HR metric.
+----------- Relevance to the Track -----------
+SCORE: 5 (Strong fit)
+----------- Originality -----------
+SCORE: 3 (Moderate)
+----------- Coverage of Related Literature -----------
+SCORE: 2 (Weak)
+----------- Technical Soundness -----------
+SCORE: 2 (Weak Technical Rigor)
+----------- Overall Presentation -----------
+SCORE: 3 (Adequate)
+----------- Impact -----------
+SCORE: 2 (Limited)
+----------- Reproducibility of Methods (N/A for Past, Present and Future papers) -----------
+SCORE: 4 (Highly  Reproducible)
+----------- Review -----------
+This paper presents MV-Align, a framework for sequential recommendation equipped with multi-view text alignment and explicit feature crossing. The paper has several strengths in terms of idea, reproducibility, and rigor. However, there are many issues that may need to be addressed before publication.
+
+The details of the issues are as follows.
+
+W1: The paper lacks baselines that use text features.
+
+- Existing studies include FDSA, S3-Rec, and UniSRec. The paper should compare the proposed method with such studies (or more recent ones).
+
+W2: Only one backbone model was used in the experiments.
+
+- While this paper proposes a framework for sequential recommendation, only SASRec was used as its backbone model in the experiments. The generalizability of the proposed method to other sequential recommenders remains unclear.
+
+W3: Only one domain was considered in the experiments.
+
+- Only Amazon datasets were used in the experiments. More datasets (e.g., MovieLens) are necessary to demonstrate the effectiveness of the proposed method for other domains and platforms.
+
+W4: It seems like the proposed method cannot handle new items.
+
+- Although the paper focuses on cold-start scenarios, it is unclear how to prepare ID embeddings for new items that do not appear in the training data.
+- In the experiments, target items were grouped by popularity with a minimum threshold of one interaction. This means that no new items were used to investigate the performance of the proposed method in cold-start scenarios.
+
+W5: The details and effectiveness of each view are unclear.
+
+- What prompt was used for each view?
+- While the multi- and single-view settings were compared in the ablation study, the effectiveness of individual views remains unclear.
+
+W6: The cross-network component tends to deteriorate the HR metric.
+
+- In light of the experimental results, the paper recommends disabling (or enabling) the cross-network component for candidate generation (or final ranking). However, in the former case, a lighter and faster model would be more preferable.
+- It is unclear whether this is a problem specific to the proposed method or a common issue with methods that use similar components.
+
+Other comments:
+
+- Section 3.2: What is $\theta_v$? Is it the same as the output of Equation 6 (the variable names are different, though)?
+- Section 3.3: While $\alpha_i$ is briefly explained, its mathematical definition is unclear.
+- Table 3: The HR@10 score of the proposed method is highlighted for the new stratum. However, the proposed method did not perform best for this condition.
+
+
+----------------------- REVIEW 3 ---------------------
+
+SUBMISSION: 196
+TITLE: MV-Align: Multi-View Text Alignment with Explicit Feature Crossing for Sequential Recommendation
+
+----------- Strong Points -----------
+1. Rigorous, transparent, and extensive experiments
+f2. The paper contributes some interesting and useful empirical findings, namely that TF-IDF is a surprisingly strong baseline, and that there is an HR-ranking trade-off determined by the cross network which influences deployment choices
+3. Code, configuration files, and run scripts are released on a RecBole-based anonymous repository with public datasets, ensuring strong reproducibility
+----------- Weak Points -----------
+1. The framework's complexity might not be justified by its marginal benefit, and the authors' own ablations suggest near-redundant components. MV-Align stacks many parts on top of SASRec (i.e., four LLM prompt views, per-view SVD, ZCA whitening, SE-style gating, ℓ2 normalization, learned view gating, a DCN-V2 cross network, multi-view InfoNCE alignment, separate training-time and inference-time cold-start reweighting, and a two-phase schedule) each with its own hyperparameters. Yet the full pipeline beats the best text baseline (TF-IDF+single-view LLM) by only ~3% HR@10 (Beauty 5.62→5.79; Toys 6.39→6.61), most of the text benefit already comes from cheap TF-IDF. Moreover, the paper's own ablations report that removing SE gating causes "only marginal changes" and that whitening matters only for the multi-view design they chose. The gains are statistically significant (well-tested), but the design complexity and tuning surface are not clearly justified by the marginal be
+nefit.
+2. There is a narrow scope and no external baselines evaluated. Evaluation covers two similar, very sparse Amazon domains, one backbone (SASRec), and one LLM (Qwen2.5-7B). The deliberate layered-baseline design means there is no comparison to existing text-enhanced sequential recommenders, so MV-Align's competitiveness with other approaches, and the generality of the findings across domains/backbones/LLMs, are not established.
+3. MV-Align assembles established components (e.g., SASRec, DCN-V2 cross network, SENet-style gating, ZCA whitening, InfoNCE alignment, multi-prompt LLM views) into a new recipe. The combination and the DCN-V2 application to ID×Text fusion in sequential recommendation are reasonable, but no individual element is novel
+----------- Relevance to the Track -----------
+SCORE: 5 (Strong fit)
+----------- Originality -----------
+SCORE: 2 (Limited)
+----------- Coverage of Related Literature -----------
+SCORE: 4 (Strong)
+----------- Technical Soundness -----------
+SCORE: 4 (Strong Technical Soundness)
+----------- Overall Presentation -----------
+SCORE: 4 (Well-Presented)
+----------- Impact -----------
+SCORE: 2 (Limited)
+----------- Reproducibility of Methods (N/A for Past, Present and Future papers) -----------
+SCORE: 4 (Highly  Reproducible)
+----------- Review -----------
+This is an extensive empirical study. The evaluation protocol is a clear strength: full-ranking metrics (rather than sampled), four seeds with reported variance, paired significance tests against the strongest baseline on large test sets, popularity-stratified analysis, ablations cleanly mapped to your research questions, hyperparameter-sensitivity curves, and a FLOPs/parameter accounting. The layered baseline design is the right way to isolate the marginal contribution of each text component under a shared backbone, and the practical framing (i.e., TF-IDF is a strong baseline, the cross network induces an HR–ranking trade-off mapping to candidate-generation vs. re-ranking, and multi-view modestly beats single-view at equal bandwidth) offers actionable guidance. Moreover, the work appears to be highly reproducible.
+
+My main concerns are about the size of the contribution relative to its complexity. The full MV-Align pipeline is elaborate (i.e., four LLM views plus whitening, SE gating, ℓ2 normalization, view gating, a DCN-V2 cross, InfoNCE alignment, two separate cold-start mechanisms, and a two-phase schedule), yet its improvement over the best text baseline (TF-IDF+single-view LLM) is small (~+0.17–0.22 pp HR@10, ~3%). The results show TF-IDF already captures most of the text benefit, and the ablations indicate that some components (notably SE gating) contribute little. The gains are statistically significant, but it would strengthen the paper considerably to demonstrate which components are actually necessary, e.g., whether a substantially simpler variant (say, TF-IDF+LLM with whitening and alignment only) matches MV-Align, and to make the cost–benefit case for the added complexity explicit.
+
+Second, the evaluation is confined to two similar, very sparse Amazon domains, one backbone, and one LLM, and  omits any external text-enhanced sequential recommender; the layered design is well-justified for the RQs, but without at least one external baseline (e.g., a UniSRec-style method) and a second domain or backbone, it is hard to judge MV-Align's competitiveness or the generality of the findings.
+
+Third, the cold-start story is mixed: on Beauty, adding text (including MV-Align) yields HR_new below ID-only (1.76 vs. 1.88), so the cold-start benefit rests on NDCG/MRR rather than HR. I'd state clearly that the cold-start benefit shows up in NDCG/MRR but not Hit Rate, and explain why text lowers new-item Hit Rate on Beauty.
+----------- Key Clarification -----------
+1. Given that TF-IDF captures most of the gain, SE gating is "marginal," and MV-Align adds only ~3% HR@10 over TF-IDF+LLM, can a substantially simpler variant (e.g., TF-IDF+LLM with whitening + alignment only — dropping SE gating, dual cold-start reweighting, and the two-phase schedule) match MV-Align? Which components are actually necessary for the reported gains?
+2. Do the findings (whitening helps multi-view; cross HR–ranking trade-off; multi-view > single-view) hold on a second domain/backbone or with a different LLM, or are they specific to sparse Amazon data + SASRec + Qwen2.5-7B?
+3. How does MV-Align compare to at least one existing text-enhanced sequential recommender (e.g., UniSRec-style)? Without this, competitiveness with the field  is unclear.
+4. Why does adding text reduce new-item HR below ID-only? Is the cold-start benefit best characterized as ranking-quality (NDCG/MRR) rather than HR?
+
+
+------------------------------------------------------
+

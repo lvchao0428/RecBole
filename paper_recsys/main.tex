@@ -1,0 +1,119 @@
+\documentclass[sigconf,natbib=true,anonymous]{acmart}
+%% RecSys 2026 — Reproducibility Long Paper (8 pages content + unlimited references)
+%% Uses ACM sigconf format (two-column layout), double-blind review.
+%% Camera-ready: remove 'anonymous' and add author info.
+
+%% Remove ACM-specific elements for cleaner review copy
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\setcopyright{none}
+\acmConference[RecSys'26]{Proceedings of the 20th ACM Conference on Recommender Systems}{September 2026}{TBD}
+\acmYear{2026}
+\acmDOI{}
+\acmISBN{}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{xspace}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{ifthen}
+\usepackage{balance}  % Balance columns on last page
+\usepackage{hyperref} % Required for \url{} in abstract & body
+
+\newcommand{\model}{\textsc{MV-Align}\xspace}
+\newcommand{\base}{\textsc{SASRec}\xspace}
+\newcommand{\tfidf}{\textsc{TF-IDF}\xspace}
+\newcommand{\llm}{\textsc{LLM}\xspace}
+\newcommand{\InfoNCE}{InfoNCE\xspace}
+
+% Circled numbers for figure captions (using textcomp to avoid tikz/amssymb conflict)
+\usepackage{pifont}
+\newcommand*\circled[1]{\ding{\numexpr171+#1\relax}}
+
+\begin{document}
+
+\title{Multi-View Text Features for Sequential Recommendation:\\
+Explicit Cross and Alignment for Reliable Full-Ranking Gains}
+
+% Review version: anonymous authors.
+% Camera-ready example:
+% \author{First Author}
+% \affiliation{\institution{Institution}\country{Country}}
+% \email{email@example.com}
+
+\begin{abstract}
+% 五句法: 背景-痛点-方案-结果-可复现洞察
+Text-feature-enhanced sequential recommenders have attracted growing interest, yet published results are difficult to compare: single-view embeddings, inconsistent evaluation protocols (sampled vs.\ full-ranking), and unreported configuration details hamper reproducibility and may mislead model selection.
+%
+We present \model, a fully open-sourced, plug-and-play framework that combines multi-view text representations (\tfidf and \llm, with normalization and whitening for decorrelation), explicit ID$\times$Text cross interactions via DCN-V2, and contrastive alignment with cold-start reweighting.
+%
+The entire pipeline---data preprocessing, feature extraction, training, and evaluation---is released as a single-command reproducible package built on RecBole, enabling one-click replication of every reported result.
+%
+Under full-ranking evaluation on Amazon Beauty and Toys\&Games, \model achieves HR@10 of \textbf{X.XX}\% and \textbf{X.XX}\% respectively, with notable cold-start gains (HR\_new@10 up to \textbf{X.XX}\%, HR\_few@10 up to \textbf{X.XX}\%).
+%% TODO: fill in final numbers once experiments converge.
+%
+Through controlled ablations with only four tunable knobs, we expose an HR--ranking trade-off and provide two ready-to-use presets (Balanced and Cold/Tail-optimized), offering practitioners actionable guidance on when a frugal \tfidf-only configuration suffices versus when multi-view features pay off.
+All code, configurations, and auxiliary analyses are available at \texttt{\url{https://anonymous.4open.science/r/PLACEHOLDER}}.
+\end{abstract}
+
+\keywords{Sequential Recommendation, Reproducibility, Text Features, Multi-View Representation, Full-Ranking Evaluation, Open-Source Benchmark}
+
+\maketitle
+
+%% ====================================================================
+%% RecSys Reproducibility Long — Target structure (8 pages content)
+%%   1. Introduction  (absorbs RQs from former sec_03)
+%%   2. Related Work
+%%   3. Method         (absorbs Training Protocol from former sec_05)
+%%   4. Experimental Setup
+%%   5. Results and Analysis  (merges former sec_07 + sec_08)
+%%   6. Conclusion
+%% ====================================================================
+
+\input{sections/sec_01_introduction.tex}
+%% TODO(sec_01): append the Research Questions from sec_03 as a closing
+%%   paragraph or numbered list at the end of Introduction.
+
+\input{sections/sec_02_related_work.tex}
+
+%% sec_03 (Research Questions) — folded into Introduction.
+%% \input{sections/sec_03_research_questions.tex}
+
+\input{sections/sec_04_method.tex}
+%% TODO(sec_04): absorb sec_05 (Two-Phase Training Protocol) as a short
+%%   subsection at the end of Method; keep it concise (offline vs online,
+%%   2-3 sentences + Algorithm box only if space permits).
+
+%% sec_05 (Two-Phase Training Protocol) — folded into Method.
+%% \input{sections/sec_05_two_phase_training_protocol.tex}
+
+\input{sections/sec_06_experiments.tex}
+
+\input{sections/sec_07_main_results.tex}
+%% TODO(sec_07+08): merge into one "Results and Analysis" section.
+%%   Main text keeps: main table (placeholder), trade-off figure, key ablation.
+
+\input{sections/sec_08_analysis.tex}
+
+\input{sections/sec_09_conclusion.tex}
+
+%% ====================================================================
+%% Supplementary / Auxiliary Material
+%% ====================================================================
+%% Appendix REMOVED from the submission PDF.
+%% All auxiliary analyses — seed stability, hyperparameter sensitivity,
+%% sampled-vs-full-ranking sanity checks, extended strata results —
+%% are provided in the anonymous supplementary repository:
+%%   https://anonymous.4open.science/r/PLACEHOLDER
+%%
+%% Former appendix file kept for reference:
+%% \input{sections/sec_10_robustness_and_additional_analyses.tex}
+
+\end{document}
