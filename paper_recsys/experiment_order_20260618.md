@@ -1,7 +1,7 @@
 # 实验执行顺序 TodoList
 
 > **日期**: 2026-06-18  
-> **最后核对**: 2026-06-18（5090 实时状态）  
+> **最后核对**: 2026-06-18 21:04（5090 实时；详见 `experiment_status_20260618.md`）  
 > **机器**: 5090 (`charlie@www.ultrapp.online:/home/charlie/project/RecBole`)  
 > **Balanced 参数**: `align_weight=0.1, cold_text_boost=3.0, infer_boost=0.6, cold_threshold=10`  
 > **默认 seed**: 2025（单 seed 验证通过后，再跑 42 / 123 / 2024）
@@ -34,7 +34,7 @@
 
 | Backbone | baseline | TF-IDF | single-view | multi-view | 备注 |
 |----------|----------|--------|-------------|------------|------|
-| **SASRec** | ✅ seed2025 V3 | 🔄 **重跑 seed2025**（趋势验证） | 🔄 同上 | 🔄 同上 | Apr 旧跑作废对比；见 P0 |
+| **SASRec** | ✅ seed2025 V3 | ✅ seed2025 新跑 | ✅ seed2025 新跑 | ❌ **views.json 缺失失败** | Apr 旧跑作废；6/18 新跑见 status 文档 |
 | **GRU4Rec** | ⏸ 待趋势通过后 | ⏸ | ⏸ | ⏸ | 原 `run_all_book_crossing_remaining_serial.sh` 已暂停 |
 | **FDSA** | ⏸ | ⏸ | ⏸ | ⏸ | 同上 |
 | **UniSRec** | — | ⏸ | — | — | 同上 |
@@ -56,9 +56,10 @@
 - [x] 恢复 book-crossing 数据 + timestamp
 - [x] SASRec V3 **baseline seed=2025**（test MRR@10≈0.0199，valid≈0.0278）  
   - `saved/baseline_v3_book_crossing_stratified_seed2025/`
-- 🔄 **`run_book_crossing_v3_trend_check.sh`** — seed=2025，baseline(skip) → TF-IDF → single-view → multi-view  
-  - 日志: `logs/exp_bc_v3_trend_check_seed2025.log`  
-  - `METRIC_BASELINE=0.028`（对齐新 baseline，旧 Apr 跑使用 0.015）
+- [◐] **`run_book_crossing_v3_trend_check.sh`** — seed=2025：baseline(skip) ✅ · TF-IDF ✅ · single-view ✅ · **multi-view ❌**  
+  - 日志: `logs/exp_bc_v3_trend_check_seed2025.log`（21:04 崩溃：`views.json` 缺失）  
+  - 修复: `python tools/repair_qwen3_views_json.py --split_dir dataset/book-crossing/qwen3_4views`  
+  - 24h 续跑: `run_5090_24h_book_crossing_serial.sh`
 - [ ] 对比 Beauty/Toys 同配置 test 指标，记录是否需调参
 - [ ] 趋势 OK 后 → multiseed（`run_0125Batch_v3_book_crossing_multiseed.sh`）→ backbone（P1）
 
@@ -140,8 +141,10 @@
 # 新电脑首次：克隆/拉代码后
 ./sync_recbole.sh          # 只推代码，不碰 dataset/
 
-# P0 趋势验证（当前）:
-#   tail -f logs/exp_bc_v3_trend_check_seed2025.log
+# P0 收尾 + 24h 串行:
+#   python tools/repair_qwen3_views_json.py --split_dir dataset/book-crossing/qwen3_4views
+#   nohup bash run_5090_24h_book_crossing_serial.sh > logs/exp_5090_24h_book_crossing_serial.log 2>&1 &
+#   tail -f logs/5090_24h_serial/00_master.log
 ```
 
 ---
