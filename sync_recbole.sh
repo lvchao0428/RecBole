@@ -33,12 +33,14 @@ fi
 
 RSYNC+=(
   --delete
-  # 保护服务器端的数据文件和产物（--delete 只删除未 exclude 的文件）
-  --filter "P dataset/"
-  --filter "P release/dataset/"
+  # 完全不触碰服务器端数据目录（避免 --delete 镜像时误删 .inter/.item 等）
+  --exclude "dataset/"
+  --exclude "release/dataset/"
+  # 保护训练产物
   --filter "P saved/"
   --filter "P log/"
   --filter "P run_metrics/"
+  --filter "P results/"
   # Python 缓存
   --exclude "__pycache__/"
   --exclude "*.py[cod]"

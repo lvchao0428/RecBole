@@ -1,6 +1,6 @@
 # Camera-Ready 补充实验 — 任务跟踪
 
-> 最后更新: 2026-06-09 17:30
+> 最后更新: 2026-06-18（实验执行进度见 [`experiment_order_20260618.md`](experiment_order_20260618.md)；参考文献见 [`references_supplement_20260618.md`](references_supplement_20260618.md)）
 > 对应审稿意见: R1(缺外部基线) / R2(缺文本基线+单backbone+单领域+视角消融) / R3(能否精简+泛化+外部基线)
 
 ---
@@ -8,25 +8,24 @@
 ## 总览
 
 ```
-代码/配置  ████████████████████████  100% ✅
-实验执行    ░░░░░░░░░░░░░░░░░░░░░░░░  0% (5090 暂无算力)
+代码/配置  ████████████████████████  100% ✅（含 GRU4Rec/FDSA/UniSRec V3，已 sync 5090）
+实验执行    ██░░░░░░░░░░░░░░░░░░░░░░  ~10%（5090：book-crossing SASRec 文本三配置已有 4 seeds；V3 baseline 训练中）
 ```
 
 | 实验块 | 审稿意见 | 代码 | 配置 | 脚本 | 实验 |
 |--------|---------|------|------|------|------|
 | P0a: FDSA + S3-Rec | R2-W1 | ☑ | ☑ | ☑ | ☐ |
-| P0b: UniSRec | R2-W1 / R3-Q3 | ☐ | ☐ | ☐ | ☐ |
+| P0b: UniSRec | R2-W1 / R3-Q3 | ☑ | ☑ | ☑ | ☐ |
 | P1: GRU4Rec backbone | R2-W2 / R3-Q2 | ☑ | ☑ | ☑ | ☐ |
 | P2: MV-Align-Lite | R3-Q1 | N/A | ☑ | ☑ | ☐ |
 | P4: 单视角消融 | R2-W5 | N/A | ☑ | ☑ | ☐ |
-| DS: book-crossing | R2-W3 / R3-Q2 | N/A | ☑ | ☑ | ☐ |
+| DS: book-crossing | R2-W3 / R3-Q2 | N/A | ☑ | ☑ | ◐（TF-IDF/LLM/MV 4 seeds 已有；V3 baseline 训练中） |
 
 ---
 
 ## 基础设施 (已完成)
 
-- [x] **修复 `sync_recbole.sh`**: 添加 `--filter "P dataset/"` 和 `--filter "P release/dataset/"` 保护服务器数据文件不被 `--delete` 清除
-  - 文件: `sync_recbole.sh` L34-38
+- [x] **修复 `sync_recbole.sh`**: 使用 `--exclude dataset/` / `--exclude release/dataset/`，避免 `--delete` 误删 5090 上 `.inter` 等数据（2026-06-18）
 - [x] **数据集恢复**: 从 5090 的 `ProcessedDatasets/` 解压/复制 5 个数据集到 `dataset/`
   - Amazon_Beauty: 2.02M inter, 249K items ✓
   - Amazon_Toys_and_Games: 2.25M inter, 328K items ✓
@@ -148,21 +147,21 @@
   - `release/configs/book-crossing/sasrec_align_book_crossing_qwen3_stratified_v3.yaml` — TF-IDF + Qwen3 LLM
   - `release/configs/book-crossing/sasrec_align_multi_view_v3_book_crossing_stratified.yaml` — 4-view MV-Align
 - [x] **执行脚本**: `release/run_scripts/run_book_crossing.sh` — 4 配置 x 4 seeds = 16 runs
-- [ ] **同步到 5090**: `./sync_recbole.sh` 推送配置和脚本
-- [ ] **执行实验**: `bash run_scripts/run_book_crossing.sh 0` (预计 ~10h)
+- [x] **同步到 5090**: `./sync_recbole.sh`（2026-06-18；GRU4Rec/FDSA/UniSRec + book-crossing V3 脚本）
+- [◐] **执行实验**: TF-IDF / TF-IDF+LLM / Multi-View 已在 5090 完成 4 seeds；V3 ID-only baseline seed2025 训练中（见 `experiment_order_20260618.md`）
 
 ---
 
-## P0b: UniSRec 外部基线 (待实现, 优先级较低)
+## P0b: UniSRec 外部基线 (代码完成 ☑, 待跑实验)
 
 > 回应 R2-W1 / R3-Q3: "PLM-based text-enhanced baseline"
 
-- [ ] 从 [RUCAIBox/UniSRec](https://github.com/RUCAIBox/UniSRec) 移植代码
-- [ ] 适配 full-ranking 评估协议 (去 sampled evaluation)
-- [ ] 配置文件: Beauty + Toys
-- [ ] 执行脚本
-- [ ] w/o pretrain 实验 (4 seeds x 2 datasets)
-- [ ] w/ pretrain 实验 (可选, 参考上限)
+- [x] 从 [RUCAIBox/UniSRec](https://github.com/RUCAIBox/UniSRec) 移植代码 → `recbole/model/sequential_recommender/unisrec.py`
+- [x] 适配 full-ranking；单域 transductive（无跨域 pretrain）
+- [x] 配置文件: Beauty + Toys + book-crossing（`unisrec_*_stratified.yaml`）
+- [x] 执行脚本（`run_unisrec_*.sh`），已 sync 5090
+- [ ] w/o pretrain 实验 (4 seeds × 3 datasets)
+- [ ] w/ pretrain 实验 (可选, 未规划)
 
 ---
 

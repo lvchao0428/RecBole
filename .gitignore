@@ -19,6 +19,7 @@ dataset/yelp.zip
 dataset/yelp/
 dataset/yelp2018.zip
 dataset/yelp2018/
+dataset/
 .vscode/
 .idea/
 *.pyc

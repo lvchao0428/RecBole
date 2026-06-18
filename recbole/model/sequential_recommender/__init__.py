@@ -27,10 +27,18 @@ from recbole.model.sequential_recommender.core import CORE
 from recbole.model.sequential_recommender.dien import DIEN
 from recbole.model.sequential_recommender.din import DIN
 from recbole.model.sequential_recommender.fdsa import FDSA
+from recbole.model.sequential_recommender.fdsaalignv3 import FDSAAlignV3, FDSA_Align_V3
+from recbole.model.sequential_recommender.fdsaalignmultiviewv3 import (
+    FDSAAlignMultiViewV3, FDSA_Align_MultiView_V3
+)
 from recbole.model.sequential_recommender.fossil import FOSSIL
 from recbole.model.sequential_recommender.fpmc import FPMC
 from recbole.model.sequential_recommender.gcsan import GCSAN
 from recbole.model.sequential_recommender.gru4rec import GRU4Rec
+from recbole.model.sequential_recommender.gru4recalignv3 import GRU4RecAlignV3, GRU4Rec_Align_V3
+from recbole.model.sequential_recommender.gru4recalignmultiviewv3 import (
+    GRU4RecAlignMultiViewV3, GRU4Rec_Align_MultiView_V3
+)
 from recbole.model.sequential_recommender.gru4reccpr import GRU4RecCPR
 from recbole.model.sequential_recommender.gru4recf import GRU4RecF
 from recbole.model.sequential_recommender.gru4reckg import GRU4RecKG
@@ -51,4 +59,5 @@ from recbole.model.sequential_recommender.sine import SINE
 from recbole.model.sequential_recommender.srgnn import SRGNN
 from recbole.model.sequential_recommender.stamp import STAMP
 from recbole.model.sequential_recommender.transrec import TransRec
+from recbole.model.sequential_recommender.unisrec import UniSRec
 from recbole.model.sequential_recommender.fearec import FEARec
