@@ -1,6 +1,6 @@
 # Camera-Ready 补充实验 — 任务跟踪
 
-> 最后更新: 2026-06-18（实验执行进度见 [`experiment_order_20260618.md`](experiment_order_20260618.md)；参考文献见 [`references_supplement_20260618.md`](references_supplement_20260618.md)）
+> 最后更新: 2026-06-22（**当前主线**: Food 四配置，见 [`experiment_status_20260622.md`](experiment_status_20260622.md)；执行顺序 [`experiment_order_20260618.md`](experiment_order_20260618.md)；参考文献 [`references_supplement_20260618.md`](references_supplement_20260618.md)）
 > 对应审稿意见: R1(缺外部基线) / R2(缺文本基线+单backbone+单领域+视角消融) / R3(能否精简+泛化+外部基线)
 
 ---
@@ -8,8 +8,8 @@
 ## 总览
 
 ```
-代码/配置  ████████████████████████  100% ✅（含 GRU4Rec/FDSA/UniSRec V3，已 sync 5090）
-实验执行    ██░░░░░░░░░░░░░░░░░░░░░░  ~10%（5090：book-crossing SASRec 文本三配置已有 4 seeds；V3 baseline 训练中）
+代码/配置  ████████████████████████  100% ✅（含 Food + GRU4Rec/FDSA/UniSRec V3，已 sync 5090）
+实验执行    ████░░░░░░░░░░░░░░░░░░░░  ~15%（5090 主线：Food 四配置 1/4 完成，TF-IDF 训练中；book-crossing 暂停）
 ```
 
 | 实验块 | 审稿意见 | 代码 | 配置 | 脚本 | 实验 |
@@ -19,7 +19,8 @@
 | P1: GRU4Rec backbone | R2-W2 / R3-Q2 | ☑ | ☑ | ☑ | ☐ |
 | P2: MV-Align-Lite | R3-Q1 | N/A | ☑ | ☑ | ☐ |
 | P4: 单视角消融 | R2-W5 | N/A | ☑ | ☑ | ☐ |
-| DS: book-crossing | R2-W3 / R3-Q2 | N/A | ☑ | ☑ | ◐（TF-IDF/LLM/MV 4 seeds 已有；V3 baseline 训练中） |
+| DS: book-crossing | R2-W3 / R3-Q2 | N/A | ☑ | ☑ | ⏸ 暂停（6/21；SASRec 矩阵较完整） |
+| DS: **Food** | R2-W3 / R3-Q2 | N/A | ☑ | ☑ | 🔄（ID ✅ · TF-IDF 训练中 · LLM/MV 待跑） |
 
 ---
 

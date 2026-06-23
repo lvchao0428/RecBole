@@ -1,0 +1,181 @@
+{
+  "reference": "Amazon_Beauty",
+  "datasets": [
+    {
+      "label": "book-crossing",
+      "inter_path": "/home/charlie/project/RecBole/dataset/book-crossing/book-crossing.inter",
+      "inter": {
+        "label": "book-crossing",
+        "source": "/home/charlie/project/RecBole/dataset/book-crossing/book-crossing.inter",
+        "n_inter": 1149780,
+        "n_users": 105283,
+        "n_items": 340556,
+        "density_pct": 0.003206771109452608,
+        "avg_seq_len": 10.920851419507423,
+        "avg_item_deg": 3.376184827164989,
+        "item_gini": 0.6063574504478785,
+        "user_gini": 0.8420947730202724,
+        "top1pct_item_inter_share_pct": 25.06905668910574,
+        "top5pct_item_inter_share_pct": 45.54871366696238,
+        "top10pct_item_inter_share_pct": 56.515420341282685,
+        "item_strata_pct": {
+          "new": 75.37937960276724,
+          "few": 19.241475704436276,
+          "freq": 5.379144692796486
+        },
+        "inter_strata_pct": {
+          "new": 27.515959574875193,
+          "few": 25.811633529892674,
+          "freq": 46.67240689523213
+        },
+        "strata_item_deg_mean": {
+          "new": 1.2324188088458137,
+          "few": 4.529010499328531,
+          "freq": 29.293629564932584
+        },
+        "user_degree": {
+          "mean": 10.920851419507423,
+          "median": 1.0,
+          "p90": 12.0,
+          "p99": 174.0,
+          "max": 13602,
+          "pct_le3": 74.27789861611086,
+          "pct_le5": 81.27238015634053
+        },
+        "item_degree": {
+          "median": 1.0,
+          "p90": 6.0,
+          "p99": 36.0,
+          "max": 2502
+        },
+        "pct_users_touch_strata_item": {
+          "new": 42.60991803045126,
+          "few": 42.00298243781047,
+          "freq": 64.46624811223084
+        },
+        "cold_inter_share_pct": 53.32759310476787,
+        "freq_inter_share_pct": 46.67240689523213
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 256709,
+            "item_pct": 75.37937960276724,
+            "inter_count": 316373,
+            "inter_pct": 27.515959574875193,
+            "est_test_hits": 28970,
+            "eval_feasibility": "good"
+          },
+          "few": {
+            "item_count": 65528,
+            "item_pct": 19.241475704436276,
+            "inter_count": 296777,
+            "inter_pct": 25.811633529892674,
+            "est_test_hits": 27175,
+            "eval_feasibility": "good"
+          },
+          "freq": {
+            "item_count": 18319,
+            "item_pct": 5.379144692796486,
+            "inter_count": 536630,
+            "inter_pct": 46.67240689523213,
+            "est_test_hits": 49138,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 53.32759310476787,
+        "est_cold_test_hits": 56145,
+        "overall_eval_note": "good"
+      },
+      "text": {
+        "primary_field": "book_title",
+        "secondary_field": "book_author",
+        "combined": {
+          "basic": {
+            "n_items": 271379,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 52.7853076324992,
+            "char_len_median": 47.0,
+            "word_count_mean": 8.552614609089133,
+            "word_count_median": 8.0
+          },
+          "vocab": {
+            "unique_tokens": 112816,
+            "total_tokens": 2321000,
+            "ttr": 0.048606635071090046,
+            "top50_coverage": 0.25063981042654027
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 22847,
+            "mean_cosine": 0.031184942175173196,
+            "std_cosine": 0.025509039689832917,
+            "p90_cosine": 0.0605675085406011,
+            "high_sim_ratio_gt0.9": 8.891852839835501e-07,
+            "low_sim_ratio_lt0.3": 0.9997470267867067
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.05994832047488907,
+            "diversity_score": 0.9400516795251109,
+            "p90_cross_field_cosine": 0.11295705047692126,
+            "n_sampled": 3000
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 195302,
+            "basic": {
+              "n_items": 195302,
+              "nonempty_ratio": 0.999959037797872,
+              "char_len_mean": 39.1429990476288,
+              "char_len_median": 34.0,
+              "word_count_mean": 6.48835649404512,
+              "word_count_median": 6.0
+            },
+            "vocab": {
+              "unique_tokens": 70757,
+              "total_tokens": 1267189,
+              "ttr": 0.05583776374321431,
+              "top50_coverage": 0.31975814183993073
+            }
+          },
+          "few": {
+            "n_items": 58597,
+            "basic": {
+              "n_items": 58597,
+              "nonempty_ratio": 0.9999658685598238,
+              "char_len_mean": 35.70536034267966,
+              "char_len_median": 30.0,
+              "word_count_mean": 5.980374421898732,
+              "word_count_median": 5.0
+            },
+            "vocab": {
+              "unique_tokens": 31475,
+              "total_tokens": 350432,
+              "ttr": 0.08981771071135056,
+              "top50_coverage": 0.33157360058442154
+            }
+          },
+          "freq": {
+            "n_items": 17480,
+            "basic": {
+              "n_items": 17480,
+              "nonempty_ratio": 0.9998283752860412,
+              "char_len_mean": 30.349141876430206,
+              "char_len_median": 22.0,
+              "word_count_mean": 5.1527459954233406,
+              "word_count_median": 4.0
+            },
+            "vocab": {
+              "unique_tokens": 11999,
+              "total_tokens": 90070,
+              "ttr": 0.13321860774952815,
+              "top50_coverage": 0.34653047629621403
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    }
+  ]
+}

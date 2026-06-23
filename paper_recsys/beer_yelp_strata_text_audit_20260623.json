@@ -1,0 +1,989 @@
+{
+  "reference": "Amazon_Beauty",
+  "datasets": [
+    {
+      "label": "Amazon_Beauty",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Beauty.zip",
+      "inter": {
+        "label": "Amazon_Beauty",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Beauty.zip",
+        "n_inter": 2023070,
+        "n_users": 1210271,
+        "n_items": 249274,
+        "density_pct": 0.0006705810867006465,
+        "avg_seq_len": 1.6715842980621696,
+        "avg_item_deg": 8.115848423822781,
+        "item_gini": 0.7458412098699578,
+        "user_gini": 0.345138624422345,
+        "top1pct_item_inter_share_pct": 29.193255794411467,
+        "top5pct_item_inter_share_pct": 55.12770195791544,
+        "top10pct_item_inter_share_pct": 67.83853252729763,
+        "item_strata_pct": {
+          "new": 58.44692988438425,
+          "few": 26.73483796946332,
+          "freq": 14.818232146152427
+        },
+        "inter_strata_pct": {
+          "new": 9.287963342840337,
+          "few": 15.844780457423619,
+          "freq": 74.86725619973605
+        },
+        "strata_item_deg_mean": {
+          "new": 1.2897119285072034,
+          "few": 4.809972540251789,
+          "freq": 41.00430451026044
+        },
+        "user_degree": {
+          "mean": 1.6715842980621696,
+          "median": 1.0,
+          "p90": 3.0,
+          "p99": 10.0,
+          "max": 389,
+          "pct_le3": 93.17020733372938,
+          "pct_le5": 97.01000850222802
+        },
+        "item_degree": {
+          "median": 2.0,
+          "p90": 15.0,
+          "p99": 106.0,
+          "max": 7533
+        },
+        "pct_users_touch_strata_item": {
+          "new": 12.766149069092789,
+          "few": 21.841554494819757,
+          "freq": 80.32969475431535
+        },
+        "cold_inter_share_pct": 25.132743800263956,
+        "freq_inter_share_pct": 74.86725619973605
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 145693,
+            "item_pct": 58.44692988438425,
+            "inter_count": 187902,
+            "inter_pct": 9.287963342840337,
+            "est_test_hits": 112410,
+            "eval_feasibility": "moderate"
+          },
+          "few": {
+            "item_count": 66643,
+            "item_pct": 26.73483796946332,
+            "inter_count": 320551,
+            "inter_pct": 15.844780457423619,
+            "est_test_hits": 191765,
+            "eval_feasibility": "good"
+          },
+          "freq": {
+            "item_count": 36938,
+            "item_pct": 14.818232146152427,
+            "inter_count": 1514617,
+            "inter_pct": 74.86725619973605,
+            "est_test_hits": 906097,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 25.132743800263956,
+        "est_cold_test_hits": 304175,
+        "overall_eval_note": "good"
+      },
+      "text": {
+        "primary_field": "title",
+        "secondary_field": "categories",
+        "combined": {
+          "basic": {
+            "n_items": 259204,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 115.62837379052793,
+            "char_len_median": 110.0,
+            "word_count_mean": 16.85462801499977,
+            "word_count_median": 16.0
+          },
+          "vocab": {
+            "unique_tokens": 61865,
+            "total_tokens": 4368787,
+            "ttr": 0.014160681214259244,
+            "top50_coverage": 0.44986056770449095
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 24183,
+            "mean_cosine": 0.08025765533634635,
+            "std_cosine": 0.05893345189251453,
+            "p90_cosine": 0.1377341851370905,
+            "high_sim_ratio_gt0.9": 1.5560742469712126e-06,
+            "low_sim_ratio_lt0.3": 0.9847322440813605
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.15161900001407053,
+            "diversity_score": 0.8483809999859295,
+            "p90_cross_field_cosine": 0.2677479626156198,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 280,
+            "entropy_bits": 5.3454954195822655,
+            "top5_coverage": 0.4531583013578762
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 155623,
+            "basic": {
+              "n_items": 155623,
+              "nonempty_ratio": 0.998194354304955,
+              "char_len_mean": 62.143346420516245,
+              "char_len_median": 58.0,
+              "word_count_mean": 10.658347416512983,
+              "word_count_median": 10.0
+            },
+            "vocab": {
+              "unique_tokens": 50413,
+              "total_tokens": 1658684,
+              "ttr": 0.030393372094986146,
+              "top50_coverage": 0.29911604621495114
+            }
+          },
+          "few": {
+            "n_items": 66643,
+            "basic": {
+              "n_items": 66643,
+              "nonempty_ratio": 0.9981393394655103,
+              "char_len_mean": 62.0320063622586,
+              "char_len_median": 57.0,
+              "word_count_mean": 10.659904266014435,
+              "word_count_median": 10.0
+            },
+            "vocab": {
+              "unique_tokens": 29868,
+              "total_tokens": 710408,
+              "ttr": 0.042043445456695305,
+              "top50_coverage": 0.3182438823887118
+            }
+          },
+          "freq": {
+            "n_items": 36938,
+            "basic": {
+              "n_items": 36938,
+              "nonempty_ratio": 0.998862959553847,
+              "char_len_mean": 64.65542260003248,
+              "char_len_median": 58.0,
+              "word_count_mean": 11.041826844983486,
+              "word_count_median": 10.0
+            },
+            "vocab": {
+              "unique_tokens": 19934,
+              "total_tokens": 407863,
+              "ttr": 0.048874254345209055,
+              "top50_coverage": 0.32420690280805076
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    },
+    {
+      "label": "BeerAdvocate",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/BeerAdvocate/BeerAdvocate.zip",
+      "inter": {
+        "label": "BeerAdvocate",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/BeerAdvocate/BeerAdvocate.zip",
+        "n_inter": 1586614,
+        "n_users": 33388,
+        "n_items": 66055,
+        "density_pct": 0.07194078631791723,
+        "avg_seq_len": 47.52048640230023,
+        "avg_item_deg": 24.019589735826205,
+        "item_gini": 0.8653911096518759,
+        "user_gini": 0.8692338053233674,
+        "top1pct_item_inter_share_pct": 37.841214057105255,
+        "top5pct_item_inter_share_pct": 71.74725547612715,
+        "top10pct_item_inter_share_pct": 83.31074855005691,
+        "item_strata_pct": {
+          "new": 51.69328589811521,
+          "few": 26.76708803270002,
+          "freq": 21.53962606918477
+        },
+        "inter_strata_pct": {
+          "new": 2.8079923661331616,
+          "few": 5.385178751731675,
+          "freq": 91.80682888213516
+        },
+        "strata_item_deg_mean": {
+          "new": 1.3047501903590464,
+          "few": 4.832418980826876,
+          "freq": 102.37700309249368
+        },
+        "user_degree": {
+          "mean": 47.52048640230023,
+          "median": 3.0,
+          "p90": 92.0,
+          "p99": 844.0,
+          "max": 5817,
+          "pct_le3": 50.84461483167605,
+          "pct_le5": 59.365640349826286
+        },
+        "item_degree": {
+          "median": 2.0,
+          "p90": 34.0,
+          "p99": 461.4599999999991,
+          "max": 3290
+        },
+        "pct_users_touch_strata_item": {
+          "new": 13.220318677369114,
+          "few": 25.596022523062178,
+          "freq": 97.20258775608002
+        },
+        "cold_inter_share_pct": 8.193171117864836,
+        "freq_inter_share_pct": 91.80682888213516
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 34146,
+            "item_pct": 51.69328589811521,
+            "inter_count": 44552,
+            "inter_pct": 2.8079923661331616,
+            "est_test_hits": 938,
+            "eval_feasibility": "unlikely"
+          },
+          "few": {
+            "item_count": 17681,
+            "item_pct": 26.76708803270002,
+            "inter_count": 85442,
+            "inter_pct": 5.385178751731675,
+            "est_test_hits": 1798,
+            "eval_feasibility": "marginal"
+          },
+          "freq": {
+            "item_count": 14228,
+            "item_pct": 21.53962606918477,
+            "inter_count": 1456620,
+            "inter_pct": 91.80682888213516,
+            "est_test_hits": 30652,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 8.193171117864836,
+        "est_cold_test_hits": 2736,
+        "overall_eval_note": "marginal"
+      },
+      "text": {
+        "primary_field": "name",
+        "secondary_field": "style",
+        "combined": {
+          "basic": {
+            "n_items": 66055,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 36.506744379683596,
+            "char_len_median": 35.0,
+            "word_count_mean": 5.773961093028537,
+            "word_count_median": 6.0
+          },
+          "vocab": {
+            "unique_tokens": 26214,
+            "total_tokens": 381399,
+            "ttr": 0.06873117129305531,
+            "top50_coverage": 0.5579353904965666
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 10847,
+            "mean_cosine": 0.05272254387199244,
+            "std_cosine": 0.08014779124726538,
+            "p90_cosine": 0.11521116851684995,
+            "high_sim_ratio_gt0.9": 9.091919528731799e-05,
+            "low_sim_ratio_lt0.3": 0.977673446704457
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.2481386144735534,
+            "diversity_score": 0.7518613855264467,
+            "p90_cross_field_cosine": 0.5714285714285716,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 104,
+            "entropy_bits": 6.1231521867698095,
+            "top5_coverage": 0.20448111422299597
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 66055,
+            "basic": {
+              "n_items": 66055,
+              "nonempty_ratio": 0.9998940277041859,
+              "char_len_mean": 18.24712739383847,
+              "char_len_median": 17.0,
+              "word_count_mean": 3.0736961622890018,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 26211,
+              "total_tokens": 203033,
+              "ttr": 0.12909724035009087,
+              "top50_coverage": 0.34251082336368965
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    },
+    {
+      "label": "yelp2018",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2018.zip",
+      "inter": {
+        "label": "yelp2018",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2018.zip",
+        "n_inter": 5261669,
+        "n_users": 1326101,
+        "n_items": 174567,
+        "density_pct": 0.002272923260316413,
+        "avg_seq_len": 3.9677739478365526,
+        "avg_item_deg": 30.141258084288555,
+        "item_gini": 0.7164049706645021,
+        "user_gini": 0.6277374161608343,
+        "top1pct_item_inter_share_pct": 23.38583061762342,
+        "top5pct_item_inter_share_pct": 48.46633264084077,
+        "top10pct_item_inter_share_pct": 62.352249827953834,
+        "item_strata_pct": {
+          "new": 0.023486684195752918,
+          "few": 53.63957678140772,
+          "freq": 46.336936534396536
+        },
+        "inter_strata_pct": {
+          "new": 0.0015014247380441452,
+          "few": 8.688877996696485,
+          "freq": 91.30962057856547
+        },
+        "strata_item_deg_mean": {
+          "new": 1.9268292682926829,
+          "few": 4.882471672522614,
+          "freq": 59.39509698475689
+        },
+        "user_degree": {
+          "mean": 3.9677739478365526,
+          "median": 1.0,
+          "p90": 7.0,
+          "p99": 41.0,
+          "max": 3569,
+          "pct_le3": 77.78389428859491,
+          "pct_le5": 86.20896900009879
+        },
+        "item_degree": {
+          "median": 8.0,
+          "p90": 62.0,
+          "p99": 351.0,
+          "max": 7362
+        },
+        "pct_users_touch_strata_item": {
+          "new": 0.00595731396024888,
+          "few": 20.04425002318828,
+          "freq": 93.35254252881191
+        },
+        "cold_inter_share_pct": 8.69037942143453,
+        "freq_inter_share_pct": 91.30962057856547
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 41,
+            "item_pct": 0.023486684195752918,
+            "inter_count": 79,
+            "inter_pct": 0.0015014247380441452,
+            "est_test_hits": 20,
+            "eval_feasibility": "unlikely"
+          },
+          "few": {
+            "item_count": 93637,
+            "item_pct": 53.63957678140772,
+            "inter_count": 457180,
+            "inter_pct": 8.688877996696485,
+            "est_test_hits": 115223,
+            "eval_feasibility": "moderate"
+          },
+          "freq": {
+            "item_count": 80889,
+            "item_pct": 46.336936534396536,
+            "inter_count": 4804410,
+            "inter_pct": 91.30962057856547,
+            "est_test_hits": 1210858,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 8.69037942143453,
+        "est_cold_test_hits": 115243,
+        "overall_eval_note": "marginal"
+      },
+      "text": {
+        "primary_field": "item_name",
+        "secondary_field": "categories",
+        "combined": {
+          "basic": {
+            "n_items": 174567,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 70.36234225254486,
+            "char_len_median": 63.0,
+            "word_count_mean": 9.203291572863142,
+            "word_count_median": 8.0
+          },
+          "vocab": {
+            "unique_tokens": 49065,
+            "total_tokens": 1606591,
+            "ttr": 0.03053982002886858,
+            "top50_coverage": 0.4051802854615767
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 14122,
+            "mean_cosine": 0.06185622597679008,
+            "std_cosine": 0.06760951071027607,
+            "p90_cosine": 0.11911058855857426,
+            "high_sim_ratio_gt0.9": 7.669223074358119e-05,
+            "low_sim_ratio_lt0.3": 0.9838159386462154
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.1742579917616448,
+            "diversity_score": 0.8257420082383552,
+            "p90_cross_field_cosine": 0.39014902643985816,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 1320,
+            "entropy_bits": 7.714291057039237,
+            "top5_coverage": 0.20894641721212553
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 41,
+            "basic": {
+              "n_items": 41,
+              "nonempty_ratio": 1.0,
+              "char_len_mean": 22.634146341463413,
+              "char_len_median": 20.0,
+              "word_count_mean": 3.4878048780487805,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 128,
+              "total_tokens": 143,
+              "ttr": 0.8951048951048951,
+              "top50_coverage": 0.45454545454545453
+            }
+          },
+          "few": {
+            "n_items": 93637,
+            "basic": {
+              "n_items": 93637,
+              "nonempty_ratio": 0.9999786409218578,
+              "char_len_mean": 18.764740433802878,
+              "char_len_median": 18.0,
+              "word_count_mean": 3.0111174001730086,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 35889,
+              "total_tokens": 281952,
+              "ttr": 0.12728762342526387,
+              "top50_coverage": 0.20042063897400977
+            }
+          },
+          "freq": {
+            "n_items": 80889,
+            "basic": {
+              "n_items": 80889,
+              "nonempty_ratio": 0.9999876373796189,
+              "char_len_mean": 18.14952589350839,
+              "char_len_median": 17.0,
+              "word_count_mean": 2.9955865445239773,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 27897,
+              "total_tokens": 242310,
+              "ttr": 0.11512937972019315,
+              "top50_coverage": 0.24493417523007718
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    },
+    {
+      "label": "yelp2021",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2021.zip",
+      "inter": {
+        "label": "yelp2021",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2021.zip",
+        "n_inter": 8635403,
+        "n_users": 2189457,
+        "n_items": 160585,
+        "density_pct": 0.0024560726777025305,
+        "avg_seq_len": 3.944084309488608,
+        "avg_item_deg": 53.77465516704549,
+        "item_gini": 0.6825738559053361,
+        "user_gini": 0.6307013450560316,
+        "top1pct_item_inter_share_pct": 18.064090349923447,
+        "top5pct_item_inter_share_pct": 42.58890986326869,
+        "top10pct_item_inter_share_pct": 57.56017408799566,
+        "item_strata_pct": {
+          "new": 0.0,
+          "few": 29.3564156054426,
+          "freq": 70.64358439455741
+        },
+        "inter_strata_pct": {
+          "new": 0.0,
+          "few": 3.660593489383182,
+          "freq": 96.33940651061683
+        },
+        "strata_item_deg_mean": {
+          "new": 0.0,
+          "few": 6.7054219167621225,
+          "freq": 73.33459093994341
+        },
+        "user_degree": {
+          "mean": 3.944084309488608,
+          "median": 1.0,
+          "p90": 7.0,
+          "p99": 41.0,
+          "max": 6073,
+          "pct_le3": 78.38098670126885,
+          "pct_le5": 86.53497191312732
+        },
+        "item_degree": {
+          "median": 17.0,
+          "p90": 121.0,
+          "p99": 552.1600000000035,
+          "max": 9295
+        },
+        "pct_users_touch_strata_item": {
+          "new": 0.0,
+          "few": 10.164757745870324,
+          "freq": 97.31179922693161
+        },
+        "cold_inter_share_pct": 3.660593489383182,
+        "freq_inter_share_pct": 96.33940651061683
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 0,
+            "item_pct": 0.0,
+            "inter_count": 0,
+            "inter_pct": 0.0,
+            "est_test_hits": 0,
+            "eval_feasibility": "unlikely"
+          },
+          "few": {
+            "item_count": 47142,
+            "item_pct": 29.3564156054426,
+            "inter_count": 316107,
+            "inter_pct": 3.660593489383182,
+            "est_test_hits": 80147,
+            "eval_feasibility": "marginal"
+          },
+          "freq": {
+            "item_count": 113443,
+            "item_pct": 70.64358439455741,
+            "inter_count": 8319296,
+            "inter_pct": 96.33940651061683,
+            "est_test_hits": 2109310,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 3.660593489383182,
+        "est_cold_test_hits": 80147,
+        "overall_eval_note": "unlikely"
+      },
+      "text": {
+        "primary_field": "item_name",
+        "secondary_field": "categories",
+        "combined": {
+          "basic": {
+            "n_items": 160585,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 79.04859731606314,
+            "char_len_median": 72.0,
+            "word_count_mean": 10.246698010399477,
+            "word_count_median": 9.0
+          },
+          "vocab": {
+            "unique_tokens": 44168,
+            "total_tokens": 1645466,
+            "ttr": 0.026842244081615785,
+            "top50_coverage": 0.4101591889470825
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 14029,
+            "mean_cosine": 0.06762857689377223,
+            "std_cosine": 0.07054788529518584,
+            "p90_cosine": 0.12805425548380617,
+            "high_sim_ratio_gt0.9": 6.046459931088141e-05,
+            "low_sim_ratio_lt0.3": 0.9808262754251417
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.17842102104972407,
+            "diversity_score": 0.8215789789502759,
+            "p90_cross_field_cosine": 0.3818508666221415,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 1357,
+            "entropy_bits": 7.844899522214727,
+            "top5_coverage": 0.19518543708069894
+          }
+        },
+        "by_stratum": {
+          "few": {
+            "n_items": 47142,
+            "basic": {
+              "n_items": 47142,
+              "nonempty_ratio": 1.0,
+              "char_len_mean": 19.487293708370455,
+              "char_len_median": 18.0,
+              "word_count_mean": 3.0733316363327816,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 22915,
+              "total_tokens": 144883,
+              "ttr": 0.15816210321431776,
+              "top50_coverage": 0.20649075460889132
+            }
+          },
+          "freq": {
+            "n_items": 113443,
+            "basic": {
+              "n_items": 113443,
+              "nonempty_ratio": 1.0,
+              "char_len_mean": 18.5506377652213,
+              "char_len_median": 17.0,
+              "word_count_mean": 3.016625089251871,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 34312,
+              "total_tokens": 342215,
+              "ttr": 0.10026445363295004,
+              "top50_coverage": 0.2399865581578832
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    },
+    {
+      "label": "yelp2022",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2022/yelp2022.inter",
+      "inter": {
+        "label": "yelp2022",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2022/yelp2022.inter",
+        "n_inter": 6990280,
+        "n_users": 1987929,
+        "n_items": 150346,
+        "density_pct": 0.0023388470653961262,
+        "avg_seq_len": 3.51636300894046,
+        "avg_item_deg": 46.49461907865856,
+        "item_gini": 0.678351072470664,
+        "user_gini": 0.6115362253305341,
+        "top1pct_item_inter_share_pct": 19.468261643310424,
+        "top5pct_item_inter_share_pct": 43.503407588823336,
+        "top10pct_item_inter_share_pct": 57.933645004205836,
+        "item_strata_pct": {
+          "new": 0.0,
+          "few": 32.64203902997087,
+          "freq": 67.35796097002913
+        },
+        "inter_strata_pct": {
+          "new": 0.0,
+          "few": 4.6918435313034665,
+          "freq": 95.30815646869654
+        },
+        "strata_item_deg_mean": {
+          "new": 0.0,
+          "few": 6.682961121525797,
+          "freq": 65.78756788782462
+        },
+        "user_degree": {
+          "mean": 3.51636300894046,
+          "median": 1.0,
+          "p90": 6.0,
+          "p99": 36.0,
+          "max": 3048,
+          "pct_le3": 81.06597368417081,
+          "pct_le5": 88.5209683042
+        },
+        "item_degree": {
+          "median": 15.0,
+          "p90": 101.0,
+          "p99": 492.0,
+          "max": 7673
+        },
+        "pct_users_touch_strata_item": {
+          "new": 0.0,
+          "few": 11.249144209878722,
+          "freq": 96.51229998656893
+        },
+        "cold_inter_share_pct": 4.6918435313034665,
+        "freq_inter_share_pct": 95.30815646869654
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 0,
+            "item_pct": 0.0,
+            "inter_count": 0,
+            "inter_pct": 0.0,
+            "est_test_hits": 0,
+            "eval_feasibility": "unlikely"
+          },
+          "few": {
+            "item_count": 49076,
+            "item_pct": 32.64203902997087,
+            "inter_count": 327973,
+            "inter_pct": 4.6918435313034665,
+            "est_test_hits": 93271,
+            "eval_feasibility": "marginal"
+          },
+          "freq": {
+            "item_count": 101270,
+            "item_pct": 67.35796097002913,
+            "inter_count": 6662307,
+            "inter_pct": 95.30815646869654,
+            "est_test_hits": 1894658,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 4.6918435313034665,
+        "est_cold_test_hits": 93271,
+        "overall_eval_note": "unlikely"
+      },
+      "text": {
+        "primary_field": "item_name",
+        "secondary_field": "categories",
+        "combined": {
+          "basic": {
+            "n_items": 150346,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 79.29934950048555,
+            "char_len_median": 73.0,
+            "word_count_mean": 10.312618892421481,
+            "word_count_median": 10.0
+          },
+          "vocab": {
+            "unique_tokens": 39573,
+            "total_tokens": 1550461,
+            "ttr": 0.025523376595735076,
+            "top50_coverage": 0.41748486417910546
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 14317,
+            "mean_cosine": 0.06883209282933117,
+            "std_cosine": 0.07157394662175859,
+            "p90_cosine": 0.1314336927997465,
+            "high_sim_ratio_gt0.9": 8.358341669445371e-05,
+            "low_sim_ratio_lt0.3": 0.9794840502389686
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.17366995970366064,
+            "diversity_score": 0.8263300402963394,
+            "p90_cross_field_cosine": 0.36850675041075553,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 1340,
+            "entropy_bits": 7.772119308922276,
+            "top5_coverage": 0.19765884201490475
+          }
+        },
+        "by_stratum": {
+          "few": {
+            "n_items": 49076,
+            "basic": {
+              "n_items": 49076,
+              "nonempty_ratio": 1.0,
+              "char_len_mean": 19.526530279566387,
+              "char_len_median": 18.0,
+              "word_count_mean": 3.121057135870894,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 21607,
+              "total_tokens": 153169,
+              "ttr": 0.14106640377622104,
+              "top50_coverage": 0.21527201979512825
+            }
+          },
+          "freq": {
+            "n_items": 101270,
+            "basic": {
+              "n_items": 101270,
+              "nonempty_ratio": 1.0,
+              "char_len_mean": 18.79285079490471,
+              "char_len_median": 17.0,
+              "word_count_mean": 3.1004838550409795,
+              "word_count_median": 3.0
+            },
+            "vocab": {
+              "unique_tokens": 30105,
+              "total_tokens": 313986,
+              "ttr": 0.09588007108597199,
+              "top50_coverage": 0.256412706299007
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    },
+    {
+      "label": "Food",
+      "inter_path": "/home/charlie/project/RecBole/dataset/Food/Food.inter",
+      "inter": {
+        "label": "Food",
+        "source": "/home/charlie/project/RecBole/dataset/Food/Food.inter",
+        "n_inter": 1132367,
+        "n_users": 226570,
+        "n_items": 231637,
+        "density_pct": 0.0021576294842795773,
+        "avg_seq_len": 4.997868208500684,
+        "avg_item_deg": 4.888541122532238,
+        "item_gini": 0.6300018155039608,
+        "user_gini": 0.763675525977436,
+        "top1pct_item_inter_share_pct": 23.362920325300895,
+        "top5pct_item_inter_share_pct": 43.1057245574977,
+        "top10pct_item_inter_share_pct": 54.76016167903162,
+        "item_strata_pct": {
+          "new": 59.17577934440526,
+          "few": 31.586059221972313,
+          "freq": 9.238161433622436
+        },
+        "inter_strata_pct": {
+          "new": 16.089571667136184,
+          "few": 30.552285610583844,
+          "freq": 53.358142722279965
+        },
+        "strata_item_deg_mean": {
+          "new": 1.3291676697817951,
+          "few": 4.728545069363767,
+          "freq": 28.235431562222534
+        },
+        "user_degree": {
+          "mean": 4.997868208500684,
+          "median": 1.0,
+          "p90": 5.0,
+          "p99": 61.0,
+          "max": 7671,
+          "pct_le3": 87.54027452884318,
+          "pct_le5": 91.32056318135675
+        },
+        "item_degree": {
+          "median": 2.0,
+          "p90": 9.0,
+          "p99": 47.0,
+          "max": 1613
+        },
+        "pct_users_touch_strata_item": {
+          "new": 20.669108884671402,
+          "few": 35.863530034867814,
+          "freq": 69.38738579688396
+        },
+        "cold_inter_share_pct": 46.641857277720035,
+        "freq_inter_share_pct": 53.358142722279965
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 137073,
+            "item_pct": 59.17577934440526,
+            "inter_count": 182193,
+            "inter_pct": 16.089571667136184,
+            "est_test_hits": 36454,
+            "eval_feasibility": "good"
+          },
+          "few": {
+            "item_count": 73165,
+            "item_pct": 31.586059221972313,
+            "inter_count": 345964,
+            "inter_pct": 30.552285610583844,
+            "est_test_hits": 69222,
+            "eval_feasibility": "good"
+          },
+          "freq": {
+            "item_count": 21399,
+            "item_pct": 9.238161433622436,
+            "inter_count": 604210,
+            "inter_pct": 53.358142722279965,
+            "est_test_hits": 120894,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 46.64185727772003,
+        "est_cold_test_hits": 105676,
+        "overall_eval_note": "good"
+      },
+      "text": {
+        "primary_field": "name",
+        "secondary_field": "tags",
+        "combined": {
+          "basic": {
+            "n_items": 231637,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 229.73807293308064,
+            "char_len_median": 220.0,
+            "word_count_mean": 36.07396486744346,
+            "word_count_median": 35.0
+          },
+          "vocab": {
+            "unique_tokens": 28805,
+            "total_tokens": 8356065,
+            "ttr": 0.0034471967367415163,
+            "top50_coverage": 0.6236117119720825
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 13054,
+            "mean_cosine": 0.18113513542808685,
+            "std_cosine": 0.08540643787819936,
+            "p90_cosine": 0.2935757818059601,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9076236523285539
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.19574979369634632,
+            "diversity_score": 0.8042502063036536,
+            "p90_cross_field_cosine": 0.30317936835784925,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 209114,
+            "entropy_bits": 17.448575754185796,
+            "top5_coverage": 0.00581355170864863
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 231637,
+            "basic": {
+              "n_items": 231637,
+              "nonempty_ratio": 0.9999956829004002,
+              "char_len_mean": 27.91949904376244,
+              "char_len_median": 26.0,
+              "word_count_mean": 4.372803135941149,
+              "word_count_median": 4.0
+            },
+            "vocab": {
+              "unique_tokens": 28777,
+              "total_tokens": 1012903,
+              "ttr": 0.02841042034627205,
+              "top50_coverage": 0.3278606144912198
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    }
+  ]
+}

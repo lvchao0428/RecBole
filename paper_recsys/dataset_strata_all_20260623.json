@@ -1,0 +1,4269 @@
+{
+  "generated_at": "2026-06-23 13:41:19",
+  "elapsed_sec": 643.9,
+  "n_scanned": 102,
+  "n_ok": 72,
+  "n_errors": 19,
+  "n_skipped": 11,
+  "reference": "Amazon_Beauty",
+  "skipped": [
+    {
+      "label": "Alibaba-iFashion",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Alibaba-iFashion/Alibaba-iFashion.zip",
+      "reason": "inter size 2821MB > max 2048MB"
+    },
+    {
+      "label": "avazu",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Avazu/avazu.zip",
+      "reason": "inter size 5980MB > max 2048MB"
+    },
+    {
+      "label": "criteo",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Criteo/criteo.zip",
+      "reason": "inter size 11914MB > max 2048MB"
+    },
+    {
+      "label": "GoodReads",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/GoodReads/GoodReads.zip",
+      "reason": "inter size 4119MB > max 2048MB"
+    },
+    {
+      "label": "KDD2010-algebra2008_2009",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/KDD2010/KDD2010-algebra2008_2009.zip",
+      "reason": "inter size 2147MB > max 2048MB"
+    },
+    {
+      "label": "lfm1b-albums",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/LFM-1b/merged/lfm1b-albums.zip",
+      "reason": "inter size 3258MB > max 2048MB"
+    },
+    {
+      "label": "lfm1b-tracks",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/LFM-1b/merged/lfm1b-tracks.zip",
+      "reason": "inter size 8914MB > max 2048MB"
+    },
+    {
+      "label": "mind_large_train",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MIND/mind_large_train.zip",
+      "reason": "inter size 2070MB > max 2048MB"
+    },
+    {
+      "label": "netflix",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Netflix/netflix.zip",
+      "reason": "inter size 2488MB > max 2048MB"
+    },
+    {
+      "label": "Twitch-full",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Twitch/Twitch-full/Twitch-full.zip",
+      "reason": "inter size 18020MB > max 2048MB"
+    },
+    {
+      "label": "yelp-full",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp-full.zip",
+      "reason": "inter size 2482MB > max 2048MB"
+    }
+  ],
+  "errors": [
+    {
+      "label": "adult",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Adult/adult.zip",
+      "error": "adult: missing user_id/item_id in ['age:float', 'work_class:token', 'final_weight:float', 'education:token', 'education_num:float', 'marital_status:token', 'occupation:token', 'relationship:token', 'race:token', 'sex:token', 'capital_gain:float', 'capital_loss:float', 'hours_per_week:float', 'native_country:token_seq', 'label:float']"
+    },
+    {
+      "label": "amazon_m2",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_M2/amazon_m2.zip",
+      "error": "amazon_m2: missing user_id/item_id in ['prev_items:token_seq', 'item_id:token', 'locale:token']"
+    },
+    {
+      "label": "diginetica",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/DIGINETICA/merged/diginetica.zip",
+      "error": "diginetica: missing user_id/item_id in ['session_id:token', 'item_id:token', 'timestamp:float', 'number of times:float']"
+    },
+    {
+      "label": "foursquare_NYC",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Foursquare/merged/foursquare_NYC.zip",
+      "error": "foursquare_NYC: missing user_id/item_id in ['user_id:token', 'venue_id:token', 'timezone_offset:float', 'timestamp:float', 'click_times:float']"
+    },
+    {
+      "label": "foursquare_TKY",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Foursquare/merged/foursquare_TKY.zip",
+      "error": "foursquare_TKY: missing user_id/item_id in ['user_id:token', 'venue_id:token', 'timezone_offset:float', 'timestamp:float', 'click_times:float']"
+    },
+    {
+      "label": "KDD2010-algebra2006_2007",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/KDD2010/KDD2010-algebra2006_2007.zip",
+      "error": "KDD2010-algebra2006_2007: missing user_id/item_id in ['raw:float', 'student_id:token', 'problem_hierarchy:token_seq', 'problem_step_name:token', 'problem_view:float', 'step_start_time:float', 'first_transaction_time:float', 'correct_transcation_time:float', 'step_end_time:float', 'step_duration:float', 'correct_step_duration:float', 'error_step_duration:float', 'correct_first_attempt:float', 'incorrects:float', 'hints:float', 'corrects:float', 'kc:token_seq', 'opportunity:token_seq']"
+    },
+    {
+      "label": "KDD2010-bridge-to-algebra2006_2007",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/KDD2010/KDD2010-bridge-to-algebra2006_2007.zip",
+      "error": "KDD2010-bridge-to-algebra2006_2007: missing user_id/item_id in ['raw:float', 'student_id:token', 'problem_hierarchy:token_seq', 'problem_step_name:token', 'problem_view:float', 'step_start_time:float', 'first_transaction_time:float', 'correct_transcation_time:float', 'step_end_time:float', 'step_duration:float', 'correct_step_duration:float', 'error_step_duration:float', 'correct_first_attempt:float', 'incorrects:float', 'hints:float', 'corrects:float', 'kc:token_seq', 'opportunity:token_seq']"
+    },
+    {
+      "label": "lastfm",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/LastFM/lastfm.zip",
+      "error": "lastfm: missing user_id/item_id in ['user_id:token', 'artist_id:token', 'weight:float', 'tag_value:token_seq']"
+    },
+    {
+      "label": "lfm1b-artists",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/LFM-1b/merged/lfm1b-artists.zip",
+      "error": "lfm1b-artists: missing user_id/item_id in ['user_id:token', 'artists_id:token', 'timestamp:float', 'num_repeat:float']"
+    },
+    {
+      "label": "phishing-website",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Phishing-websites/phishing-website.zip",
+      "error": "phishing-website: missing user_id/item_id in ['label:float', 'AB1:float', 'AB2:float', 'AB3:float', 'AB4:float', 'AB5:float', 'AB6:float', 'AB7:float', 'AB8:float', 'AB9:float', 'AB10:float', 'AB11:float', 'AB12:float', 'A1:float', 'A2:float', 'A3:float', 'A4:float', 'A5:float', 'A6:float', 'HJ1:float', 'HJ2:float', 'HJ3:float', 'HJ4:float', 'HJ5:float', 'D1:float', 'D2:float', 'D3:float', 'D4:float', 'D5:float', 'D6:float', 'D7:float']"
+    },
+    {
+      "label": "retailrocket-addtocart",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Retailrocket/merged/retailrocket-addtocart.zip",
+      "error": "retailrocket-addtocart: missing user_id/item_id in ['timestamp:float', 'visitor_id:token', 'item_id:token', 'count:float']"
+    },
+    {
+      "label": "retailrocket-transaction",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Retailrocket/merged/retailrocket-transaction.zip",
+      "error": "retailrocket-transaction: missing user_id/item_id in ['timestamp:float', 'visitor_id:token', 'item_id:token', 'count:float']"
+    },
+    {
+      "label": "retailrocket-view",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Retailrocket/merged/retailrocket-view.zip",
+      "error": "retailrocket-view: missing user_id/item_id in ['timestamp:float', 'visitor_id:token', 'item_id:token', 'count:float']"
+    },
+    {
+      "label": "steam",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Steam/merged/steam.zip",
+      "error": "steam: missing user_id/item_id in ['user_id:token', 'play_hours:float', 'products:float', 'product_id:token', 'page_order:float', 'timestamp:float', 'early_access:token', 'page:float', 'found_funny:token', 'compensation:token', 'times:float']"
+    },
+    {
+      "label": "ta-feng",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Ta-Feng/merged/ta-feng.zip",
+      "error": "ta-feng: missing user_id/item_id in ['transaction_date:float', 'customer_id:token', 'product_id:token', 'amount:float']"
+    },
+    {
+      "label": "yahoo-music",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Yahoo-Music/yahoo-music.zip",
+      "error": "yahoo-music: missing user_id/item_id in ['anonymous_user_id:token', 'artist_id:token', 'rating:float']"
+    },
+    {
+      "label": "yelp",
+      "source": "/home/charlie/project/RecBole/dataset/yelp_processed/yelp.inter",
+      "error": "yelp: missing user_id/item_id in ['review_id:token', 'user_id:token', 'business_id:token', 'stars:float', 'useful:float', 'funny:float', 'cool:float', 'date:float']"
+    },
+    {
+      "label": "yoochoose-buys",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/YOOCHOOSE/merged/yoochoose-buys.zip",
+      "error": "yoochoose-buys: missing user_id/item_id in ['session_id:token', 'item_id:token', 'count:float', 'timestamp:float']"
+    },
+    {
+      "label": "yoochoose-clicks",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/YOOCHOOSE/merged/yoochoose-clicks.zip",
+      "error": "yoochoose-clicks: missing user_id/item_id in ['session_id:token', 'item_id:token', 'count:float', 'timestamp:float']"
+    }
+  ],
+  "datasets": [
+    {
+      "label": "Amazon_Beauty",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Beauty.zip",
+      "n_inter": 2023070,
+      "n_users": 1210271,
+      "n_items": 249274,
+      "density_pct": 0.0006705810867006465,
+      "avg_seq_len": 1.6715842980621696,
+      "avg_item_deg": 8.115848423822781,
+      "item_gini": 0.7458412098699578,
+      "user_gini": 0.345138624422345,
+      "top1pct_item_inter_share_pct": 29.193255794411467,
+      "top5pct_item_inter_share_pct": 55.12770195791544,
+      "top10pct_item_inter_share_pct": 67.83853252729763,
+      "item_strata_pct": {
+        "new": 58.44692988438425,
+        "few": 26.73483796946332,
+        "freq": 14.818232146152427
+      },
+      "inter_strata_pct": {
+        "new": 9.287963342840337,
+        "few": 15.844780457423619,
+        "freq": 74.86725619973605
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2897119285072034,
+        "few": 4.809972540251789,
+        "freq": 41.00430451026044
+      },
+      "user_degree": {
+        "mean": 1.6715842980621696,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 389,
+        "pct_le3": 93.17020733372938,
+        "pct_le5": 97.01000850222802
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 15.0,
+        "p99": 106.0,
+        "max": 7533
+      },
+      "pct_users_touch_strata_item": {
+        "new": 12.766149069092789,
+        "few": 21.841554494819757,
+        "freq": 80.32969475431535
+      },
+      "cold_inter_share_pct": 25.132743800263956,
+      "freq_inter_share_pct": 74.86725619973605,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 0.0,
+      "dist_inter_strata_l1_vs_beauty": 0.0,
+      "dist_total_l1_vs_beauty": 0.0
+    },
+    {
+      "label": "Amazon_Health_and_Personal_Care",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Health_and_Personal_Care.zip",
+      "n_inter": 488188,
+      "n_users": 461656,
+      "n_items": 60274,
+      "density_pct": 0.001754440329095981,
+      "avg_seq_len": 1.0574713639593116,
+      "avg_item_deg": 8.099479045691343,
+      "item_gini": 0.7446446686498276,
+      "user_gini": 0.052799169603614464,
+      "top1pct_item_inter_share_pct": 33.611641416831226,
+      "top5pct_item_inter_share_pct": 56.16381394053111,
+      "top10pct_item_inter_share_pct": 67.57253353216383,
+      "item_strata_pct": {
+        "new": 56.82549689750142,
+        "few": 28.831668712877857,
+        "freq": 14.342834389620732
+      },
+      "inter_strata_pct": {
+        "new": 9.092603669078306,
+        "few": 17.238236089375405,
+        "freq": 73.6691602415463
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2959913579165572,
+        "few": 4.842617102083094,
+        "freq": 41.601388085598614
+      },
+      "user_degree": {
+        "mean": 1.0574713639593116,
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 2.0,
+        "max": 102,
+        "pct_le3": 99.75977784324259,
+        "pct_le5": 99.89559325558425
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 14.0,
+        "p99": 96.0,
+        "max": 3147
+      },
+      "pct_users_touch_strata_item": {
+        "new": 9.429315334361515,
+        "few": 17.660769057480028,
+        "freq": 74.85140450898504
+      },
+      "cold_inter_share_pct": 26.33083975845371,
+      "freq_inter_share_pct": 73.6691602415463,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 4.193661486829061,
+      "dist_inter_strata_l1_vs_beauty": 2.786911263903571,
+      "dist_total_l1_vs_beauty": 6.980572750732632
+    },
+    {
+      "label": "Amazon_Automotive",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Automotive.zip",
+      "n_inter": 7990166,
+      "n_users": 3873247,
+      "n_items": 925387,
+      "density_pct": 0.00022292419897306602,
+      "avg_seq_len": 2.0629115571508865,
+      "avg_item_deg": 8.634404848998312,
+      "item_gini": 0.7782350525501827,
+      "user_gini": 0.42731663090626976,
+      "top1pct_item_inter_share_pct": 37.368134779677916,
+      "top5pct_item_inter_share_pct": 62.04520657017639,
+      "top10pct_item_inter_share_pct": 72.85961267888553,
+      "item_strata_pct": {
+        "new": 61.38015770699178,
+        "few": 25.493118014409106,
+        "freq": 13.126724278599117
+      },
+      "inter_strata_pct": {
+        "new": 9.079047919655236,
+        "few": 14.033350496097327,
+        "freq": 76.88760158424743
+      },
+      "strata_item_deg_mean": {
+        "new": 1.277158259448877,
+        "few": 4.753032936289263,
+        "freq": 50.57458859170351
+      },
+      "user_degree": {
+        "mean": 2.0629115571508865,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 14.0,
+        "max": 475,
+        "pct_le3": 88.63013383861139,
+        "pct_le5": 94.29881440558788
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 13.0,
+        "p99": 121.0,
+        "max": 10986
+      },
+      "pct_users_touch_strata_item": {
+        "new": 14.481983720635425,
+        "few": 22.14539893789371,
+        "freq": 83.28862063276625
+      },
+      "cold_inter_share_pct": 23.112398415752562,
+      "freq_inter_share_pct": 76.88760158424743,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 5.86645564521506,
+      "dist_inter_strata_l1_vs_beauty": 4.040690769022779,
+      "dist_total_l1_vs_beauty": 9.90714641423784
+    },
+    {
+      "label": "Amazon_All_Beauty",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_All_Beauty.zip",
+      "n_inter": 371345,
+      "n_users": 324038,
+      "n_items": 32586,
+      "density_pct": 0.003516823595178007,
+      "avg_seq_len": 1.1459921367247052,
+      "avg_item_deg": 11.395844841342909,
+      "item_gini": 0.812425400101522,
+      "user_gini": 0.11609117191197299,
+      "top1pct_item_inter_share_pct": 42.23754190846787,
+      "top5pct_item_inter_share_pct": 66.5076950006059,
+      "top10pct_item_inter_share_pct": 76.64839973609446,
+      "item_strata_pct": {
+        "new": 58.03412508439207,
+        "few": 26.775302277051495,
+        "freq": 15.190572638556436
+      },
+      "inter_strata_pct": {
+        "new": 6.549435161372847,
+        "few": 11.253685925487082,
+        "freq": 82.19687891314007
+      },
+      "strata_item_deg_mean": {
+        "new": 1.286076886468193,
+        "few": 4.789684813753581,
+        "freq": 61.663434343434346
+      },
+      "user_degree": {
+        "mean": 1.1459921367247052,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 3.0,
+        "max": 27,
+        "pct_le3": 99.25409982779797,
+        "pct_le5": 99.80742999277862
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 16.0,
+        "p99": 155.0,
+        "max": 8672
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.3559273912318925,
+        "few": 12.652528407162123,
+        "freq": 82.00735716181435
+      },
+      "cold_inter_share_pct": 17.803121086859928,
+      "freq_inter_share_pct": 82.19687891314007,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 0.8256095999843556,
+      "dist_inter_strata_l1_vs_beauty": 14.659245426808049,
+      "dist_total_l1_vs_beauty": 15.484855026792404
+    },
+    {
+      "label": "Amazon_Arts_Crafts_and_Sewing",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Arts_Crafts_and_Sewing.zip",
+      "n_inter": 2875917,
+      "n_users": 1579230,
+      "n_items": 302809,
+      "density_pct": 0.0006013982824901455,
+      "avg_seq_len": 1.8210881252255846,
+      "avg_item_deg": 9.497462096569125,
+      "item_gini": 0.7959076138359783,
+      "user_gini": 0.381859126322299,
+      "top1pct_item_inter_share_pct": 38.319881971558985,
+      "top5pct_item_inter_share_pct": 64.48298055889651,
+      "top10pct_item_inter_share_pct": 75.18770534754654,
+      "item_strata_pct": {
+        "new": 62.06420548926881,
+        "few": 24.374110412834494,
+        "freq": 13.561684097896695
+      },
+      "inter_strata_pct": {
+        "new": 8.309662622391398,
+        "few": 12.20984472083165,
+        "freq": 79.48049265677695
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2715977779669674,
+        "few": 4.75761106670099,
+        "freq": 55.66144742609458
+      },
+      "user_degree": {
+        "mean": 1.8210881252255846,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 12.0,
+        "max": 431,
+        "pct_le3": 91.65916300982124,
+        "pct_le5": 96.04870728139663
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 14.0,
+        "p99": 141.0,
+        "max": 4534
+      },
+      "pct_users_touch_strata_item": {
+        "new": 11.759338411757629,
+        "few": 17.431406444913026,
+        "freq": 83.9792177200281
+      },
+      "cold_inter_share_pct": 20.519507343223047,
+      "freq_inter_share_pct": 79.48049265677695,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 7.234551209769121,
+      "dist_inter_strata_l1_vs_beauty": 9.226472914081805,
+      "dist_total_l1_vs_beauty": 16.461024123850926
+    },
+    {
+      "label": "Amazon_Clothing_Shoes_and_Jewelry",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Clothing_Shoes_and_Jewelry.zip",
+      "n_inter": 32292099,
+      "n_users": 12483678,
+      "n_items": 2681297,
+      "density_pct": 9.647366885951792e-05,
+      "avg_seq_len": 2.5867455889201882,
+      "avg_item_deg": 12.043462175208491,
+      "item_gini": 0.819659816718146,
+      "user_gini": 0.4840313560235839,
+      "top1pct_item_inter_share_pct": 42.774110162365105,
+      "top5pct_item_inter_share_pct": 67.68885788440076,
+      "top10pct_item_inter_share_pct": 77.6346436941123,
+      "item_strata_pct": {
+        "new": 57.910966222689986,
+        "few": 26.675597667845075,
+        "freq": 15.413436109464934
+      },
+      "inter_strata_pct": {
+        "new": 6.185664796828475,
+        "few": 10.634443428406435,
+        "freq": 83.1798917747651
+      },
+      "strata_item_deg_mean": {
+        "new": 1.286402643027116,
+        "few": 4.80122390430226,
+        "freq": 64.99354674796749
+      },
+      "user_degree": {
+        "mean": 2.5867455889201882,
+        "median": 1.0,
+        "p90": 5.0,
+        "p99": 19.0,
+        "max": 656,
+        "pct_le3": 82.67121276277713,
+        "pct_le5": 90.76731232574247
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 16.0,
+        "p99": 178.0,
+        "max": 19702
+      },
+      "pct_users_touch_strata_item": {
+        "new": 12.027424930377089,
+        "few": 19.837967624605504,
+        "freq": 89.63864655913105
+      },
+      "cold_inter_share_pct": 16.820108225234907,
+      "freq_inter_share_pct": 83.1798917747651,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 1.1904079266250136,
+      "dist_inter_strata_l1_vs_beauty": 16.625271150058094,
+      "dist_total_l1_vs_beauty": 17.815679076683107
+    },
+    {
+      "label": "tmall-buy",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Tmall/merged/tmall-buy.zip",
+      "n_inter": 7592214,
+      "n_users": 885759,
+      "n_items": 1144124,
+      "density_pct": 0.0007491689535030287,
+      "avg_seq_len": 8.571421797576994,
+      "avg_item_deg": 6.635831430858893,
+      "item_gini": 0.7382745820786343,
+      "user_gini": 0.5402611061651703,
+      "top1pct_item_inter_share_pct": 35.97449966505159,
+      "top5pct_item_inter_share_pct": 58.30864356563185,
+      "top10pct_item_inter_share_pct": 68.54441932221616,
+      "item_strata_pct": {
+        "new": 63.354933556153,
+        "few": 26.22075928832889,
+        "freq": 10.42430715551811
+      },
+      "inter_strata_pct": {
+        "new": 12.222719222614115,
+        "few": 18.593390544576323,
+        "freq": 69.18389023280956
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2802144968883604,
+        "few": 4.705531370209135,
+        "freq": 44.04058960148239
+      },
+      "user_degree": {
+        "mean": 8.571421797576994,
+        "median": 5.0,
+        "p90": 20.0,
+        "p99": 51.0,
+        "max": 832,
+        "pct_le3": 38.73999586795054,
+        "pct_le5": 53.27882640763458
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 10.0,
+        "p99": 86.0,
+        "max": 166232
+      },
+      "pct_users_touch_strata_item": {
+        "new": 36.8148672494437,
+        "few": 50.06824655464974,
+        "freq": 96.40997156111312
+      },
+      "cold_inter_share_pct": 30.81610976719044,
+      "freq_inter_share_pct": 69.18389023280956,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 9.816007343537503,
+      "dist_inter_strata_l1_vs_beauty": 11.36673193385297,
+      "dist_total_l1_vs_beauty": 21.182739277390475
+    },
+    {
+      "label": "Amazon_Industrial_and_Scientific",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Industrial_and_Scientific.zip",
+      "n_inter": 1758333,
+      "n_users": 1246131,
+      "n_items": 165764,
+      "density_pct": 0.0008512305638839242,
+      "avg_seq_len": 1.411033831916548,
+      "avg_item_deg": 10.607447938032383,
+      "item_gini": 0.8179911956603324,
+      "user_gini": 0.25347644312259815,
+      "top1pct_item_inter_share_pct": 42.30467152695195,
+      "top5pct_item_inter_share_pct": 67.62592751202418,
+      "top10pct_item_inter_share_pct": 77.92192946387289,
+      "item_strata_pct": {
+        "new": 63.27550010858811,
+        "few": 22.76549793682585,
+        "freq": 13.959001954586036
+      },
+      "inter_strata_pct": {
+        "new": 7.457347385279125,
+        "few": 10.20449482549665,
+        "freq": 82.33815778922423
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2501430096865227,
+        "few": 4.754723480933832,
+        "freq": 62.56877998184883
+      },
+      "user_degree": {
+        "mean": 1.411033831916548,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 6.0,
+        "max": 156,
+        "pct_le3": 96.07208230916332,
+        "pct_le5": 98.56868980869588
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 15.0,
+        "p99": 156.0,
+        "max": 14331
+      },
+      "pct_users_touch_strata_item": {
+        "new": 9.228323506918615,
+        "few": 12.83219821993033,
+        "freq": 85.88005594917388
+      },
+      "cold_inter_share_pct": 17.661842210775774,
+      "freq_inter_share_pct": 82.33815778922423,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 9.657140448407729,
+      "dist_inter_strata_l1_vs_beauty": 14.941803178976361,
+      "dist_total_l1_vs_beauty": 24.598943627384088
+    },
+    {
+      "label": "Amazon_CDs_and_Vinyl",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_CDs_and_Vinyl.zip",
+      "n_inter": 4543369,
+      "n_users": 1944316,
+      "n_items": 434060,
+      "density_pct": 0.0005383458807697995,
+      "avg_seq_len": 2.336744130069392,
+      "avg_item_deg": 10.467145095148137,
+      "item_gini": 0.7544810406073718,
+      "user_gini": 0.5029987179941509,
+      "top1pct_item_inter_share_pct": 30.169220241631265,
+      "top5pct_item_inter_share_pct": 56.02681622381981,
+      "top10pct_item_inter_share_pct": 68.32357222140662,
+      "item_strata_pct": {
+        "new": 49.19481177717366,
+        "few": 32.753305994562965,
+        "freq": 18.051882228263374
+      },
+      "inter_strata_pct": {
+        "new": 6.356956698872576,
+        "few": 15.240342573979792,
+        "freq": 78.40270072714763
+      },
+      "strata_item_deg_mean": {
+        "new": 1.352565153253565,
+        "few": 4.870435889680591,
+        "freq": 45.460768798815664
+      },
+      "user_degree": {
+        "mean": 2.336744130069392,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 19.0,
+        "max": 4335,
+        "pct_le3": 89.2704169486853,
+        "pct_le5": 94.22712151728423
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 18.0,
+        "p99": 143.0,
+        "max": 7218
+      },
+      "pct_users_touch_strata_item": {
+        "new": 8.728159414416176,
+        "few": 20.60539541926312,
+        "freq": 84.80637920996381
+      },
+      "cold_inter_share_pct": 21.597299272852368,
+      "freq_inter_share_pct": 78.40270072714763,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 18.504236214421176,
+      "dist_inter_strata_l1_vs_beauty": 7.070889054823173,
+      "dist_total_l1_vs_beauty": 25.57512526924435
+    },
+    {
+      "label": "Amazon_Sports_and_Outdoors",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Sports_and_Outdoors.zip",
+      "n_inter": 12980837,
+      "n_users": 6703391,
+      "n_items": 957764,
+      "density_pct": 0.00020218532739806793,
+      "avg_seq_len": 1.9364582791008311,
+      "avg_item_deg": 13.553273040122619,
+      "item_gini": 0.8251381478570251,
+      "user_gini": 0.3971541395477474,
+      "top1pct_item_inter_share_pct": 40.52079230330063,
+      "top5pct_item_inter_share_pct": 67.19662222089376,
+      "top10pct_item_inter_share_pct": 77.9380636240945,
+      "item_strata_pct": {
+        "new": 56.20862759510694,
+        "few": 26.495566757572846,
+        "freq": 17.29580564732022
+      },
+      "inter_strata_pct": {
+        "new": 5.344755503824599,
+        "few": 9.43131016898217,
+        "freq": 85.22393432719323
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2887511005932988,
+        "few": 4.824396587393848,
+        "freq": 66.78285331385487
+      },
+      "user_degree": {
+        "mean": 1.9364582791008311,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 12.0,
+        "max": 433,
+        "pct_le3": 89.77706954584627,
+        "pct_le5": 95.2706622663067
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 20.0,
+        "p99": 210.0,
+        "max": 10226
+      },
+      "pct_users_touch_strata_item": {
+        "new": 8.984900328803736,
+        "few": 15.360912111497003,
+        "freq": 88.73124065118684
+      },
+      "cold_inter_share_pct": 14.776065672806768,
+      "freq_inter_share_pct": 85.22393432719323,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 4.955147002335574,
+      "dist_inter_strata_l1_vs_beauty": 20.713356254914373,
+      "dist_total_l1_vs_beauty": 25.668503257249945
+    },
+    {
+      "label": "Amazon_Toys_and_Games",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Toys_and_Games.zip",
+      "n_inter": 8201231,
+      "n_users": 4204994,
+      "n_items": 624792,
+      "density_pct": 0.00031216068430303293,
+      "avg_seq_len": 1.9503549826706055,
+      "avg_item_deg": 13.126338045301477,
+      "item_gini": 0.8038452141228394,
+      "user_gini": 0.4048232035019017,
+      "top1pct_item_inter_share_pct": 34.60287851909061,
+      "top5pct_item_inter_share_pct": 62.06220749055843,
+      "top10pct_item_inter_share_pct": 74.43660591928212,
+      "item_strata_pct": {
+        "new": 53.388007528905625,
+        "few": 27.47506370119976,
+        "freq": 19.13692876989462
+      },
+      "inter_strata_pct": {
+        "new": 5.288145157720835,
+        "few": 10.184080902001174,
+        "freq": 84.527773940278
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3001792759410489,
+        "few": 4.865491489089024,
+        "freq": 57.97900741013331
+      },
+      "user_degree": {
+        "mean": 1.9503549826706055,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 13.0,
+        "max": 1217,
+        "pct_le3": 89.86302953107662,
+        "pct_le5": 95.2103379933479
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 22.0,
+        "p99": 193.0,
+        "max": 12680
+      },
+      "pct_users_touch_strata_item": {
+        "new": 8.270309065839333,
+        "few": 15.604207758679323,
+        "freq": 88.28402608897896
+      },
+      "cold_inter_share_pct": 15.472226059722011,
+      "freq_inter_share_pct": 84.527773940278,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 10.117844710957252,
+      "dist_inter_strata_l1_vs_beauty": 19.321035481083896,
+      "dist_total_l1_vs_beauty": 29.438880192041147
+    },
+    {
+      "label": "AliEC",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/AliEC/AliEC.zip",
+      "n_inter": 1366056,
+      "n_users": 491647,
+      "n_items": 240130,
+      "density_pct": 0.0011570941257884552,
+      "avg_seq_len": 2.7785301242558176,
+      "avg_item_deg": 5.688818556615167,
+      "item_gini": 0.6893611538245706,
+      "user_gini": 0.48075585344922717,
+      "top1pct_item_inter_share_pct": 27.200202627125098,
+      "top5pct_item_inter_share_pct": 49.557045977617314,
+      "top10pct_item_inter_share_pct": 61.758156327412635,
+      "item_strata_pct": {
+        "new": 62.10386040894515,
+        "few": 26.86294923583059,
+        "freq": 11.033190355224253
+      },
+      "inter_strata_pct": {
+        "new": 13.888962092330036,
+        "few": 22.536704205391285,
+        "freq": 63.57433370227867
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2722523972373097,
+        "few": 4.772641304684836,
+        "freq": 32.77953498905413
+      },
+      "user_degree": {
+        "mean": 2.7785301242558176,
+        "median": 2.0,
+        "p90": 6.0,
+        "p99": 19.0,
+        "max": 170,
+        "pct_le3": 80.00130174698513,
+        "pct_le5": 89.76114976802462
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 10.0,
+        "p99": 64.0,
+        "max": 6707
+      },
+      "pct_users_touch_strata_item": {
+        "new": 23.62202962694779,
+        "few": 37.94897558614209,
+        "freq": 77.70087074669428
+      },
+      "cold_inter_share_pct": 36.42566629772132,
+      "freq_inter_share_pct": 63.57433370227867,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 7.57008358185635,
+      "dist_inter_strata_l1_vs_beauty": 22.58584499491474,
+      "dist_total_l1_vs_beauty": 30.15592857677109
+    },
+    {
+      "label": "Amazon_Musical_Instruments",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Musical_Instruments.zip",
+      "n_inter": 1512530,
+      "n_users": 903330,
+      "n_items": 112222,
+      "density_pct": 0.0014920368844333805,
+      "avg_seq_len": 1.6743936324488282,
+      "avg_item_deg": 13.478016788152056,
+      "item_gini": 0.8078995668817853,
+      "user_gini": 0.3462108600282275,
+      "top1pct_item_inter_share_pct": 37.591584960298306,
+      "top5pct_item_inter_share_pct": 63.795891651735836,
+      "top10pct_item_inter_share_pct": 75.1282949759674,
+      "item_strata_pct": {
+        "new": 52.139509187146906,
+        "few": 28.850849209602398,
+        "freq": 19.0096416032507
+      },
+      "inter_strata_pct": {
+        "new": 5.093386577456315,
+        "few": 10.39946315114411,
+        "freq": 84.50715027139958
+      },
+      "strata_item_deg_mean": {
+        "new": 1.31663590374624,
+        "few": 4.858232696049665,
+        "freq": 59.91637369333896
+      },
+      "user_degree": {
+        "mean": 1.6743936324488282,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 506,
+        "pct_le3": 93.0546976188104,
+        "pct_le5": 96.85430573544552
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 21.0,
+        "p99": 194.0,
+        "max": 5082
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.303753888390732,
+        "few": 14.61359636013417,
+        "freq": 87.80334982785915
+      },
+      "cold_inter_share_pct": 15.492849728600424,
+      "freq_inter_share_pct": 84.50715027139958,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 12.61484139447469,
+      "dist_inter_strata_l1_vs_beauty": 19.279788143327064,
+      "dist_total_l1_vs_beauty": 31.894629537801755
+    },
+    {
+      "label": "tmall-click",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Tmall/merged/tmall-click.zip",
+      "n_inter": 24363557,
+      "n_users": 626041,
+      "n_items": 2200291,
+      "density_pct": 0.0017687147408788485,
+      "avg_seq_len": 38.916871259230625,
+      "avg_item_deg": 11.072879450945353,
+      "item_gini": 0.750483551297,
+      "user_gini": 0.6990030351560835,
+      "top1pct_item_inter_share_pct": 29.32123581133904,
+      "top5pct_item_inter_share_pct": 54.10089750031163,
+      "top10pct_item_inter_share_pct": 66.74290211400576,
+      "item_strata_pct": {
+        "new": 47.433589466120615,
+        "few": 32.040443741305126,
+        "freq": 20.525966792574255
+      },
+      "inter_strata_pct": {
+        "new": 5.710504422650601,
+        "few": 14.379489004827988,
+        "freq": 79.91000657252141
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3330580246570538,
+        "few": 4.969417702270835,
+        "freq": 43.108024028465714
+      },
+      "user_degree": {
+        "mean": 38.916871259230625,
+        "median": 13.0,
+        "p90": 100.0,
+        "p99": 368.0,
+        "max": 20384,
+        "pct_le3": 23.689343030248818,
+        "pct_le5": 32.21897607345206
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 21.0,
+        "p99": 141.0,
+        "max": 14032
+      },
+      "pct_users_touch_strata_item": {
+        "new": 41.350167161575676,
+        "few": 61.08066404596504,
+        "freq": 98.31832100453485
+      },
+      "cold_inter_share_pct": 20.08999342747859,
+      "freq_inter_share_pct": 79.91000657252141,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 22.026680836527262,
+      "dist_inter_strata_l1_vs_beauty": 10.08550074557073,
+      "dist_total_l1_vs_beauty": 32.11218158209799
+    },
+    {
+      "label": "Amazon_Home_and_Kitchen",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Home_and_Kitchen.zip",
+      "n_inter": 21928568,
+      "n_users": 9767606,
+      "n_items": 1286050,
+      "density_pct": 0.0001745678588699284,
+      "avg_seq_len": 2.2450299489967143,
+      "avg_item_deg": 17.051100657050657,
+      "item_gini": 0.8555519878200449,
+      "user_gini": 0.4441582931389752,
+      "top1pct_item_inter_share_pct": 45.41972371383302,
+      "top5pct_item_inter_share_pct": 71.96167574645092,
+      "top10pct_item_inter_share_pct": 81.92356655482473,
+      "item_strata_pct": {
+        "new": 57.23284475720229,
+        "few": 24.714902219975894,
+        "freq": 18.05225302282182
+      },
+      "inter_strata_pct": {
+        "new": 4.275172003935688,
+        "few": 6.99117242858722,
+        "freq": 88.73365556747709
+      },
+      "strata_item_deg_mean": {
+        "new": 1.273681021353372,
+        "few": 4.823291782813061,
+        "freq": 83.81261279887664
+      },
+      "user_degree": {
+        "mean": 2.2450299489967143,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 15.0,
+        "max": 456,
+        "pct_le3": 86.11398739875462,
+        "pct_le5": 93.07551922139365
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 22.0,
+        "p99": 275.0,
+        "max": 27595
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.996319671370856,
+        "few": 12.96991299608113,
+        "freq": 92.30999899054078
+      },
+      "cold_inter_share_pct": 11.266344432522908,
+      "freq_inter_share_pct": 88.73365556747709,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 6.468041753338779,
+      "dist_inter_strata_l1_vs_beauty": 27.73279873548209,
+      "dist_total_l1_vs_beauty": 34.200840488820866
+    },
+    {
+      "label": "Amazon_Tools_and_Home_Improvement",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Tools_and_Home_Improvement.zip",
+      "n_inter": 9015203,
+      "n_users": 4704014,
+      "n_items": 559775,
+      "density_pct": 0.0003423681894601779,
+      "avg_seq_len": 1.916491532550711,
+      "avg_item_deg": 16.105047563753295,
+      "item_gini": 0.8363278998616398,
+      "user_gini": 0.3948428748397494,
+      "top1pct_item_inter_share_pct": 40.03507186693411,
+      "top5pct_item_inter_share_pct": 67.55502898825462,
+      "top10pct_item_inter_share_pct": 78.86025417286776,
+      "item_strata_pct": {
+        "new": 54.584609887901394,
+        "few": 25.89987048367648,
+        "freq": 19.515519628422133
+      },
+      "inter_strata_pct": {
+        "new": 4.346236019310935,
+        "few": 7.856262360370588,
+        "freq": 87.79750162031847
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2823456640626278,
+        "few": 4.885178057814472,
+        "freq": 72.45428082348526
+      },
+      "user_degree": {
+        "mean": 1.916491532550711,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 12.0,
+        "max": 330,
+        "pct_le3": 90.09760600202296,
+        "pct_le5": 95.37722464261374
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 24.0,
+        "p99": 251.0,
+        "max": 14075
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.350637136709202,
+        "few": 12.88716402629754,
+        "freq": 90.72921551679055
+      },
+      "cold_inter_share_pct": 12.202498379681522,
+      "freq_inter_share_pct": 87.79750162031847,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 9.3945749645394,
+      "dist_inter_strata_l1_vs_beauty": 25.860490841164857,
+      "dist_total_l1_vs_beauty": 35.255065805704255
+    },
+    {
+      "label": "Amazon_Baby",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Baby.zip",
+      "n_inter": 915446,
+      "n_users": 531890,
+      "n_items": 64426,
+      "density_pct": 0.0026714665327205287,
+      "avg_seq_len": 1.7211190283705278,
+      "avg_item_deg": 14.209263340887219,
+      "item_gini": 0.8030136166380165,
+      "user_gini": 0.35683615314406264,
+      "top1pct_item_inter_share_pct": 31.8138918079275,
+      "top5pct_item_inter_share_pct": 60.60313770555554,
+      "top10pct_item_inter_share_pct": 73.82390659853229,
+      "item_strata_pct": {
+        "new": 51.679446186322295,
+        "few": 27.322819979511376,
+        "freq": 20.99773383416633
+      },
+      "inter_strata_pct": {
+        "new": 4.73004415334165,
+        "few": 9.360573971594174,
+        "freq": 85.90938187506417
+      },
+      "strata_item_deg_mean": {
+        "new": 1.300525604445112,
+        "few": 4.867977049366585,
+        "freq": 58.13527498521585
+      },
+      "user_degree": {
+        "mean": 1.7211190283705278,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 155,
+        "pct_le3": 92.0214706048243,
+        "pct_le5": 96.37180620053019
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 26.0,
+        "p99": 213.0,
+        "max": 3648
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.328394968884544,
+        "few": 14.219481471732879,
+        "freq": 88.43200661790972
+      },
+      "cold_inter_share_pct": 14.090618124935824,
+      "freq_inter_share_pct": 85.90938187506417,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 13.534967396123909,
+      "dist_inter_strata_l1_vs_beauty": 22.084251350656253,
+      "dist_total_l1_vs_beauty": 35.61921874678016
+    },
+    {
+      "label": "Amazon_Kindle_Store",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Kindle_Store.zip",
+      "n_inter": 5722988,
+      "n_users": 2409262,
+      "n_items": 493849,
+      "density_pct": 0.00048099950096329257,
+      "avg_seq_len": 2.375411225512211,
+      "avg_item_deg": 11.588538196898241,
+      "item_gini": 0.7483601711048783,
+      "user_gini": 0.5222518259404063,
+      "top1pct_item_inter_share_pct": 27.85604303206647,
+      "top5pct_item_inter_share_pct": 52.853579284108235,
+      "top10pct_item_inter_share_pct": 66.24941376777306,
+      "item_strata_pct": {
+        "new": 45.92051416526104,
+        "few": 32.49677533011103,
+        "freq": 21.582710504627933
+      },
+      "inter_strata_pct": {
+        "new": 5.361342711185136,
+        "few": 13.876160495181889,
+        "freq": 80.76249679363298
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3529927947155367,
+        "few": 4.948319157553666,
+        "freq": 43.36430675698497
+      },
+      "user_degree": {
+        "mean": 2.375411225512211,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 22.0,
+        "max": 2031,
+        "pct_le3": 90.0956392455449,
+        "pct_le5": 94.38778347892425
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 23.0,
+        "p99": 137.0,
+        "max": 15345
+      },
+      "pct_users_touch_strata_item": {
+        "new": 9.520799315309002,
+        "few": 21.437519041100554,
+        "freq": 81.43697115548247
+      },
+      "cold_inter_share_pct": 19.237503206367023,
+      "freq_inter_share_pct": 80.76249679363298,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 25.05283143824642,
+      "dist_inter_strata_l1_vs_beauty": 11.79048118779386,
+      "dist_total_l1_vs_beauty": 36.84331262604028
+    },
+    {
+      "label": "Behance",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Behance/Behance.zip",
+      "n_inter": 1000000,
+      "n_users": 63497,
+      "n_items": 178788,
+      "density_pct": 0.008808631190405581,
+      "avg_seq_len": 15.748775532702332,
+      "avg_item_deg": 5.593216546971832,
+      "item_gini": 0.7152085897487527,
+      "user_gini": 0.7493591421956943,
+      "top1pct_item_inter_share_pct": 36.1932,
+      "top5pct_item_inter_share_pct": 57.01199999999999,
+      "top10pct_item_inter_share_pct": 66.8801,
+      "item_strata_pct": {
+        "new": 66.96646307358436,
+        "few": 24.552542676242254,
+        "freq": 8.48099425017339
+      },
+      "inter_strata_pct": {
+        "new": 15.445999999999998,
+        "few": 20.0272,
+        "freq": 64.5268
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2900908726446612,
+        "few": 4.56231633141217,
+        "freq": 42.55543098331465
+      },
+      "user_degree": {
+        "mean": 15.748775532702332,
+        "median": 4.0,
+        "p90": 32.0,
+        "p99": 197.04000000000087,
+        "max": 2260,
+        "pct_le3": 47.049466903948215,
+        "pct_le5": 58.36811187930139
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 8.0,
+        "p99": 67.0,
+        "max": 1793
+      },
+      "pct_users_touch_strata_item": {
+        "new": 51.27643825692553,
+        "few": 51.037056868828444,
+        "freq": 81.15973983022819
+      },
+      "cold_inter_share_pct": 35.4732,
+      "freq_inter_share_pct": 64.5268,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 17.03906637840022,
+      "dist_inter_strata_l1_vs_beauty": 20.680912399472096,
+      "dist_total_l1_vs_beauty": 37.71997877787231
+    },
+    {
+      "label": "Amazon_Office_Products",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Office_Products.zip",
+      "n_inter": 5581313,
+      "n_users": 3404914,
+      "n_items": 306800,
+      "density_pct": 0.000534287330603588,
+      "avg_seq_len": 1.6391935302918077,
+      "avg_item_deg": 18.19202411994785,
+      "item_gini": 0.8501134854071483,
+      "user_gini": 0.3263865811992069,
+      "top1pct_item_inter_share_pct": 42.52829038615108,
+      "top5pct_item_inter_share_pct": 69.97471741864325,
+      "top10pct_item_inter_share_pct": 80.75126766766171,
+      "item_strata_pct": {
+        "new": 54.273794002607566,
+        "few": 25.71284224250326,
+        "freq": 20.01336375488918
+      },
+      "inter_strata_pct": {
+        "new": 3.82436892537652,
+        "few": 6.879707337682012,
+        "freq": 89.29592373694148
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2818895935428076,
+        "few": 4.867443304980542,
+        "freq": 81.16944349440563
+      },
+      "user_degree": {
+        "mean": 1.6391935302918077,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 9.0,
+        "max": 438,
+        "pct_le3": 93.28840610952288,
+        "pct_le5": 97.3125899802462
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 26.0,
+        "p99": 292.0,
+        "max": 14340
+      },
+      "pct_users_touch_strata_item": {
+        "new": 5.78096832989027,
+        "few": 10.27608920518991,
+        "freq": 90.94972736462653
+      },
+      "cold_inter_share_pct": 10.704076263058532,
+      "freq_inter_share_pct": 89.29592373694148,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 10.390263217473494,
+      "dist_inter_strata_l1_vs_beauty": 28.85733507441085,
+      "dist_total_l1_vs_beauty": 39.247598291884344
+    },
+    {
+      "label": "Amazon_Appliances",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Appliances.zip",
+      "n_inter": 602777,
+      "n_users": 515650,
+      "n_items": 30252,
+      "density_pct": 0.0038640928979788366,
+      "avg_seq_len": 1.1689653834965577,
+      "avg_item_deg": 19.925195028427872,
+      "item_gini": 0.8411209577438213,
+      "user_gini": 0.13083943159761952,
+      "top1pct_item_inter_share_pct": 37.46791931344428,
+      "top5pct_item_inter_share_pct": 67.12283315388609,
+      "top10pct_item_inter_share_pct": 78.91940137065615,
+      "item_strata_pct": {
+        "new": 50.20163956102076,
+        "few": 26.927145312706596,
+        "freq": 22.87121512627264
+      },
+      "inter_strata_pct": {
+        "new": 3.2635618147341385,
+        "few": 6.644911799886194,
+        "freq": 90.09152638537967
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2953183643905972,
+        "few": 4.9170144856371225,
+        "freq": 78.48692007515537
+      },
+      "user_degree": {
+        "mean": 1.1689653834965577,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 3.0,
+        "max": 208,
+        "pct_le3": 99.20449917579754,
+        "pct_le5": 99.85940075632696
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 32.0,
+        "p99": 328.0,
+        "max": 6510
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.707165713177543,
+        "few": 7.552021720159023,
+        "freq": 90.91166488897507
+      },
+      "cold_inter_share_pct": 9.908473614620332,
+      "freq_inter_share_pct": 90.09152638537967,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 16.490580646726976,
+      "dist_inter_strata_l1_vs_beauty": 30.448540371287244,
+      "dist_total_l1_vs_beauty": 46.93912101801422
+    },
+    {
+      "label": "BeerAdvocate",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/BeerAdvocate/BeerAdvocate.zip",
+      "n_inter": 1586614,
+      "n_users": 33388,
+      "n_items": 66055,
+      "density_pct": 0.07194078631791723,
+      "avg_seq_len": 47.52048640230023,
+      "avg_item_deg": 24.019589735826205,
+      "item_gini": 0.8653911096518759,
+      "user_gini": 0.8692338053233674,
+      "top1pct_item_inter_share_pct": 37.841214057105255,
+      "top5pct_item_inter_share_pct": 71.74725547612715,
+      "top10pct_item_inter_share_pct": 83.31074855005691,
+      "item_strata_pct": {
+        "new": 51.69328589811521,
+        "few": 26.76708803270002,
+        "freq": 21.53962606918477
+      },
+      "inter_strata_pct": {
+        "new": 2.8079923661331616,
+        "few": 5.385178751731675,
+        "freq": 91.80682888213516
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3047501903590464,
+        "few": 4.832418980826876,
+        "freq": 102.37700309249368
+      },
+      "user_degree": {
+        "mean": 47.52048640230023,
+        "median": 3.0,
+        "p90": 92.0,
+        "p99": 844.0,
+        "max": 5817,
+        "pct_le3": 50.84461483167605,
+        "pct_le5": 59.365640349826286
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 34.0,
+        "p99": 461.4599999999991,
+        "max": 3290
+      },
+      "pct_users_touch_strata_item": {
+        "new": 13.220318677369114,
+        "few": 25.596022523062178,
+        "freq": 97.20258775608002
+      },
+      "cold_inter_share_pct": 8.193171117864836,
+      "freq_inter_share_pct": 91.80682888213516,
+      "domain": "BeerAdvocate",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 13.507287972538082,
+      "dist_inter_strata_l1_vs_beauty": 33.879145364798234,
+      "dist_total_l1_vs_beauty": 47.386433337336314
+    },
+    {
+      "label": "Amazon_Patio_Lawn_and_Garden",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Patio_Lawn_and_Garden.zip",
+      "n_inter": 5236058,
+      "n_users": 3097405,
+      "n_items": 276563,
+      "density_pct": 0.0006112408570273187,
+      "avg_seq_len": 1.6904660514204632,
+      "avg_item_deg": 18.93260486760702,
+      "item_gini": 0.8303240257874307,
+      "user_gini": 0.33881269049989515,
+      "top1pct_item_inter_share_pct": 36.3740432210644,
+      "top5pct_item_inter_share_pct": 65.13470630004481,
+      "top10pct_item_inter_share_pct": 77.36446005754712,
+      "item_strata_pct": {
+        "new": 48.716928873348934,
+        "few": 28.094502879994792,
+        "freq": 23.188568246656278
+      },
+      "inter_strata_pct": {
+        "new": 3.3829457198526063,
+        "few": 7.331488688627971,
+        "freq": 89.28556559151943
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3146964737666347,
+        "few": 4.94061699635774,
+        "freq": 72.89834869252
+      },
+      "user_degree": {
+        "mean": 1.6904660514204632,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 9.0,
+        "max": 247,
+        "pct_le3": 92.55118397497259,
+        "pct_le5": 96.9325935742985
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 31.0,
+        "p99": 302.0,
+        "max": 10264
+      },
+      "pct_users_touch_strata_item": {
+        "new": 5.212912098999,
+        "few": 11.023130652917523,
+        "freq": 91.59047654407479
+      },
+      "cold_inter_share_pct": 10.71443440848058,
+      "freq_inter_share_pct": 89.28556559151943,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 19.460002022070633,
+      "dist_inter_strata_l1_vs_beauty": 28.83661878356676,
+      "dist_total_l1_vs_beauty": 48.29662080563739
+    },
+    {
+      "label": "Amazon_Grocery_and_Gourmet_Food",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Grocery_and_Gourmet_Food.zip",
+      "n_inter": 5074160,
+      "n_users": 2695974,
+      "n_items": 283507,
+      "density_pct": 0.0006638724885038839,
+      "avg_seq_len": 1.8821249759827061,
+      "avg_item_deg": 17.897829683217697,
+      "item_gini": 0.822082638800849,
+      "user_gini": 0.3925930094974785,
+      "top1pct_item_inter_share_pct": 38.46486906207136,
+      "top5pct_item_inter_share_pct": 64.63942800384694,
+      "top10pct_item_inter_share_pct": 76.17483484951204,
+      "item_strata_pct": {
+        "new": 46.753695675944506,
+        "few": 30.064513398258242,
+        "freq": 23.181790925797248
+      },
+      "inter_strata_pct": {
+        "new": 3.468652939599855,
+        "few": 8.30125577435477,
+        "freq": 88.23009128604538
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3278385514900037,
+        "few": 4.941854871824955,
+        "freq": 68.11929034417699
+      },
+      "user_degree": {
+        "mean": 1.8821249759827061,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 12.0,
+        "max": 1103,
+        "pct_le3": 90.79393940742752,
+        "pct_le5": 95.75949174584028
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 28.0,
+        "p99": 259.0,
+        "max": 11526
+      },
+      "pct_users_touch_strata_item": {
+        "new": 5.674646713951989,
+        "few": 12.956912789218295,
+        "freq": 90.66467258215398
+      },
+      "cold_inter_share_pct": 11.769908713954624,
+      "freq_inter_share_pct": 88.23009128604538,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 23.38646841687948,
+      "dist_inter_strata_l1_vs_beauty": 26.725670172618663,
+      "dist_total_l1_vs_beauty": 50.112138589498144
+    },
+    {
+      "label": "Amazon_Instant_Video",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Instant_Video.zip",
+      "n_inter": 583933,
+      "n_users": 426922,
+      "n_items": 23965,
+      "density_pct": 0.0057073834393191105,
+      "avg_seq_len": 1.3677744412328248,
+      "avg_item_deg": 24.36607552680993,
+      "item_gini": 0.8733873486136488,
+      "user_gini": 0.23749680025522701,
+      "top1pct_item_inter_share_pct": 50.50699309681076,
+      "top5pct_item_inter_share_pct": 75.45180697100523,
+      "top10pct_item_inter_share_pct": 83.88496625469017,
+      "item_strata_pct": {
+        "new": 48.79616106822449,
+        "few": 29.68078447736282,
+        "freq": 21.523054454412684
+      },
+      "inter_strata_pct": {
+        "new": 2.649790301284565,
+        "few": 5.998804657383639,
+        "freq": 91.3514050413318
+      },
+      "strata_item_deg_mean": {
+        "new": 1.323157174619463,
+        "few": 4.92464501616758,
+        "freq": 103.41818534315627
+      },
+      "user_degree": {
+        "mean": 1.3677744412328248,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 6.0,
+        "max": 277,
+        "pct_le3": 96.63427979818327,
+        "pct_le5": 98.81196096710875
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 27.0,
+        "p99": 399.72000000000116,
+        "max": 12633
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.060512224715522,
+        "few": 6.91999943783642,
+        "freq": 93.4739835379765
+      },
+      "cold_inter_share_pct": 8.648594958668204,
+      "freq_inter_share_pct": 91.3514050413318,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 19.30153763231951,
+      "dist_inter_strata_l1_vs_beauty": 32.96829768319151,
+      "dist_total_l1_vs_beauty": 52.26983531551102
+    },
+    {
+      "label": "epinions",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Epinions/epinions.zip",
+      "n_inter": 188478,
+      "n_users": 116259,
+      "n_items": 41269,
+      "density_pct": 0.003928349651071217,
+      "avg_seq_len": 1.6211906175005806,
+      "avg_item_deg": 4.567060020838887,
+      "item_gini": 0.6069556343498052,
+      "user_gini": 0.3360045470464182,
+      "top1pct_item_inter_share_pct": 14.825072422245567,
+      "top5pct_item_inter_share_pct": 36.51195364976284,
+      "top10pct_item_inter_share_pct": 50.67275756321693,
+      "item_strata_pct": {
+        "new": 60.29222903389954,
+        "few": 28.813395042283553,
+        "freq": 10.894375923816908
+      },
+      "inter_strata_pct": {
+        "new": 16.815225119112046,
+        "few": 30.54892348178567,
+        "freq": 52.635851399102286
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2737320151113254,
+        "few": 4.842149524850727,
+        "freq": 22.065613879003557
+      },
+      "user_degree": {
+        "mean": 1.6211820160159645,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 80,
+        "pct_le3": 93.56436921012566,
+        "pct_le5": 97.02044572893281
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 10.0,
+        "p99": 40.0,
+        "max": 274
+      },
+      "pct_users_touch_strata_item": {
+        "new": 16.812461830912014,
+        "few": 38.74108671156641,
+        "freq": 64.94809004034097
+      },
+      "cold_inter_share_pct": 47.364148600897714,
+      "freq_inter_share_pct": 52.635851399102286,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 7.847712444671043,
+      "dist_inter_strata_l1_vs_beauty": 44.46280960126752,
+      "dist_total_l1_vs_beauty": 52.31052204593857
+    },
+    {
+      "label": "Amazon_Software",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Software.zip",
+      "n_inter": 459436,
+      "n_users": 375147,
+      "n_items": 21663,
+      "density_pct": 0.005653337908373536,
+      "avg_seq_len": 1.2246825910909591,
+      "avg_item_deg": 21.20832756312607,
+      "item_gini": 0.8479633786418775,
+      "user_gini": 0.1667308695700677,
+      "top1pct_item_inter_share_pct": 42.60179872713501,
+      "top5pct_item_inter_share_pct": 69.63951453521274,
+      "top10pct_item_inter_share_pct": 80.19180038133712,
+      "item_strata_pct": {
+        "new": 47.47726538337257,
+        "few": 29.658865346443243,
+        "freq": 22.863869270184185
+      },
+      "inter_strata_pct": {
+        "new": 2.9557979783908968,
+        "few": 6.931106835337239,
+        "freq": 90.11309518627186
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3203694701020905,
+        "few": 4.956264591439688,
+        "freq": 83.58812840702605
+      },
+      "user_degree": {
+        "mean": 1.2246825910909591,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 4.0,
+        "max": 73,
+        "pct_le3": 98.25481744489494,
+        "pct_le5": 99.44235193137624
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 29.0,
+        "p99": 330.0,
+        "max": 8994
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.408530522701768,
+        "few": 8.003262721013362,
+        "freq": 90.92782296006632
+      },
+      "cold_inter_share_pct": 9.886904813728137,
+      "freq_inter_share_pct": 90.11309518627186,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 21.939329002023356,
+      "dist_inter_strata_l1_vs_beauty": 30.491677973071635,
+      "dist_total_l1_vs_beauty": 52.43100697509499
+    },
+    {
+      "label": "Amazon_Books",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Books.zip",
+      "n_inter": 51311621,
+      "n_users": 15362619,
+      "n_items": 2930451,
+      "density_pct": 0.0001139766822298452,
+      "avg_seq_len": 3.3400308241713215,
+      "avg_item_deg": 17.509803439811826,
+      "item_gini": 0.8138429608957866,
+      "user_gini": 0.5952778385734598,
+      "top1pct_item_inter_share_pct": 38.96497052782644,
+      "top5pct_item_inter_share_pct": 63.66296243106411,
+      "top10pct_item_inter_share_pct": 74.93607734590961,
+      "item_strata_pct": {
+        "new": 44.77795397363751,
+        "few": 31.33742894864988,
+        "freq": 23.884617077712612
+      },
+      "inter_strata_pct": {
+        "new": 3.402843188290621,
+        "few": 8.961630738580642,
+        "freq": 87.63552607312873
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3306350575676196,
+        "few": 5.00731546898276,
+        "freq": 64.2455698951462
+      },
+      "user_degree": {
+        "mean": 3.3400308241713215,
+        "median": 1.0,
+        "p90": 6.0,
+        "p99": 30.0,
+        "max": 9684,
+        "pct_le3": 81.67046256891484,
+        "pct_le5": 89.12670424229098
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 28.0,
+        "p99": 235.0,
+        "max": 58150
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.706941114662806,
+        "few": 19.1852509002534,
+        "freq": 89.49779982176216
+      },
+      "cold_inter_share_pct": 12.364473926871264,
+      "freq_inter_share_pct": 87.63552607312873,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 27.337951821493483,
+      "dist_inter_strata_l1_vs_beauty": 25.536539746785376,
+      "dist_total_l1_vs_beauty": 52.874491568278856
+    },
+    {
+      "label": "Amazon_Beauty_and_Personal_Care",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Beauty_and_Personal_Care.zip",
+      "n_inter": 23591312,
+      "n_users": 11325787,
+      "n_items": 1028731,
+      "density_pct": 0.00020247988121714332,
+      "avg_seq_len": 2.0829733068439307,
+      "avg_item_deg": 22.932440064506658,
+      "item_gini": 0.8549725671297695,
+      "user_gini": 0.42172362782257544,
+      "top1pct_item_inter_share_pct": 44.50441331961529,
+      "top5pct_item_inter_share_pct": 70.24867459681768,
+      "top10pct_item_inter_share_pct": 80.53149396693155,
+      "item_strata_pct": {
+        "new": 48.45892658041801,
+        "few": 27.135373581626293,
+        "freq": 24.405699837955694
+      },
+      "inter_strata_pct": {
+        "new": 2.7289919271976055,
+        "few": 5.898069594433748,
+        "freq": 91.37293847836865
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2914533652148794,
+        "few": 4.984531613827691,
+        "freq": 85.85717472089345
+      },
+      "user_degree": {
+        "mean": 2.0829733068439307,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 13.0,
+        "max": 2920,
+        "pct_le3": 88.3754479931505,
+        "pct_le5": 94.61813117269466
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 31.0,
+        "p99": 351.0,
+        "max": 36823
+      },
+      "pct_users_touch_strata_item": {
+        "new": 4.966030175209899,
+        "few": 10.018482600811758,
+        "freq": 95.12351768579083
+      },
+      "cold_inter_share_pct": 8.627061521631353,
+      "freq_inter_share_pct": 91.37293847836865,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 19.976006607932476,
+      "dist_inter_strata_l1_vs_beauty": 33.01136455726521,
+      "dist_total_l1_vs_beauty": 52.987371165197686
+    },
+    {
+      "label": "Food",
+      "source": "/home/charlie/project/RecBole/dataset/Food/Food.inter",
+      "n_inter": 1132367,
+      "n_users": 226570,
+      "n_items": 231637,
+      "density_pct": 0.0021576294842795773,
+      "avg_seq_len": 4.997868208500684,
+      "avg_item_deg": 4.888541122532238,
+      "item_gini": 0.6300018155039608,
+      "user_gini": 0.763675525977436,
+      "top1pct_item_inter_share_pct": 23.362920325300895,
+      "top5pct_item_inter_share_pct": 43.1057245574977,
+      "top10pct_item_inter_share_pct": 54.76016167903162,
+      "item_strata_pct": {
+        "new": 59.17577934440526,
+        "few": 31.586059221972313,
+        "freq": 9.238161433622436
+      },
+      "inter_strata_pct": {
+        "new": 16.089571667136184,
+        "few": 30.552285610583844,
+        "freq": 53.358142722279965
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3291676697817951,
+        "few": 4.728545069363767,
+        "freq": 28.235431562222534
+      },
+      "user_degree": {
+        "mean": 4.997868208500684,
+        "median": 1.0,
+        "p90": 5.0,
+        "p99": 61.0,
+        "max": 7671,
+        "pct_le3": 87.54027452884318,
+        "pct_le5": 91.32056318135675
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 9.0,
+        "p99": 47.0,
+        "max": 1613
+      },
+      "pct_users_touch_strata_item": {
+        "new": 20.669108884671402,
+        "few": 35.863530034867814,
+        "freq": 69.38738579688396
+      },
+      "cold_inter_share_pct": 46.641857277720035,
+      "freq_inter_share_pct": 53.358142722279965,
+      "domain": "Food",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 11.160141425059994,
+      "dist_inter_strata_l1_vs_beauty": 43.01822695491215,
+      "dist_total_l1_vs_beauty": 54.17836837997214
+    },
+    {
+      "label": "Amazon_Fashion",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Fashion.zip",
+      "n_inter": 883636,
+      "n_users": 749233,
+      "n_items": 186189,
+      "density_pct": 0.0006334356237850696,
+      "avg_seq_len": 1.1793874535691835,
+      "avg_item_deg": 4.745908727153592,
+      "item_gini": 0.6934191233721007,
+      "user_gini": 0.13787370613320088,
+      "top1pct_item_inter_share_pct": 34.865148092653534,
+      "top5pct_item_inter_share_pct": 54.868181015712345,
+      "top10pct_item_inter_share_pct": 64.8558908871979,
+      "item_strata_pct": {
+        "new": 70.79848970669589,
+        "few": 21.964240637201982,
+        "freq": 7.237269656102133
+      },
+      "inter_strata_pct": {
+        "new": 18.523011737864913,
+        "few": 21.351325658981754,
+        "freq": 60.12566260315333
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2416722930685258,
+        "few": 4.613473529771365,
+        "freq": 39.42797773654917
+      },
+      "user_degree": {
+        "mean": 1.1793874535691835,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 4.0,
+        "max": 40,
+        "pct_le3": 98.81398710414517,
+        "pct_le5": 99.73185911458785
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 7.0,
+        "p99": 51.0,
+        "max": 4384
+      },
+      "pct_users_touch_strata_item": {
+        "new": 20.765903263737716,
+        "few": 23.948758263450756,
+        "freq": 61.77757786963468
+      },
+      "cold_inter_share_pct": 39.87433739684666,
+      "freq_inter_share_pct": 60.12566260315333,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 24.703119644623275,
+      "dist_inter_strata_l1_vs_beauty": 29.483187193165428,
+      "dist_total_l1_vs_beauty": 54.186306837788706
+    },
+    {
+      "label": "Amazon_Electronics",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Electronics.zip",
+      "n_inter": 20994353,
+      "n_users": 9838676,
+      "n_items": 756489,
+      "density_pct": 0.0002820741050071492,
+      "avg_seq_len": 2.133859576227533,
+      "avg_item_deg": 27.752357271553187,
+      "item_gini": 0.8642987489319549,
+      "user_gini": 0.4352743044948623,
+      "top1pct_item_inter_share_pct": 43.38891510493322,
+      "top5pct_item_inter_share_pct": 70.9368705003674,
+      "top10pct_item_inter_share_pct": 81.75502241007379,
+      "item_strata_pct": {
+        "new": 46.733263801588656,
+        "few": 27.3282228822891,
+        "freq": 25.93851331612224
+      },
+      "inter_strata_pct": {
+        "new": 2.198186340869852,
+        "few": 4.889976842820543,
+        "freq": 92.9118368163096
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3053839539277916,
+        "few": 4.965869349650519,
+        "freq": 99.40903160705732
+      },
+      "user_degree": {
+        "mean": 2.133859576227533,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 15.0,
+        "max": 633,
+        "pct_le3": 87.83844492897215,
+        "pct_le5": 93.93871695744429
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 40.0,
+        "p99": 449.0,
+        "max": 28539
+      },
+      "pct_users_touch_strata_item": {
+        "new": 4.230071200637159,
+        "few": 9.020888582976003,
+        "freq": 95.12542134734389
+      },
+      "cold_inter_share_pct": 7.088163183690395,
+      "freq_inter_share_pct": 92.9118368163096,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 23.42733216559118,
+      "dist_inter_strata_l1_vs_beauty": 36.08916123314712,
+      "dist_total_l1_vs_beauty": 59.5164933987383
+    },
+    {
+      "label": "Amazon_Baby_Products",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Baby_Products.zip",
+      "n_inter": 5953891,
+      "n_users": 3386206,
+      "n_items": 217654,
+      "density_pct": 0.0008078316265374725,
+      "avg_seq_len": 1.7582778484238704,
+      "avg_item_deg": 27.354843007709484,
+      "item_gini": 0.8648800449385958,
+      "user_gini": 0.36108985080926276,
+      "top1pct_item_inter_share_pct": 45.6481316167864,
+      "top5pct_item_inter_share_pct": 72.06443651722881,
+      "top10pct_item_inter_share_pct": 81.98321064325833,
+      "item_strata_pct": {
+        "new": 45.63711211372178,
+        "few": 28.475470241759858,
+        "freq": 25.88741764451836
+      },
+      "inter_strata_pct": {
+        "new": 2.1796502488876603,
+        "few": 5.202765720769829,
+        "freq": 92.61758403034251
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3064803535653522,
+        "few": 4.998015424828165,
+        "freq": 97.8676013843287
+      },
+      "user_degree": {
+        "mean": 1.7582778484238704,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 531,
+        "pct_le3": 91.6718593021216,
+        "pct_le5": 96.3627729677403
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 36.0,
+        "p99": 450.0,
+        "max": 27956
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.5536822036225795,
+        "few": 8.046084615052953,
+        "freq": 94.65950978765025
+      },
+      "cold_inter_share_pct": 7.382415969657489,
+      "freq_inter_share_pct": 92.61758403034251,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 25.61963554132494,
+      "dist_inter_strata_l1_vs_beauty": 35.50065566121293,
+      "dist_total_l1_vs_beauty": 61.12029120253787
+    },
+    {
+      "label": "Amazon_Pet_Supplies",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Pet_Supplies.zip",
+      "n_inter": 6542483,
+      "n_users": 3085591,
+      "n_items": 198402,
+      "density_pct": 0.0010687058777432634,
+      "avg_seq_len": 2.120333835560189,
+      "avg_item_deg": 32.97589238011714,
+      "item_gini": 0.8767923392152536,
+      "user_gini": 0.42845493007770014,
+      "top1pct_item_inter_share_pct": 44.29992405024208,
+      "top5pct_item_inter_share_pct": 73.05957080820843,
+      "top10pct_item_inter_share_pct": 83.72197528063886,
+      "item_strata_pct": {
+        "new": 46.097317567363234,
+        "few": 27.484097942561064,
+        "freq": 26.418584490075702
+      },
+      "inter_strata_pct": {
+        "new": 1.8380177678719227,
+        "few": 4.147125793066638,
+        "freq": 94.01485643906143
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3148330381158564,
+        "few": 4.975792697463735,
+        "freq": 117.35010970142135
+      },
+      "user_degree": {
+        "mean": 2.120333835560189,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 14.0,
+        "max": 504,
+        "pct_le3": 87.57113305036215,
+        "pct_le5": 93.947285949434
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 45.0,
+        "p99": 567.0,
+        "max": 26994
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.496153573172854,
+        "few": 7.681413382395788,
+        "freq": 95.60431048703474
+      },
+      "cold_inter_share_pct": 5.985143560938561,
+      "freq_inter_share_pct": 94.01485643906143,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 24.699224634042032,
+      "dist_inter_strata_l1_vs_beauty": 38.295200478650784,
+      "dist_total_l1_vs_beauty": 62.99442511269282
+    },
+    {
+      "label": "Amazon_Health_and_Household",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Health_and_Household.zip",
+      "n_inter": 25269798,
+      "n_users": 12496820,
+      "n_items": 797393,
+      "density_pct": 0.00025358866478609684,
+      "avg_seq_len": 2.0220982617978014,
+      "avg_item_deg": 31.69051897872191,
+      "item_gini": 0.8725975500442043,
+      "user_gini": 0.4122272007146589,
+      "top1pct_item_inter_share_pct": 47.39617230022971,
+      "top5pct_item_inter_share_pct": 72.7393349167255,
+      "top10pct_item_inter_share_pct": 82.6556745724679,
+      "item_strata_pct": {
+        "new": 45.0879302928418,
+        "few": 26.96549881927732,
+        "freq": 27.946570887880885
+      },
+      "inter_strata_pct": {
+        "new": 1.841435376729169,
+        "few": 4.279329814983088,
+        "freq": 93.87923480828775
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2942719343138782,
+        "few": 5.029173894642849,
+        "freq": 106.45605445962198
+      },
+      "user_degree": {
+        "mean": 2.0220982617978014,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 13.0,
+        "max": 2546,
+        "pct_le3": 89.08671165944617,
+        "pct_le5": 94.93847234736516
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 41.0,
+        "p99": 483.0,
+        "max": 51285
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.3696972509806495,
+        "few": 7.35032592291479,
+        "freq": 96.37889479083479
+      },
+      "cold_inter_share_pct": 6.120765191712256,
+      "freq_inter_share_pct": 93.87923480828775,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 26.717999183084906,
+      "dist_inter_strata_l1_vs_beauty": 38.0239572171034,
+      "dist_total_l1_vs_beauty": 64.74195640018831
+    },
+    {
+      "label": "Amazon_Apps_for_Android",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Apps_for_Android.zip",
+      "n_inter": 2638172,
+      "n_users": 1323884,
+      "n_items": 61275,
+      "density_pct": 0.003252144644320739,
+      "avg_seq_len": 1.992751630807533,
+      "avg_item_deg": 43.054622603019176,
+      "item_gini": 0.9071475431135556,
+      "user_gini": 0.40585222698576123,
+      "top1pct_item_inter_share_pct": 55.13393364799566,
+      "top5pct_item_inter_share_pct": 80.50790471584112,
+      "top10pct_item_inter_share_pct": 88.57079826485915,
+      "item_strata_pct": {
+        "new": 45.51448388412893,
+        "few": 29.648306813545496,
+        "freq": 24.83720930232558
+      },
+      "inter_strata_pct": {
+        "new": 1.4176861857377,
+        "few": 3.3711600305059717,
+        "freq": 95.21115378375633
+      },
+      "strata_item_deg_mean": {
+        "new": 1.341066370253505,
+        "few": 4.8955248527549955,
+        "freq": 165.04592943031736
+      },
+      "user_degree": {
+        "mean": 1.992751630807533,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 12.0,
+        "max": 565,
+        "pct_le3": 89.1090155935112,
+        "pct_le5": 94.9970692296304
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 41.0,
+        "p99": 728.260000000002,
+        "max": 25368
+      },
+      "pct_users_touch_strata_item": {
+        "new": 2.3229376591906843,
+        "few": 5.500859591927994,
+        "freq": 97.2911523970378
+      },
+      "cold_inter_share_pct": 4.788846216243671,
+      "freq_inter_share_pct": 95.21115378375633,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 25.864892000510643,
+      "dist_inter_strata_l1_vs_beauty": 40.687795168040566,
+      "dist_total_l1_vs_beauty": 66.55268716855122
+    },
+    {
+      "label": "Twitch-100k",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Twitch/Twitch-100k/Twitch-100k.zip",
+      "n_inter": 3051732,
+      "n_users": 100000,
+      "n_items": 739991,
+      "density_pct": 0.004124012319068745,
+      "avg_seq_len": 30.51732,
+      "avg_item_deg": 4.124012319068745,
+      "item_gini": 0.6869665095308751,
+      "user_gini": 0.523278812641477,
+      "top1pct_item_inter_share_pct": 33.101890991738465,
+      "top5pct_item_inter_share_pct": 56.029625144016585,
+      "top10pct_item_inter_share_pct": 66.40537242457725,
+      "item_strata_pct": {
+        "new": 77.66594458581253,
+        "few": 15.792354231335246,
+        "freq": 6.541701182852224
+      },
+      "inter_strata_pct": {
+        "new": 22.04793867875685,
+        "few": 17.856974334574595,
+        "freq": 60.095086986668555
+      },
+      "strata_item_deg_mean": {
+        "new": 1.1707315375634437,
+        "few": 4.663166812137393,
+        "freq": 37.885080978350686
+      },
+      "user_degree": {
+        "mean": 30.51732,
+        "median": 16.0,
+        "p90": 77.0,
+        "p99": 160.0,
+        "max": 327,
+        "pct_le3": 0.0,
+        "pct_le5": 8.446
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 6.0,
+        "p99": 52.0,
+        "max": 2123
+      },
+      "pct_users_touch_strata_item": {
+        "new": 72.315,
+        "few": 75.13,
+        "freq": 93.644
+      },
+      "cold_inter_share_pct": 39.904913013331445,
+      "freq_inter_share_pct": 60.095086986668555,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 38.43802940285656,
+      "dist_inter_strata_l1_vs_beauty": 29.54433842613498,
+      "dist_total_l1_vs_beauty": 67.98236782899154
+    },
+    {
+      "label": "Amazon_Handmade_Products",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Handmade_Products.zip",
+      "n_inter": 656096,
+      "n_users": 586613,
+      "n_items": 164728,
+      "density_pct": 0.0006789663973925965,
+      "avg_seq_len": 1.1184477670968764,
+      "avg_item_deg": 3.9829051527366324,
+      "item_gini": 0.6445285481488365,
+      "user_gini": 0.09895988746397978,
+      "top1pct_item_inter_share_pct": 26.21217017021899,
+      "top5pct_item_inter_share_pct": 47.81922157733015,
+      "top10pct_item_inter_share_pct": 59.36539774667122,
+      "item_strata_pct": {
+        "new": 71.84388810645427,
+        "few": 21.178548880578894,
+        "freq": 6.977563012966829
+      },
+      "inter_strata_pct": {
+        "new": 22.040676974101352,
+        "few": 24.690136809247427,
+        "freq": 53.26918621665122
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2218983159691417,
+        "few": 4.643305529280248,
+        "freq": 30.406907951974944
+      },
+      "user_degree": {
+        "mean": 1.1184477670968764,
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 3.0,
+        "max": 35,
+        "pct_le3": 99.36653296125384,
+        "pct_le5": 99.8472587549202
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 7.0,
+        "p99": 43.0,
+        "max": 2483
+      },
+      "pct_users_touch_strata_item": {
+        "new": 22.875047092376064,
+        "few": 26.383493035442445,
+        "freq": 56.05194566093831
+      },
+      "cold_inter_share_pct": 46.73081378334878,
+      "freq_inter_share_pct": 53.26918621665122,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 26.793916444140052,
+      "dist_inter_strata_l1_vs_beauty": 43.19613996616965,
+      "dist_total_l1_vs_beauty": 69.9900564103097
+    },
+    {
+      "label": "Amazon_Subscription_Boxes",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2023/Amazon_Subscription_Boxes.zip",
+      "n_inter": 15953,
+      "n_users": 15237,
+      "n_items": 641,
+      "density_pct": 0.16333711036962842,
+      "avg_seq_len": 1.0469908774693182,
+      "avg_item_deg": 24.88767550702028,
+      "item_gini": 0.820279696413206,
+      "user_gini": 0.04349198623223225,
+      "top1pct_item_inter_share_pct": 32.915439102363194,
+      "top5pct_item_inter_share_pct": 62.46474017426189,
+      "top10pct_item_inter_share_pct": 74.92634614179151,
+      "item_strata_pct": {
+        "new": 39.62558502340094,
+        "few": 29.797191887675506,
+        "freq": 30.577223088923557
+      },
+      "inter_strata_pct": {
+        "new": 2.0936500971604084,
+        "few": 6.456465868488685,
+        "freq": 91.4498840343509
+      },
+      "strata_item_deg_mean": {
+        "new": 1.31496062992126,
+        "few": 5.392670157068062,
+        "freq": 74.43367346938776
+      },
+      "user_degree": {
+        "mean": 1.0469908774693182,
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 2.0,
+        "max": 12,
+        "pct_le3": 99.84248867887379,
+        "pct_le5": 99.97374811314563
+      },
+      "item_degree": {
+        "median": 4.0,
+        "p90": 45.0,
+        "p99": 443.20000000000164,
+        "max": 1753
+      },
+      "pct_users_touch_strata_item": {
+        "new": 2.12640283520378,
+        "few": 6.622038459014242,
+        "freq": 92.34757498195182
+      },
+      "cold_inter_share_pct": 8.550115965649093,
+      "freq_inter_share_pct": 91.4498840343509,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 37.642689721966626,
+      "dist_inter_strata_l1_vs_beauty": 33.165255669229715,
+      "dist_total_l1_vs_beauty": 70.80794539119634
+    },
+    {
+      "label": "DianPing",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/DianPing/DianPing.zip",
+      "n_inter": 4422473,
+      "n_users": 542706,
+      "n_items": 243247,
+      "density_pct": 0.0033500637718192417,
+      "avg_seq_len": 8.148929623037152,
+      "avg_item_deg": 18.180997093489335,
+      "item_gini": 0.7214082442229092,
+      "user_gini": 0.7057216082586066,
+      "top1pct_item_inter_share_pct": 7.092909329237285,
+      "top5pct_item_inter_share_pct": 29.211416327471078,
+      "top10pct_item_inter_share_pct": 54.69620730301802,
+      "item_strata_pct": {
+        "new": 45.859147286503024,
+        "few": 19.584208643888722,
+        "freq": 34.556644069608254
+      },
+      "inter_strata_pct": {
+        "new": 3.2511900016122204,
+        "few": 5.270444839346673,
+        "freq": 91.4783651590411
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2889440704251867,
+        "few": 4.89281665896973,
+        "freq": 48.12874443836399
+      },
+      "user_degree": {
+        "mean": 8.148929623037152,
+        "median": 2.0,
+        "p90": 18.0,
+        "p99": 94.0,
+        "max": 1407,
+        "pct_le3": 61.56371958297863,
+        "pct_le5": 71.75542558954572
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 71.0,
+        "p99": 107.0,
+        "max": 232
+      },
+      "pct_users_touch_strata_item": {
+        "new": 6.2617697243074515,
+        "few": 14.151492705074203,
+        "freq": 99.20730561298382
+      },
+      "cold_inter_share_pct": 8.521634840958892,
+      "freq_inter_share_pct": 91.4783651590411,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 39.47682384691165,
+      "dist_inter_strata_l1_vs_beauty": 33.22221791861012,
+      "dist_total_l1_vs_beauty": 72.69904176552177
+    },
+    {
+      "label": "ModCloth",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/ModCloth/ModCloth.zip",
+      "n_inter": 82790,
+      "n_users": 47958,
+      "n_items": 1378,
+      "density_pct": 0.12527592025218487,
+      "avg_seq_len": 1.7263021810751074,
+      "avg_item_deg": 60.07982583454282,
+      "item_gini": 0.8684123065843582,
+      "user_gini": 0.3351797550883758,
+      "top1pct_item_inter_share_pct": 19.85143133228651,
+      "top5pct_item_inter_share_pct": 60.20654668438217,
+      "top10pct_item_inter_share_pct": 82.33965454765068,
+      "item_strata_pct": {
+        "new": 40.638606676342526,
+        "few": 30.84179970972424,
+        "freq": 28.519593613933235
+      },
+      "inter_strata_pct": {
+        "new": 0.9711317792003866,
+        "few": 2.3903853122357774,
+        "freq": 96.63848290856384
+      },
+      "strata_item_deg_mean": {
+        "new": 1.4357142857142857,
+        "few": 4.656470588235294,
+        "freq": 203.5801526717557
+      },
+      "user_degree": {
+        "mean": 1.7263021810751074,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 8.0,
+        "max": 27,
+        "pct_le3": 91.69064598190083,
+        "pct_le5": 96.79302723216148
+      },
+      "item_degree": {
+        "median": 3.0,
+        "p90": 160.29999999999995,
+        "p99": 923.6000000000004,
+        "max": 2008
+      },
+      "pct_users_touch_strata_item": {
+        "new": 1.4742065974394263,
+        "few": 3.576045706659994,
+        "freq": 96.15913924684098
+      },
+      "cold_inter_share_pct": 3.3615170914361636,
+      "freq_inter_share_pct": 96.63848290856384,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 35.61664641608345,
+      "dist_inter_strata_l1_vs_beauty": 43.542453417655594,
+      "dist_total_l1_vs_beauty": 79.15909983373905
+    },
+    {
+      "label": "RateBeer",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/RateBeer/RateBeer.zip",
+      "n_inter": 2924163,
+      "n_users": 29265,
+      "n_items": 110647,
+      "density_pct": 0.09030533454693355,
+      "avg_seq_len": 99.92014351614557,
+      "avg_item_deg": 26.427856155160104,
+      "item_gini": 0.8231494872755613,
+      "user_gini": 0.9116843968337895,
+      "top1pct_item_inter_share_pct": 34.78947651003039,
+      "top5pct_item_inter_share_pct": 64.60966779211692,
+      "top10pct_item_inter_share_pct": 76.07510251651497,
+      "item_strata_pct": {
+        "new": 35.718094480645654,
+        "few": 32.75642358129909,
+        "freq": 31.525481938055254
+      },
+      "inter_strata_pct": {
+        "new": 1.8612163549022405,
+        "few": 6.3388395243356825,
+        "freq": 91.79994412076208
+      },
+      "strata_item_deg_mean": {
+        "new": 1.377115963664887,
+        "few": 5.114170621344223,
+        "freq": 76.95602316380942
+      },
+      "user_degree": {
+        "mean": 99.92014351614557,
+        "median": 3.0,
+        "p90": 149.0,
+        "p99": 2111.720000000001,
+        "max": 16364,
+        "pct_le3": 51.45053818554587,
+        "pct_le5": 59.873569109858195
+      },
+      "item_degree": {
+        "median": 4.0,
+        "p90": 41.0,
+        "p99": 463.5399999999936,
+        "max": 3696
+      },
+      "pct_users_touch_strata_item": {
+        "new": 10.756876815308388,
+        "few": 21.650435674013327,
+        "freq": 97.81650435674013
+      },
+      "cold_inter_share_pct": 8.200055879237922,
+      "freq_inter_share_pct": 91.79994412076208,
+      "domain": "BeerAdvocate",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 45.457670807477186,
+      "dist_inter_strata_l1_vs_beauty": 33.86537584205206,
+      "dist_total_l1_vs_beauty": 79.32304664952925
+    },
+    {
+      "label": "Amazon_Movies_and_TV",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Movies_and_TV.zip",
+      "n_inter": 8765568,
+      "n_users": 3826085,
+      "n_items": 182032,
+      "density_pct": 0.001258570964889574,
+      "avg_seq_len": 2.291001898807789,
+      "avg_item_deg": 48.153994901995254,
+      "item_gini": 0.8763970328662072,
+      "user_gini": 0.47583569015716126,
+      "top1pct_item_inter_share_pct": 45.08263469064412,
+      "top5pct_item_inter_share_pct": 72.10625711876287,
+      "top10pct_item_inter_share_pct": 82.70385900833807,
+      "item_strata_pct": {
+        "new": 37.06381295596379,
+        "few": 28.548277225982243,
+        "freq": 34.38790981805397
+      },
+      "inter_strata_pct": {
+        "new": 1.0360423876695726,
+        "few": 3.0079168857055243,
+        "freq": 95.9560407266249
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3460455326969822,
+        "few": 5.0736236457752035,
+        "freq": 134.3689314184386
+      },
+      "user_degree": {
+        "mean": 2.291001898807789,
+        "median": 1.0,
+        "p90": 4.0,
+        "p99": 17.0,
+        "max": 4254,
+        "pct_le3": 88.21884511190943,
+        "pct_le5": 94.00138784161878
+      },
+      "item_degree": {
+        "median": 4.0,
+        "p90": 68.0,
+        "p99": 807.0,
+        "max": 24558
+      },
+      "pct_users_touch_strata_item": {
+        "new": 1.7642838567360632,
+        "few": 4.860346803586434,
+        "freq": 97.03903598587067
+      },
+      "cold_inter_share_pct": 4.043959273375097,
+      "freq_inter_share_pct": 95.9560407266249,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 42.76623385684093,
+      "dist_inter_strata_l1_vs_beauty": 42.17756905377772,
+      "dist_total_l1_vs_beauty": 84.94380291061864
+    },
+    {
+      "label": "Amazon_Video_Games",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Video_Games.zip",
+      "n_inter": 2565349,
+      "n_users": 1540618,
+      "n_items": 71982,
+      "density_pct": 0.002313276679322849,
+      "avg_seq_len": 1.665142819310173,
+      "avg_item_deg": 35.63875691145009,
+      "item_gini": 0.826029306621107,
+      "user_gini": 0.3431176127126996,
+      "top1pct_item_inter_share_pct": 30.610610875947092,
+      "top5pct_item_inter_share_pct": 60.79083196867171,
+      "top10pct_item_inter_share_pct": 74.75544263178226,
+      "item_strata_pct": {
+        "new": 34.829540718512966,
+        "few": 28.451557333777888,
+        "freq": 36.71890194770915
+      },
+      "inter_strata_pct": {
+        "new": 1.3234456598303,
+        "few": 4.073363897075993,
+        "freq": 94.60319044309371
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3541940887878425,
+        "few": 5.10234375,
+        "freq": 91.82028678445765
+      },
+      "user_degree": {
+        "mean": 1.665142819310173,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 10.0,
+        "max": 888,
+        "pct_le3": 93.44711018565278,
+        "pct_le5": 97.12810054147101
+      },
+      "item_degree": {
+        "median": 5.0,
+        "p90": 69.0,
+        "p99": 558.0,
+        "max": 7630
+      },
+      "pct_users_touch_strata_item": {
+        "new": 1.9530474134405804,
+        "few": 5.788196684707046,
+        "freq": 95.82076802945312
+      },
+      "cold_inter_share_pct": 5.396809556906292,
+      "freq_inter_share_pct": 94.60319044309371,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 47.234778331742575,
+      "dist_inter_strata_l1_vs_beauty": 39.47186848671532,
+      "dist_total_l1_vs_beauty": 86.7066468184579
+    },
+    {
+      "label": "Amazon_Digital_Music",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Digital_Music.zip",
+      "n_inter": 1584082,
+      "n_users": 840372,
+      "n_items": 456992,
+      "density_pct": 0.0004124748637123028,
+      "avg_seq_len": 1.8849771291761268,
+      "avg_item_deg": 3.466323261676353,
+      "item_gini": 0.6397139364412737,
+      "user_gini": 0.4095778691065396,
+      "top1pct_item_inter_share_pct": 32.0772535765194,
+      "top5pct_item_inter_share_pct": 52.20323190339894,
+      "top10pct_item_inter_share_pct": 61.668587863507064,
+      "item_strata_pct": {
+        "new": 79.05236853161543,
+        "few": 16.12807226384707,
+        "freq": 4.819559204537498
+      },
+      "inter_strata_pct": {
+        "new": 27.285140541966896,
+        "few": 20.979785137385566,
+        "freq": 51.73507432064754
+      },
+      "strata_item_deg_mean": {
+        "new": 1.196410925004775,
+        "few": 4.50907684793227,
+        "freq": 37.208898978433595
+      },
+      "user_degree": {
+        "mean": 1.8849771291761268,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 13.0,
+        "max": 1326,
+        "pct_le3": 91.86955300747765,
+        "pct_le5": 95.95226875716945
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 5.0,
+        "p99": 40.0,
+        "max": 3411
+      },
+      "pct_users_touch_strata_item": {
+        "new": 33.00455036579039,
+        "few": 28.353038892300077,
+        "freq": 58.429600224662416
+      },
+      "cold_inter_share_pct": 48.26492567935246,
+      "freq_inter_share_pct": 51.73507432064754,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 41.210877294462364,
+      "dist_inter_strata_l1_vs_beauty": 46.26436375817701,
+      "dist_total_l1_vs_beauty": 87.47524105263938
+    },
+    {
+      "label": "book-crossing",
+      "source": "/home/charlie/project/RecBole/dataset/book-crossing/book-crossing.inter",
+      "n_inter": 1149780,
+      "n_users": 105283,
+      "n_items": 340556,
+      "density_pct": 0.003206771109452608,
+      "avg_seq_len": 10.920851419507423,
+      "avg_item_deg": 3.376184827164989,
+      "item_gini": 0.6063574504478785,
+      "user_gini": 0.8420947730202724,
+      "top1pct_item_inter_share_pct": 25.06905668910574,
+      "top5pct_item_inter_share_pct": 45.54871366696238,
+      "top10pct_item_inter_share_pct": 56.515420341282685,
+      "item_strata_pct": {
+        "new": 75.37937960276724,
+        "few": 19.241475704436276,
+        "freq": 5.379144692796486
+      },
+      "inter_strata_pct": {
+        "new": 27.515959574875193,
+        "few": 25.811633529892674,
+        "freq": 46.67240689523213
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2324188088458137,
+        "few": 4.529010499328531,
+        "freq": 29.293629564932584
+      },
+      "user_degree": {
+        "mean": 10.920851419507423,
+        "median": 1.0,
+        "p90": 12.0,
+        "p99": 174.0,
+        "max": 13602,
+        "pct_le3": 74.27789861611086,
+        "pct_le5": 81.27238015634053
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 6.0,
+        "p99": 36.0,
+        "max": 2502
+      },
+      "pct_users_touch_strata_item": {
+        "new": 42.60991803045126,
+        "few": 42.00298243781047,
+        "freq": 64.46624811223084
+      },
+      "cold_inter_share_pct": 53.32759310476787,
+      "freq_inter_share_pct": 46.67240689523213,
+      "domain": "Book-Crossing",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 33.86489943676598,
+      "dist_inter_strata_l1_vs_beauty": 56.38969860900783,
+      "dist_total_l1_vs_beauty": 90.2545980457738
+    },
+    {
+      "label": "Amazon_Magazine_Subscriptions",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Magazine_Subscriptions.zip",
+      "n_inter": 89689,
+      "n_users": 72098,
+      "n_items": 2428,
+      "density_pct": 0.051235063861228974,
+      "avg_seq_len": 1.2439873505506394,
+      "avg_item_deg": 36.93945634266886,
+      "item_gini": 0.8047744215812345,
+      "user_gini": 0.1752779109456055,
+      "top1pct_item_inter_share_pct": 25.696573715840294,
+      "top5pct_item_inter_share_pct": 58.59804435326518,
+      "top10pct_item_inter_share_pct": 72.84616842645141,
+      "item_strata_pct": {
+        "new": 27.14168039538715,
+        "few": 30.766062602965405,
+        "freq": 42.09225700164745
+      },
+      "inter_strata_pct": {
+        "new": 1.0090423574797356,
+        "few": 4.370658609193993,
+        "freq": 94.62029903332628
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3732928679817906,
+        "few": 5.247657295850067,
+        "freq": 83.0371819960861
+      },
+      "user_degree": {
+        "mean": 1.2439873505506394,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 4.0,
+        "max": 55,
+        "pct_le3": 98.22463868623262,
+        "pct_le5": 99.42994257815751
+      },
+      "item_degree": {
+        "median": 7.0,
+        "p90": 66.30000000000018,
+        "p99": 551.46,
+        "max": 1718
+      },
+      "pct_users_touch_strata_item": {
+        "new": 1.2358179145052568,
+        "few": 5.244250880745652,
+        "freq": 94.76268412438625
+      },
+      "cold_inter_share_pct": 5.379700966673728,
+      "freq_inter_share_pct": 94.62029903332628,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 62.6104989779942,
+      "dist_inter_strata_l1_vs_beauty": 39.50608566718046,
+      "dist_total_l1_vs_beauty": 102.11658464517465
+    },
+    {
+      "label": "gowalla",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Gowalla/merged/gowalla.zip",
+      "n_inter": 3981334,
+      "n_users": 107092,
+      "n_items": 1280969,
+      "density_pct": 0.0029022375954400976,
+      "avg_seq_len": 37.176763903933065,
+      "avg_item_deg": 3.1080642857087097,
+      "item_gini": 0.5390227001761747,
+      "user_gini": 0.6627131051959283,
+      "top1pct_item_inter_share_pct": 18.998933523286414,
+      "top5pct_item_inter_share_pct": 36.27723772986642,
+      "top10pct_item_inter_share_pct": 47.45879145030284,
+      "item_strata_pct": {
+        "new": 70.43121262107046,
+        "few": 25.08429165733129,
+        "freq": 4.484495721598259
+      },
+      "inter_strata_pct": {
+        "new": 29.42124423622836,
+        "few": 35.79415844036195,
+        "freq": 34.78459732340969
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2983323025220517,
+        "few": 4.4350682492950995,
+        "freq": 24.108120811210725
+      },
+      "user_degree": {
+        "mean": 37.176763903933065,
+        "median": 17.0,
+        "p90": 81.0,
+        "p99": 340.0,
+        "max": 2064,
+        "pct_le3": 18.75210099727337,
+        "pct_le5": 25.69379598849587
+      },
+      "item_degree": {
+        "median": 2.0,
+        "p90": 6.0,
+        "p99": 24.0,
+        "max": 2631
+      },
+      "pct_users_touch_strata_item": {
+        "new": 85.20991297202404,
+        "few": 87.03077727561349,
+        "freq": 80.21420834422739
+      },
+      "cold_inter_share_pct": 65.2154026765903,
+      "freq_inter_share_pct": 34.78459732340969,
+      "domain": "Gowalla",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 23.96856547337241,
+      "dist_inter_strata_l1_vs_beauty": 80.16531775265271,
+      "dist_total_l1_vs_beauty": 104.13388322602512
+    },
+    {
+      "label": "mind_small_train",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MIND/mind_small_train.inter",
+      "n_inter": 5843444,
+      "n_users": 50000,
+      "n_items": 20288,
+      "density_pct": 0.5760492902208202,
+      "avg_seq_len": 116.86888,
+      "avg_item_deg": 288.0246451104101,
+      "item_gini": 0.9157078050681056,
+      "user_gini": 0.5661458566420762,
+      "top1pct_item_inter_share_pct": 32.41552413268614,
+      "top5pct_item_inter_share_pct": 74.09524246317754,
+      "top10pct_item_inter_share_pct": 90.52772645720572,
+      "item_strata_pct": {
+        "new": 26.360410094637228,
+        "few": 30.180402208201894,
+        "freq": 43.459187697160885
+      },
+      "inter_strata_pct": {
+        "new": 0.1278013445495499,
+        "few": 0.5503432564768311,
+        "freq": 99.32185539897363
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3964098728496634,
+        "few": 5.252163971909195,
+        "freq": 658.2530339117613
+      },
+      "user_degree": {
+        "mean": 116.86888,
+        "median": 67.0,
+        "p90": 283.0,
+        "p99": 703.0,
+        "max": 1960,
+        "pct_le3": 3.818,
+        "pct_le5": 6.902
+      },
+      "item_degree": {
+        "median": 7.0,
+        "p90": 533.0,
+        "p99": 5856.690000000013,
+        "max": 23037
+      },
+      "pct_users_touch_strata_item": {
+        "new": 7.102,
+        "few": 19.298000000000002,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.678144601026381,
+      "freq_inter_share_pct": 99.32185539897363,
+      "domain": "MIND",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 64.17303957949404,
+      "dist_inter_strata_l1_vs_beauty": 48.909198398475155,
+      "dist_total_l1_vs_beauty": 113.0822379779692
+    },
+    {
+      "label": "Amazon_Luxury_Beauty",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Luxury_Beauty.zip",
+      "n_inter": 574628,
+      "n_users": 416174,
+      "n_items": 12120,
+      "density_pct": 0.011392242464718004,
+      "avg_seq_len": 1.3807397867238222,
+      "avg_item_deg": 47.41155115511551,
+      "item_gini": 0.7770470485586186,
+      "user_gini": 0.23631938035629224,
+      "top1pct_item_inter_share_pct": 27.458634107631376,
+      "top5pct_item_inter_share_pct": 53.02456545800065,
+      "top10pct_item_inter_share_pct": 66.8108759058034,
+      "item_strata_pct": {
+        "new": 21.138613861386137,
+        "few": 27.16171617161716,
+        "freq": 51.699669966996694
+      },
+      "inter_strata_pct": {
+        "new": 0.6310169361743598,
+        "few": 3.033092713894902,
+        "freq": 96.33589034993074
+      },
+      "strata_item_deg_mean": {
+        "new": 1.4153005464480874,
+        "few": 5.294349939246659,
+        "freq": 88.34551548037025
+      },
+      "user_degree": {
+        "mean": 1.3807397867238222,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 5.0,
+        "max": 129,
+        "pct_le3": 97.19107873149213,
+        "pct_le5": 99.06697679336047
+      },
+      "item_degree": {
+        "median": 10.0,
+        "p90": 98.0,
+        "p99": 557.239999999998,
+        "max": 6954
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.8441180852239688,
+        "few": 3.9901579627751858,
+        "freq": 96.60118123669427
+      },
+      "cold_inter_share_pct": 3.6641096500692623,
+      "freq_inter_share_pct": 96.33589034993074,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 74.61663204599623,
+      "dist_inter_strata_l1_vs_beauty": 42.937268300389384,
+      "dist_total_l1_vs_beauty": 117.5539003463856
+    },
+    {
+      "label": "mind_small_dev",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MIND/mind_small_dev.zip",
+      "n_inter": 2740998,
+      "n_users": 50000,
+      "n_items": 5369,
+      "density_pct": 1.0210460048426149,
+      "avg_seq_len": 54.81996,
+      "avg_item_deg": 510.5230024213075,
+      "item_gini": 0.9277063483071041,
+      "user_gini": 0.5327290189193863,
+      "top1pct_item_inter_share_pct": 38.13041819074658,
+      "top5pct_item_inter_share_pct": 79.47386316954628,
+      "top10pct_item_inter_share_pct": 92.22892537681531,
+      "item_strata_pct": {
+        "new": 24.082696964052897,
+        "few": 23.39355559694543,
+        "freq": 52.52374743900168
+      },
+      "inter_strata_pct": {
+        "new": 0.062057688476970796,
+        "few": 0.24396223565285344,
+        "freq": 99.69398007587019
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3155452436194897,
+        "few": 5.324044585987261,
+        "freq": 969.0106382978723
+      },
+      "user_degree": {
+        "mean": 54.81996,
+        "median": 33.0,
+        "p90": 129.0,
+        "p99": 286.0,
+        "max": 1187,
+        "pct_le3": 4.898000000000001,
+        "pct_le5": 9.396
+      },
+      "item_degree": {
+        "median": 11.0,
+        "p90": 631.0,
+        "p99": 10467.039999999979,
+        "max": 47285
+      },
+      "pct_users_touch_strata_item": {
+        "new": 1.488,
+        "few": 6.542000000000001,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.30601992412982426,
+      "freq_inter_share_pct": 99.69398007587019,
+      "domain": "MIND",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 75.4110305856985,
+      "dist_inter_strata_l1_vs_beauty": 49.65344775226827,
+      "dist_total_l1_vs_beauty": 125.06447833796676
+    },
+    {
+      "label": "Amazon_Gift_Cards",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Gift_Cards.zip",
+      "n_inter": 147194,
+      "n_users": 128877,
+      "n_items": 1548,
+      "density_pct": 0.07378086338717812,
+      "avg_seq_len": 1.1421277652335173,
+      "avg_item_deg": 95.08656330749353,
+      "item_gini": 0.8246749732348867,
+      "user_gini": 0.11664187878818372,
+      "top1pct_item_inter_share_pct": 28.9081076674321,
+      "top5pct_item_inter_share_pct": 59.11178444773564,
+      "top10pct_item_inter_share_pct": 72.81207114420425,
+      "item_strata_pct": {
+        "new": 21.77002583979328,
+        "few": 21.124031007751938,
+        "freq": 57.105943152454785
+      },
+      "inter_strata_pct": {
+        "new": 0.2975664768944386,
+        "few": 1.1304808619916573,
+        "freq": 98.5719526611139
+      },
+      "strata_item_deg_mean": {
+        "new": 1.2997032640949555,
+        "few": 5.08868501529052,
+        "freq": 164.13122171945702
+      },
+      "user_degree": {
+        "mean": 1.1421277652335173,
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 4.0,
+        "max": 39,
+        "pct_le3": 98.87644808615967,
+        "pct_le5": 99.69273027770666
+      },
+      "item_degree": {
+        "median": 14.0,
+        "p90": 197.89999999999986,
+        "p99": 1617.439999999996,
+        "max": 8174
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.3383070679795464,
+        "few": 1.2795145759134678,
+        "freq": 98.63358085616518
+      },
+      "cold_inter_share_pct": 1.428047338886096,
+      "freq_inter_share_pct": 98.5719526611139,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 84.57542201260472,
+      "dist_inter_strata_l1_vs_beauty": 47.409392922755714,
+      "dist_total_l1_vs_beauty": 131.98481493536042
+    },
+    {
+      "label": "RentTheRunway",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/RentTheRunway/RentTheRunway.zip",
+      "n_inter": 192544,
+      "n_users": 105571,
+      "n_items": 5850,
+      "density_pct": 0.031176652938310973,
+      "avg_seq_len": 1.8238341968911918,
+      "avg_item_deg": 32.91350427350427,
+      "item_gini": 0.6627226171147561,
+      "user_gini": 0.3758615647191111,
+      "top1pct_item_inter_share_pct": 20.29302393219212,
+      "top5pct_item_inter_share_pct": 41.2284984211401,
+      "top10pct_item_inter_share_pct": 53.69006564733256,
+      "item_strata_pct": {
+        "new": 11.35042735042735,
+        "few": 28.05128205128205,
+        "freq": 60.598290598290596
+      },
+      "inter_strata_pct": {
+        "new": 0.5126101047033405,
+        "few": 4.79786438424464,
+        "freq": 94.68952551105203
+      },
+      "strata_item_deg_mean": {
+        "new": 1.4864457831325302,
+        "few": 5.629494210847044,
+        "freq": 51.42990126939351
+      },
+      "user_degree": {
+        "mean": 1.8238341968911918,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 11.0,
+        "max": 436,
+        "pct_le3": 91.50619014691534,
+        "pct_le5": 96.26507279461217
+      },
+      "item_degree": {
+        "median": 14.0,
+        "p90": 66.0,
+        "p99": 324.5500000000011,
+        "max": 2241
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.7435754137026266,
+        "few": 5.493932992962082,
+        "freq": 98.30635307044548
+      },
+      "cold_inter_share_pct": 5.31047448894798,
+      "freq_inter_share_pct": 94.68952551105203,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 94.19300506791379,
+      "dist_inter_strata_l1_vs_beauty": 39.644538622631956,
+      "dist_total_l1_vs_beauty": 133.83754369054574
+    },
+    {
+      "label": "Amazon_Prime_Pantry",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Prime_Pantry.zip",
+      "n_inter": 471614,
+      "n_users": 247659,
+      "n_items": 10814,
+      "density_pct": 0.017609466899349373,
+      "avg_seq_len": 1.9042877504956413,
+      "avg_item_deg": 43.611429628259664,
+      "item_gini": 0.7122984712080132,
+      "user_gini": 0.4046485213932215,
+      "top1pct_item_inter_share_pct": 23.28620439596789,
+      "top5pct_item_inter_share_pct": 45.669975870097154,
+      "top10pct_item_inter_share_pct": 58.795964496389,
+      "item_strata_pct": {
+        "new": 14.09284261142963,
+        "few": 24.967634547808395,
+        "freq": 60.939522840761974
+      },
+      "inter_strata_pct": {
+        "new": 0.4756008091362852,
+        "few": 3.144096655315576,
+        "freq": 96.38030253554814
+      },
+      "strata_item_deg_mean": {
+        "new": 1.4717847769028871,
+        "few": 5.491851851851852,
+        "freq": 68.97465857359636
+      },
+      "user_degree": {
+        "mean": 1.9042877504956413,
+        "median": 1.0,
+        "p90": 3.0,
+        "p99": 13.0,
+        "max": 202,
+        "pct_le3": 90.87212659342079,
+        "pct_le5": 95.40900996935302
+      },
+      "item_degree": {
+        "median": 15.0,
+        "p90": 89.0,
+        "p99": 473.7400000000016,
+        "max": 6537
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.8790312486120028,
+        "few": 5.45669650608296,
+        "freq": 96.87635014273658
+      },
+      "cold_inter_share_pct": 3.6196974644518614,
+      "freq_inter_share_pct": 96.38030253554814,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 92.24258138921908,
+      "dist_inter_strata_l1_vs_beauty": 43.026092671624184,
+      "dist_total_l1_vs_beauty": 135.26867406084327
+    },
+    {
+      "label": "ml-20m",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MovieLens/ml-20m.zip",
+      "n_inter": 20000263,
+      "n_users": 138493,
+      "n_items": 26744,
+      "density_pct": 0.539984781355445,
+      "avg_seq_len": 144.4135299257002,
+      "avg_item_deg": 747.8411232425965,
+      "item_gini": 0.902942497565131,
+      "user_gini": 0.5807014936671218,
+      "top1pct_item_inter_share_pct": 33.48402468507539,
+      "top5pct_item_inter_share_pct": 71.41438590082541,
+      "top10pct_item_inter_share_pct": 86.0507284329211,
+      "item_strata_pct": {
+        "new": 22.491026024528864,
+        "few": 19.735267723601556,
+        "freq": 57.773706251869584
+      },
+      "inter_strata_pct": {
+        "new": 0.04028947019346696,
+        "few": 0.13685820031466586,
+        "freq": 99.82285232949187
+      },
+      "strata_item_deg_mean": {
+        "new": 1.339650872817955,
+        "few": 5.186055323986358,
+        "freq": 1292.1385670830366
+      },
+      "user_degree": {
+        "mean": 144.4135299257002,
+        "median": 68.0,
+        "p90": 334.0,
+        "p99": 1113.0799999999872,
+        "max": 9254,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 18.0,
+        "p90": 1305.7000000000007,
+        "p99": 14388.689999999995,
+        "max": 67310
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.9791108575884703,
+        "few": 3.435552699414411,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.17714767050813282,
+      "freq_inter_share_pct": 99.82285232949187,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 85.9109482114343,
+      "dist_inter_strata_l1_vs_beauty": 49.91119225951164,
+      "dist_total_l1_vs_beauty": 135.82214047094595
+    },
+    {
+      "label": "Amazon_Cell_Phones_and_Accessories",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon2018/Amazon_Cell_Phones_and_Accessories.zip",
+      "n_inter": 3722011,
+      "n_users": 2745202,
+      "n_items": 48306,
+      "density_pct": 0.0028067405471766537,
+      "avg_seq_len": 1.3558240887191544,
+      "avg_item_deg": 77.05069763590444,
+      "item_gini": 0.7747105609748113,
+      "user_gini": 0.22505734718442377,
+      "top1pct_item_inter_share_pct": 26.286166268718713,
+      "top5pct_item_inter_share_pct": 53.50508098981975,
+      "top10pct_item_inter_share_pct": 67.4446690243527,
+      "item_strata_pct": {
+        "new": 11.238769511033826,
+        "few": 23.856249741232975,
+        "freq": 64.9049807477332
+      },
+      "inter_strata_pct": {
+        "new": 0.2151793748057166,
+        "few": 1.7411286533005947,
+        "freq": 98.0436919718937
+      },
+      "strata_item_deg_mean": {
+        "new": 1.4752256400810462,
+        "few": 5.623481430059007,
+        "freq": 116.39068031767295
+      },
+      "user_degree": {
+        "mean": 1.3558237244472355,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 5.0,
+        "max": 201,
+        "pct_le3": 96.88132239449047,
+        "pct_le5": 99.1150742276889
+      },
+      "item_degree": {
+        "median": 18.0,
+        "p90": 157.0,
+        "p99": 1006.9499999999971,
+        "max": 13238
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.2890861947499674,
+        "few": 2.305149129280833,
+        "freq": 98.42645459241251
+      },
+      "cold_inter_share_pct": 1.9563080281063114,
+      "freq_inter_share_pct": 98.0436919718937,
+      "domain": "Amazon",
+      "is_amazon": true,
+      "dist_item_strata_l1_vs_beauty": 100.17349720316155,
+      "dist_inter_strata_l1_vs_beauty": 46.35287154431529,
+      "dist_total_l1_vs_beauty": 146.52636874747685
+    },
+    {
+      "label": "mind_large_dev",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MIND/mind_large_dev.zip",
+      "n_inter": 14085557,
+      "n_users": 255990,
+      "n_items": 6997,
+      "density_pct": 0.7863921166305653,
+      "avg_seq_len": 55.02385640064065,
+      "avg_item_deg": 2013.0851793625839,
+      "item_gini": 0.9441345158592127,
+      "user_gini": 0.5325697758583112,
+      "top1pct_item_inter_share_pct": 44.01891242213567,
+      "top5pct_item_inter_share_pct": 85.36382338305827,
+      "top10pct_item_inter_share_pct": 95.0022920641335,
+      "item_strata_pct": {
+        "new": 19.908532228097755,
+        "few": 16.992996998713735,
+        "freq": 63.09847077318851
+      },
+      "inter_strata_pct": {
+        "new": 0.012899738363204238,
+        "few": 0.04454917899235366,
+        "freq": 99.94255108264444
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3043790380473796,
+        "few": 5.277544154751892,
+        "freq": 3188.5537938844845
+      },
+      "user_degree": {
+        "mean": 55.02385640064065,
+        "median": 33.0,
+        "p90": 130.0,
+        "p99": 285.0,
+        "max": 1187,
+        "pct_le3": 4.90175397476464,
+        "pct_le5": 9.46872924723622
+      },
+      "item_degree": {
+        "median": 25.0,
+        "p90": 1709.6000000000022,
+        "p99": 48054.83999999998,
+        "max": 243550
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.24180632055939683,
+        "few": 1.0508222977460058,
+        "freq": 99.99960935974062
+      },
+      "cold_inter_share_pct": 0.0574489173555579,
+      "freq_inter_share_pct": 99.94255108264444,
+      "domain": "MIND",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 96.56047725407217,
+      "dist_inter_strata_l1_vs_beauty": 50.15058976581679,
+      "dist_total_l1_vs_beauty": 146.71106701988896
+    },
+    {
+      "label": "yelp2018",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2018.zip",
+      "n_inter": 5261669,
+      "n_users": 1326101,
+      "n_items": 174567,
+      "density_pct": 0.002272923260316413,
+      "avg_seq_len": 3.9677739478365526,
+      "avg_item_deg": 30.141258084288555,
+      "item_gini": 0.7164049706645021,
+      "user_gini": 0.6277374161608343,
+      "top1pct_item_inter_share_pct": 23.38583061762342,
+      "top5pct_item_inter_share_pct": 48.46633264084077,
+      "top10pct_item_inter_share_pct": 62.352249827953834,
+      "item_strata_pct": {
+        "new": 0.023486684195752918,
+        "few": 53.63957678140772,
+        "freq": 46.336936534396536
+      },
+      "inter_strata_pct": {
+        "new": 0.0015014247380441452,
+        "few": 8.688877996696485,
+        "freq": 91.30962057856547
+      },
+      "strata_item_deg_mean": {
+        "new": 1.9268292682926829,
+        "few": 4.882471672522614,
+        "freq": 59.39509698475689
+      },
+      "user_degree": {
+        "mean": 3.9677739478365526,
+        "median": 1.0,
+        "p90": 7.0,
+        "p99": 41.0,
+        "max": 3569,
+        "pct_le3": 77.78389428859491,
+        "pct_le5": 86.20896900009879
+      },
+      "item_degree": {
+        "median": 8.0,
+        "p90": 62.0,
+        "p99": 351.0,
+        "max": 7362
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.00595731396024888,
+        "few": 20.04425002318828,
+        "freq": 93.35254252881191
+      },
+      "cold_inter_share_pct": 8.69037942143453,
+      "freq_inter_share_pct": 91.30962057856547,
+      "domain": "Yelp",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 116.846886400377,
+      "dist_inter_strata_l1_vs_beauty": 32.88472875765885,
+      "dist_total_l1_vs_beauty": 149.73161515803585
+    },
+    {
+      "label": "ml-100k",
+      "source": "/home/charlie/project/RecBole/dataset/ml-100k/ml-100k.inter",
+      "n_inter": 100000,
+      "n_users": 943,
+      "n_items": 1682,
+      "density_pct": 6.304669364224531,
+      "avg_seq_len": 106.04453870625663,
+      "avg_item_deg": 59.45303210463734,
+      "item_gini": 0.628999631391201,
+      "user_gini": 0.47190850477200424,
+      "top1pct_item_inter_share_pct": 7.256,
+      "top5pct_item_inter_share_pct": 26.379,
+      "top10pct_item_inter_share_pct": 42.702,
+      "item_strata_pct": {
+        "new": 12.425683709869203,
+        "few": 19.084423305588587,
+        "freq": 68.48989298454221
+      },
+      "inter_strata_pct": {
+        "new": 0.27699999999999997,
+        "few": 1.77,
+        "freq": 97.953
+      },
+      "strata_item_deg_mean": {
+        "new": 1.325358851674641,
+        "few": 5.514018691588785,
+        "freq": 85.02864583333333
+      },
+      "user_degree": {
+        "mean": 106.04453870625663,
+        "median": 65.0,
+        "p90": 244.4000000000002,
+        "p99": 442.54000000000053,
+        "max": 737,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 27.0,
+        "p90": 169.0,
+        "p99": 369.0900000000006,
+        "max": 583
+      },
+      "pct_users_touch_strata_item": {
+        "new": 10.71049840933192,
+        "few": 47.1898197242842,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 2.0469999999999997,
+      "freq_inter_share_pct": 97.953,
+      "domain": "MovieLens-100k",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 107.34332167677957,
+      "dist_inter_strata_l1_vs_beauty": 46.17148760052791,
+      "dist_total_l1_vs_beauty": 153.51480927730748
+    },
+    {
+      "label": "yelp2022",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2022/yelp2022.inter",
+      "n_inter": 6990280,
+      "n_users": 1987929,
+      "n_items": 150346,
+      "density_pct": 0.0023388470653961262,
+      "avg_seq_len": 3.51636300894046,
+      "avg_item_deg": 46.49461907865856,
+      "item_gini": 0.678351072470664,
+      "user_gini": 0.6115362253305341,
+      "top1pct_item_inter_share_pct": 19.468261643310424,
+      "top5pct_item_inter_share_pct": 43.503407588823336,
+      "top10pct_item_inter_share_pct": 57.933645004205836,
+      "item_strata_pct": {
+        "new": 0.0,
+        "few": 32.64203902997087,
+        "freq": 67.35796097002913
+      },
+      "inter_strata_pct": {
+        "new": 0.0,
+        "few": 4.6918435313034665,
+        "freq": 95.30815646869654
+      },
+      "strata_item_deg_mean": {
+        "new": 0.0,
+        "few": 6.682961121525797,
+        "freq": 65.78756788782462
+      },
+      "user_degree": {
+        "mean": 3.51636300894046,
+        "median": 1.0,
+        "p90": 6.0,
+        "p99": 36.0,
+        "max": 3048,
+        "pct_le3": 81.06597368417081,
+        "pct_le5": 88.5209683042
+      },
+      "item_degree": {
+        "median": 15.0,
+        "p90": 101.0,
+        "p99": 492.0,
+        "max": 7673
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.0,
+        "few": 11.249144209878722,
+        "freq": 96.51229998656893
+      },
+      "cold_inter_share_pct": 4.6918435313034665,
+      "freq_inter_share_pct": 95.30815646869654,
+      "domain": "Yelp",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 116.8938597687685,
+      "dist_inter_strata_l1_vs_beauty": 40.88180053792098,
+      "dist_total_l1_vs_beauty": 157.77566030668947
+    },
+    {
+      "label": "anime",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Anime/anime.zip",
+      "n_inter": 7813737,
+      "n_users": 73515,
+      "n_items": 11200,
+      "density_pct": 0.9489969248258373,
+      "avg_seq_len": 106.28765558049378,
+      "avg_item_deg": 697.6550892857143,
+      "item_gini": 0.8443557254747084,
+      "user_gini": 0.5972977769441928,
+      "top1pct_item_inter_share_pct": 21.890601129779515,
+      "top5pct_item_inter_share_pct": 55.325870322996536,
+      "top10pct_item_inter_share_pct": 74.10847076117356,
+      "item_strata_pct": {
+        "new": 17.526785714285715,
+        "few": 13.285714285714286,
+        "freq": 69.1875
+      },
+      "inter_strata_pct": {
+        "new": 0.03286519625628557,
+        "few": 0.09768693264183323,
+        "freq": 99.86944787110188
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3082017320427917,
+        "few": 5.129704301075269,
+        "freq": 1007.0378113304943
+      },
+      "user_degree": {
+        "mean": 106.28765558049378,
+        "median": 57.0,
+        "p90": 260.0,
+        "p99": 707.8600000000006,
+        "max": 10227,
+        "pct_le3": 7.34952050601918,
+        "pct_le5": 10.574712643678161
+      },
+      "item_degree": {
+        "median": 51.5,
+        "p90": 1812.5000000000018,
+        "p99": 9968.550000000012,
+        "max": 39340
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.45704958171801674,
+        "few": 2.65388016051146,
+        "freq": 99.99455893355098
+      },
+      "cold_inter_share_pct": 0.1305521288981188,
+      "freq_inter_share_pct": 99.86944787110188,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 108.73853570769514,
+      "dist_inter_strata_l1_vs_beauty": 50.00438334273167,
+      "dist_total_l1_vs_beauty": 158.7429190504268
+    },
+    {
+      "label": "yelp2021",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/yelp/yelp2021.zip",
+      "n_inter": 8635403,
+      "n_users": 2189457,
+      "n_items": 160585,
+      "density_pct": 0.0024560726777025305,
+      "avg_seq_len": 3.944084309488608,
+      "avg_item_deg": 53.77465516704549,
+      "item_gini": 0.6825738559053361,
+      "user_gini": 0.6307013450560316,
+      "top1pct_item_inter_share_pct": 18.064090349923447,
+      "top5pct_item_inter_share_pct": 42.58890986326869,
+      "top10pct_item_inter_share_pct": 57.56017408799566,
+      "item_strata_pct": {
+        "new": 0.0,
+        "few": 29.3564156054426,
+        "freq": 70.64358439455741
+      },
+      "inter_strata_pct": {
+        "new": 0.0,
+        "few": 3.660593489383182,
+        "freq": 96.33940651061683
+      },
+      "strata_item_deg_mean": {
+        "new": 0.0,
+        "few": 6.7054219167621225,
+        "freq": 73.33459093994341
+      },
+      "user_degree": {
+        "mean": 3.944084309488608,
+        "median": 1.0,
+        "p90": 7.0,
+        "p99": 41.0,
+        "max": 6073,
+        "pct_le3": 78.38098670126885,
+        "pct_le5": 86.53497191312732
+      },
+      "item_degree": {
+        "median": 17.0,
+        "p90": 121.0,
+        "p99": 552.1600000000035,
+        "max": 9295
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.0,
+        "few": 10.164757745870324,
+        "freq": 97.31179922693161
+      },
+      "cold_inter_share_pct": 3.660593489383182,
+      "freq_inter_share_pct": 96.33940651061683,
+      "domain": "Yelp",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 116.89385976876851,
+      "dist_inter_strata_l1_vs_beauty": 42.944300621761556,
+      "dist_total_l1_vs_beauty": 159.83816039053005
+    },
+    {
+      "label": "ipinyou-click",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/iPinYou/merged/ipinyou-click.zip",
+      "n_inter": 18626,
+      "n_users": 18587,
+      "n_items": 148,
+      "density_pct": 0.6770934058823443,
+      "avg_seq_len": 1.0020982407058696,
+      "avg_item_deg": 125.85135135135135,
+      "item_gini": 0.6988908268302664,
+      "user_gini": 0.0020894539145533708,
+      "top1pct_item_inter_share_pct": 6.6573606786212824,
+      "top5pct_item_inter_share_pct": 33.0613121443144,
+      "top10pct_item_inter_share_pct": 49.65102544829808,
+      "item_strata_pct": {
+        "new": 10.81081081081081,
+        "few": 14.864864864864865,
+        "freq": 74.32432432432432
+      },
+      "inter_strata_pct": {
+        "new": 0.11274562439600559,
+        "few": 0.6657360678621281,
+        "freq": 99.22151830774186
+      },
+      "strata_item_deg_mean": {
+        "new": 1.3125,
+        "few": 5.636363636363637,
+        "freq": 168.0090909090909
+      },
+      "user_degree": {
+        "mean": 1.0020982407058696,
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 1.0,
+        "max": 2,
+        "pct_le3": 100.0,
+        "pct_le5": 100.0
+      },
+      "item_degree": {
+        "median": 36.5,
+        "p90": 356.1000000000001,
+        "p99": 982.2400000000001,
+        "max": 1240
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.11298219185452198,
+        "few": 0.6617528380050572,
+        "freq": 99.23064507451444
+      },
+      "cold_inter_share_pct": 0.7784816922581338,
+      "freq_inter_share_pct": 99.22151830774186,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 119.0121843563438,
+      "dist_inter_strata_l1_vs_beauty": 48.70852421601164,
+      "dist_total_l1_vs_beauty": 167.72070857235542
+    },
+    {
+      "label": "ml-1m",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MovieLens/ml-1m.zip",
+      "n_inter": 1000209,
+      "n_users": 6040,
+      "n_items": 3706,
+      "density_pct": 4.468362562231285,
+      "avg_seq_len": 165.5975165562914,
+      "avg_item_deg": 269.88909875876953,
+      "item_gini": 0.6335616301416965,
+      "user_gini": 0.5286242435264804,
+      "top1pct_item_inter_share_pct": 8.731175184386464,
+      "top5pct_item_inter_share_pct": 28.27539044339733,
+      "top10pct_item_inter_share_pct": 44.38112434501189,
+      "item_strata_pct": {
+        "new": 5.477603885590933,
+        "few": 6.556934700485699,
+        "freq": 87.96546141392336
+      },
+      "inter_strata_pct": {
+        "new": 0.02919389847521868,
+        "few": 0.13777120581798405,
+        "freq": 99.8330348957068
+      },
+      "strata_item_deg_mean": {
+        "new": 1.438423645320197,
+        "few": 5.670781893004115,
+        "freq": 306.30030674846626
+      },
+      "user_degree": {
+        "mean": 165.5975165562914,
+        "median": 96.0,
+        "p90": 400.0,
+        "p99": 906.659999999998,
+        "max": 2314,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 123.5,
+        "p90": 729.5,
+        "p99": 1784.8999999999996,
+        "max": 3428
+      },
+      "pct_users_touch_strata_item": {
+        "new": 3.245033112582781,
+        "few": 12.367549668874172,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.16696510429320272,
+      "freq_inter_share_pct": 99.8330348957068,
+      "domain": "MovieLens",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 146.29445853554188,
+      "dist_inter_strata_l1_vs_beauty": 49.93155739194151,
+      "dist_total_l1_vs_beauty": 196.2260159274834
+    },
+    {
+      "label": "ml-10m",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/MovieLens/ml-10m.zip",
+      "n_inter": 10000054,
+      "n_users": 69878,
+      "n_items": 10677,
+      "density_pct": 1.340332770608381,
+      "avg_seq_len": 143.10732991785684,
+      "avg_item_deg": 936.5977334457244,
+      "item_gini": 0.8052488009118839,
+      "user_gini": 0.5707004969116124,
+      "top1pct_item_inter_share_pct": 19.890452591556006,
+      "top5pct_item_inter_share_pct": 51.64548111440198,
+      "top10pct_item_inter_share_pct": 69.13607666518601,
+      "item_strata_pct": {
+        "new": 2.24782242202866,
+        "few": 6.8277606069120536,
+        "freq": 90.92441697105929
+      },
+      "inter_strata_pct": {
+        "new": 0.0037999794801108072,
+        "few": 0.04202977303922559,
+        "freq": 99.95417024748066
+      },
+      "strata_item_deg_mean": {
+        "new": 1.5833333333333333,
+        "few": 5.765432098765432,
+        "freq": 1029.6117634940256
+      },
+      "user_degree": {
+        "mean": 143.10732991785684,
+        "median": 69.0,
+        "p90": 335.0,
+        "p99": 1058.229999999996,
+        "max": 7359,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 135.0,
+        "p90": 2388.0,
+        "p99": 12786.879999999997,
+        "max": 34864
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.2890752454277455,
+        "few": 2.185237127565185,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.045829752519336395,
+      "freq_inter_share_pct": 99.95417024748066,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 152.21236964981372,
+      "dist_inter_strata_l1_vs_beauty": 50.173828095489235,
+      "dist_total_l1_vs_beauty": 202.38619774530295
+    },
+    {
+      "label": "KGRec-sound",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/KGRec/KGRec-sound.zip",
+      "n_inter": 2117698,
+      "n_users": 20000,
+      "n_items": 21533,
+      "density_pct": 0.4917331537639902,
+      "avg_seq_len": 105.8849,
+      "avg_item_deg": 98.34663075279803,
+      "item_gini": 0.6191210965044112,
+      "user_gini": 0.32652344682764023,
+      "top1pct_item_inter_share_pct": 15.5287014484596,
+      "top5pct_item_inter_share_pct": 37.75547788211539,
+      "top10pct_item_inter_share_pct": 51.21032366276966,
+      "item_strata_pct": {
+        "new": 0.44582733478846426,
+        "few": 5.456740816421307,
+        "freq": 94.09743184879022
+      },
+      "inter_strata_pct": {
+        "new": 0.007791479238304989,
+        "few": 0.36903278937789996,
+        "freq": 99.6231757313838
+      },
+      "strata_item_deg_mean": {
+        "new": 1.71875,
+        "few": 6.651063829787234,
+        "freq": 104.1219030697858
+      },
+      "user_degree": {
+        "mean": 105.8849,
+        "median": 78.0,
+        "p90": 178.0,
+        "p99": 454.0099999999984,
+        "max": 9373,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 45.0,
+        "p90": 206.0,
+        "p99": 977.0,
+        "max": 5284
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.64,
+        "few": 21.740000000000002,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.376824268616205,
+      "freq_inter_share_pct": 99.6231757313838,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 158.5583994052756,
+      "dist_inter_strata_l1_vs_beauty": 49.5118390632955,
+      "dist_total_l1_vs_beauty": 208.0702384685711
+    },
+    {
+      "label": "pinterest",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Pinterest/pinterest.zip",
+      "n_inter": 1445622,
+      "n_users": 55187,
+      "n_items": 9911,
+      "density_pct": 0.2643020225395331,
+      "avg_seq_len": 26.194973453893127,
+      "avg_item_deg": 145.86035717889214,
+      "item_gini": 0.45390176139529903,
+      "user_gini": 0.1450605564458059,
+      "top1pct_item_inter_share_pct": 5.6871713352453135,
+      "top5pct_item_inter_share_pct": 19.1990022287984,
+      "top10pct_item_inter_share_pct": 30.908909797996987,
+      "item_strata_pct": {
+        "new": 1.5639188780143274,
+        "few": 4.4193320552921,
+        "freq": 94.01674906669358
+      },
+      "inter_strata_pct": {
+        "new": 0.01618680401930795,
+        "few": 0.1784698904692928,
+        "freq": 99.8053433055114
+      },
+      "strata_item_deg_mean": {
+        "new": 1.5096774193548388,
+        "few": 5.890410958904109,
+        "freq": 154.84095299420477
+      },
+      "user_degree": {
+        "mean": 26.194973453893127,
+        "median": 24.0,
+        "p90": 36.0,
+        "p99": 53.0,
+        "max": 136,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 115.0,
+        "p90": 299.0,
+        "p99": 661.5999999999985,
+        "max": 1608
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.3732763150742023,
+        "few": 2.9862105205936182,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.19465669448860076,
+      "freq_inter_share_pct": 99.8053433055114,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 158.3970338410823,
+      "dist_inter_strata_l1_vs_beauty": 49.876174211550705,
+      "dist_total_l1_vs_beauty": 208.273208052633
+    },
+    {
+      "label": "ipinyou-view",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/iPinYou/merged/ipinyou-view.zip",
+      "n_inter": 23579242,
+      "n_users": 19730198,
+      "n_items": 184,
+      "density_pct": 0.6495021202920827,
+      "avg_seq_len": 1.1950839013374321,
+      "avg_item_deg": 128148.05434782608,
+      "item_gini": 0.6980195698697885,
+      "user_gini": 0.14547660607984325,
+      "top1pct_item_inter_share_pct": 6.601336039555469,
+      "top5pct_item_inter_share_pct": 33.82620187705779,
+      "top10pct_item_inter_share_pct": 51.61931414080232,
+      "item_strata_pct": {
+        "new": 0.5434782608695652,
+        "few": 1.0869565217391304,
+        "freq": 98.36956521739131
+      },
+      "inter_strata_pct": {
+        "new": 4.241018434774112e-06,
+        "few": 5.5133239652063455e-05,
+        "freq": 99.99994062574191
+      },
+      "strata_item_deg_mean": {
+        "new": 1.0,
+        "few": 6.5,
+        "freq": 130271.97790055249
+      },
+      "user_degree": {
+        "mean": 1.1950839013374321,
+        "median": 1.0,
+        "p90": 2.0,
+        "p99": 4.0,
+        "max": 66,
+        "pct_le3": 98.95050216931426,
+        "pct_le5": 99.82610919566038
+      },
+      "item_degree": {
+        "median": 47340.0,
+        "p90": 332221.3000000003,
+        "p99": 998862.7399999994,
+        "max": 1556545
+      },
+      "pct_users_touch_strata_item": {
+        "new": 5.068372856673816e-06,
+        "few": 6.58888471367596e-05,
+        "freq": 99.99993411115287
+      },
+      "cold_inter_share_pct": 5.9374258086837564e-05,
+      "freq_inter_share_pct": 99.99994062574191,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 167.10266614247777,
+      "dist_inter_strata_l1_vs_beauty": 50.26536885201173,
+      "dist_total_l1_vs_beauty": 217.3680349944895
+    },
+    {
+      "label": "douban",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Douban/douban.zip",
+      "n_inter": 2125056,
+      "n_users": 738701,
+      "n_items": 28,
+      "density_pct": 10.274096981438653,
+      "avg_seq_len": 2.876747154802823,
+      "avg_item_deg": 75894.85714285714,
+      "item_gini": 0.24322444746330046,
+      "user_gini": 0.5268563816978138,
+      "top1pct_item_inter_share_pct": 6.470935354174196,
+      "top5pct_item_inter_share_pct": 6.470935354174196,
+      "top10pct_item_inter_share_pct": 12.748087579809662,
+      "item_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "inter_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "strata_item_deg_mean": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 75894.85714285714
+      },
+      "user_degree": {
+        "mean": 2.876747154802823,
+        "median": 1.0,
+        "p90": 6.0,
+        "p99": 19.0,
+        "max": 2038,
+        "pct_le3": 80.36120162284875,
+        "pct_le5": 88.31800687964413
+      },
+      "item_degree": {
+        "median": 79121.5,
+        "p90": 115640.90000000001,
+        "p99": 136399.14,
+        "max": 137511
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.0,
+      "freq_inter_share_pct": 100.0,
+      "domain": "Douban",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 170.36353570769515,
+      "dist_inter_strata_l1_vs_beauty": 50.265487600527905,
+      "dist_total_l1_vs_beauty": 220.62902330822305
+    },
+    {
+      "label": "jester",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Jester/jester.zip",
+      "n_inter": 4136360,
+      "n_users": 73421,
+      "n_items": 100,
+      "density_pct": 56.33756009860939,
+      "avg_seq_len": 56.33756009860939,
+      "avg_item_deg": 41363.6,
+      "item_gini": 0.25014838166890696,
+      "user_gini": 0.2932284856906514,
+      "top1pct_item_inter_share_pct": 1.7748213405022775,
+      "top5pct_item_inter_share_pct": 8.87364736144823,
+      "top10pct_item_inter_share_pct": 17.74652109584272,
+      "item_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "inter_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "strata_item_deg_mean": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 41363.6
+      },
+      "user_degree": {
+        "mean": 56.33756009860939,
+        "median": 52.0,
+        "p90": 100.0,
+        "p99": 100.0,
+        "max": 100,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 39103.5,
+        "p90": 70744.00000000003,
+        "p99": 73411.02,
+        "max": 73413
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.0,
+      "freq_inter_share_pct": 100.0,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 170.36353570769515,
+      "dist_inter_strata_l1_vs_beauty": 50.265487600527905,
+      "dist_total_l1_vs_beauty": 220.62902330822305
+    },
+    {
+      "label": "KGRec-music",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/KGRec/KGRec-music.zip",
+      "n_inter": 751531,
+      "n_users": 5199,
+      "n_items": 8640,
+      "density_pct": 1.673067024997685,
+      "avg_seq_len": 144.55299095979996,
+      "avg_item_deg": 86.98275462962962,
+      "item_gini": 0.5884384723823275,
+      "user_gini": 0.1692717381530415,
+      "top1pct_item_inter_share_pct": 9.297021679744415,
+      "top5pct_item_inter_share_pct": 29.250822654022258,
+      "top10pct_item_inter_share_pct": 44.11700914533133,
+      "item_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "inter_strata_pct": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "strata_item_deg_mean": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 86.98275462962962
+      },
+      "user_degree": {
+        "mean": 144.55299095979996,
+        "median": 138.0,
+        "p90": 200.0,
+        "p99": 295.0199999999995,
+        "max": 636,
+        "pct_le3": 0.0,
+        "pct_le5": 0.0
+      },
+      "item_degree": {
+        "median": 43.0,
+        "p90": 211.0,
+        "p99": 602.0,
+        "max": 1424
+      },
+      "pct_users_touch_strata_item": {
+        "new": 0.0,
+        "few": 0.0,
+        "freq": 100.0
+      },
+      "cold_inter_share_pct": 0.0,
+      "freq_inter_share_pct": 100.0,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 170.36353570769515,
+      "dist_inter_strata_l1_vs_beauty": 50.265487600527905,
+      "dist_total_l1_vs_beauty": 220.62902330822305
+    },
+    {
+      "label": "EndoMondo",
+      "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/EndoMondo/EndoMondo.zip",
+      "n_inter": 253020,
+      "n_users": 1104,
+      "n_items": 253020,
+      "density_pct": 0.09057971014492754,
+      "avg_seq_len": 229.18478260869566,
+      "avg_item_deg": 1.0,
+      "item_gini": 0.0,
+      "user_gini": 0.5369259561883749,
+      "top1pct_item_inter_share_pct": 0.999920954865228,
+      "top5pct_item_inter_share_pct": 5.0,
+      "top10pct_item_inter_share_pct": 10.0,
+      "item_strata_pct": {
+        "new": 100.0,
+        "few": 0.0,
+        "freq": 0.0
+      },
+      "inter_strata_pct": {
+        "new": 100.0,
+        "few": 0.0,
+        "freq": 0.0
+      },
+      "strata_item_deg_mean": {
+        "new": 1.0,
+        "few": 0.0,
+        "freq": 0.0
+      },
+      "user_degree": {
+        "mean": 229.18478260869566,
+        "median": 151.5,
+        "p90": 535.8000000000002,
+        "p99": 1125.4300000000005,
+        "max": 2905,
+        "pct_le3": 4.438405797101449,
+        "pct_le5": 6.068840579710145
+      },
+      "item_degree": {
+        "median": 1.0,
+        "p90": 1.0,
+        "p99": 1.0,
+        "max": 1
+      },
+      "pct_users_touch_strata_item": {
+        "new": 100.0,
+        "few": 0.0,
+        "freq": 0.0
+      },
+      "cold_inter_share_pct": 100.0,
+      "freq_inter_share_pct": 0.0,
+      "domain": "Other",
+      "is_amazon": false,
+      "dist_item_strata_l1_vs_beauty": 83.1061402312315,
+      "dist_inter_strata_l1_vs_beauty": 181.42407331431932,
+      "dist_total_l1_vs_beauty": 264.53021354555085
+    }
+  ]
+}

@@ -17,6 +17,9 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 # GPU ID support - can be set via environment variable or defaults to 0
 GPU_ID=${GPU_ID:-0}
+PHASE_A_EPOCHS="${PHASE_A_EPOCHS:-20}"
+PHASE_B_EPOCHS="${PHASE_B_EPOCHS:-50}"
+CHECKPOINT_TAG="${CHECKPOINT_TAG:-phaseb50}"
 echo "Using GPU: $GPU_ID"
 
 echo "========================================="
@@ -46,7 +49,7 @@ python scripts/two_phase_train.py \
   --tau_grid "0.05" \
   --backbone_burnin_epochs 0 \
   --burnin_eval_step 2 \
-  --phase_a_epochs 20 \
+  --phase_a_epochs ${PHASE_A_EPOCHS} \
   --phase_a_eval_step 1 \
   --phase_a_valid_metric "MRR@10" \
   --metric_baseline 0.0272 \
@@ -54,11 +57,11 @@ python scripts/two_phase_train.py \
   --lr_text_head 2e-3 \
   --lr_dnn_cross 5e-4 \
   --phase_a_auto_to_b \
-  --phase_b_epochs 40 \
+  --phase_b_epochs ${PHASE_B_EPOCHS} \
   --backbone_lr_scale 0.1 \
-  --checkpoint_dir ./saved/phase_runs_v3_stratified \
+  --checkpoint_dir ./saved/phase_runs_v3_stratified_${CHECKPOINT_TAG} \
   --seed 2025 \
-  --variant_features "sasrec,tfidf,llm,v3,beauty,stratified" \
+  --variant_features "sasrec,tfidf,llm,v3,beauty,stratified,${CHECKPOINT_TAG}" \
   --watchdog_disable \
   --save
 

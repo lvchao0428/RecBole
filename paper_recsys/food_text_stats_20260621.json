@@ -1,0 +1,112 @@
+{
+  "dataset": "Food",
+  "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Food/Food.zip",
+  "n_items": 231637,
+  "n_inter": 1132367,
+  "fields": {
+    "name:token": {
+      "label": "name (标题)",
+      "nonempty": 231636,
+      "empty": 1,
+      "empty_pct": 0.0004,
+      "char_mean": 27.9,
+      "char_med": 26,
+      "char_p90": 43,
+      "char_max": 85,
+      "word_mean": 5.0,
+      "word_med": 5,
+      "word_p90": 8,
+      "word_max": 15,
+      "unique_names_lower": 230185,
+      "duplicate_name_groups": 1430,
+      "duplicate_items": 2881
+    },
+    "tags:token_seq": {
+      "label": "tags (标签序列)",
+      "nonempty": 231528,
+      "empty": 109,
+      "empty_pct": 0.05,
+      "char_mean": 200.9,
+      "char_med": 191,
+      "char_p90": 309,
+      "char_max": 809,
+      "tag_count_mean": 17.9,
+      "tag_count_med": 17,
+      "tag_count_p90": 28,
+      "tag_count_max": 73,
+      "unique_tags": 560
+    },
+    "nutrition:float_seq": {
+      "label": "nutrition (7-dim float)",
+      "nonempty": 231637,
+      "empty": 0,
+      "dims": 7,
+      "is_text": false
+    }
+  },
+  "name_char_buckets": {
+    "1-20": 61697,
+    "21-40": 139621,
+    "41-60": 28349,
+    "61-80": 1967,
+    "81+": 2
+  },
+  "name_word_buckets": {
+    "1-3": 84811,
+    "4-6": 118480,
+    "7-10": 27498,
+    "11-15": 847
+  },
+  "combined_name_tags_tokens": {
+    "mean": 22.3,
+    "med": 21,
+    "p90": 32,
+    "p95": 36,
+    "max": 76,
+    "bucket_1-20": 104286,
+    "bucket_21-40": 123445,
+    "bucket_41-60": 3886
+  },
+  "tags_top20": [
+    ["preparation", 230546],
+    ["time-to-make", 225326],
+    ["course", 218148],
+    ["main-ingredient", 170446],
+    ["dietary", 165091],
+    ["easy", 126062],
+    ["occasion", 114145],
+    ["cuisine", 91165],
+    ["low-in-something", 85776],
+    ["main-dish", 71786],
+    ["equipment", 70436],
+    ["60-minutes-or-less", 69990],
+    ["number-of-servings", 58949],
+    ["meat", 56042],
+    ["30-minutes-or-less", 55077],
+    ["vegetables", 53814],
+    ["taste-mood", 52143],
+    ["4-hours-or-less", 49497],
+    ["north-american", 48479],
+    ["3-steps-or-less", 44933]
+  ],
+  "inter_coverage": {
+    "items_with_inter": 231637,
+    "with_name": 231636,
+    "with_name_pct": 99.9996,
+    "with_tags": 231528,
+    "with_tags_pct": 99.953,
+    "orphan_inter_items": 0
+  },
+  "strata_name_coverage": {
+    "new": {"has": 137072, "total": 137073, "pct": 99.999},
+    "few": {"has": 73165, "total": 73165, "pct": 100.0},
+    "freq": {"has": 21399, "total": 21399, "pct": 100.0}
+  },
+  "comparison_beauty_title": {
+    "beauty_word_mean": 10.3,
+    "beauty_word_med": 9,
+    "beauty_char_mean": 62.6,
+    "beauty_char_med": 58,
+    "food_name_shorter": true
+  }
+}

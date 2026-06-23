@@ -1,0 +1,186 @@
+{
+  "reference": "Amazon_Beauty",
+  "datasets": [
+    {
+      "label": "Amazon_Grocery",
+      "inter_path": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Grocery_and_Gourmet_Food.zip",
+      "inter": {
+        "label": "Amazon_Grocery",
+        "source": "/home/charlie/project/RecSysDatasets/RecBole/ProcessedDatasets/Amazon_ratings/Amazon_Grocery_and_Gourmet_Food.zip",
+        "n_inter": 1297156,
+        "n_users": 768438,
+        "n_items": 166049,
+        "density_pct": 0.0010165929915850098,
+        "avg_seq_len": 1.688042496596993,
+        "avg_item_deg": 7.811886852676017,
+        "item_gini": 0.7347112748188394,
+        "user_gini": 0.357881673465985,
+        "top1pct_item_inter_share_pct": 30.230982241149096,
+        "top5pct_item_inter_share_pct": 53.80393722882984,
+        "top10pct_item_inter_share_pct": 66.1607393405265,
+        "item_strata_pct": {
+          "new": 57.219856789261,
+          "few": 28.061596275798106,
+          "freq": 14.71854693494089
+        },
+        "inter_strata_pct": {
+          "new": 9.488450117025247,
+          "few": 17.339934441192888,
+          "freq": 73.17161544178187
+        },
+        "strata_item_deg_mean": {
+          "new": 1.2954016818751117,
+          "few": 4.827152545282857,
+          "freq": 38.83592471358429
+        },
+        "user_degree": {
+          "mean": 1.688042496596993,
+          "median": 1.0,
+          "p90": 3.0,
+          "p99": 10.0,
+          "max": 518,
+          "pct_le3": 93.5649980870285,
+          "pct_le5": 97.0273463831825
+        },
+        "item_degree": {
+          "median": 2.0,
+          "p90": 14.0,
+          "p99": 92.0,
+          "max": 6340
+        },
+        "pct_users_touch_strata_item": {
+          "new": 12.84254552742056,
+          "few": 23.419976627912728,
+          "freq": 78.08697643791692
+        },
+        "cold_inter_share_pct": 26.828384558218133,
+        "freq_inter_share_pct": 73.17161544178187
+      },
+      "eval_feasibility": {
+        "strata": {
+          "new": {
+            "item_count": 95013,
+            "item_pct": 57.219856789261,
+            "inter_count": 123080,
+            "inter_pct": 9.488450117025247,
+            "est_test_hits": 72913,
+            "eval_feasibility": "moderate"
+          },
+          "few": {
+            "item_count": 46596,
+            "item_pct": 28.061596275798106,
+            "inter_count": 224926,
+            "inter_pct": 17.339934441192888,
+            "est_test_hits": 133247,
+            "eval_feasibility": "good"
+          },
+          "freq": {
+            "item_count": 24440,
+            "item_pct": 14.71854693494089,
+            "inter_count": 949150,
+            "inter_pct": 73.17161544178187,
+            "est_test_hits": 562278,
+            "eval_feasibility": "good"
+          }
+        },
+        "cold_inter_share_pct": 26.828384558218133,
+        "est_cold_test_hits": 206160,
+        "overall_eval_note": "good"
+      },
+      "text": {
+        "primary_field": "title",
+        "secondary_field": "categories",
+        "combined": {
+          "basic": {
+            "n_items": 171760,
+            "nonempty_ratio": 1.0,
+            "char_len_mean": 86.37707848160224,
+            "char_len_median": 83.0,
+            "word_count_mean": 13.57663600372613,
+            "word_count_median": 13.0
+          },
+          "vocab": {
+            "unique_tokens": 39247,
+            "total_tokens": 2331923,
+            "ttr": 0.01683031558074602,
+            "top50_coverage": 0.5137986974698564
+          },
+          "tfidf_sim": {
+            "n_sampled": 3000,
+            "vocab_size": 21303,
+            "mean_cosine": 0.062239462147474924,
+            "std_cosine": 0.03462025747714696,
+            "p90_cosine": 0.10316788258124986,
+            "high_sim_ratio_gt0.9": 1.333777925975325e-06,
+            "low_sim_ratio_lt0.3": 0.9986975658552851
+          },
+          "cross_field": {
+            "mean_cross_field_cosine": 0.0665382058715649,
+            "diversity_score": 0.9334617941284351,
+            "p90_cross_field_cosine": 0.11606495085383149,
+            "n_sampled": 3000
+          },
+          "category_entropy": {
+            "n_unique_cats": 552,
+            "entropy_bits": 1.797939174491739,
+            "top5_coverage": 0.8743702921844264
+          }
+        },
+        "by_stratum": {
+          "new": {
+            "n_items": 100724,
+            "basic": {
+              "n_items": 100724,
+              "nonempty_ratio": 0.9991958222469323,
+              "char_len_mean": 57.01520988046543,
+              "char_len_median": 55.0,
+              "word_count_mean": 10.011943528851118,
+              "word_count_median": 10.0
+            },
+            "vocab": {
+              "unique_tokens": 33454,
+              "total_tokens": 1008443,
+              "ttr": 0.033173912655450034,
+              "top50_coverage": 0.378127469772709
+            }
+          },
+          "few": {
+            "n_items": 46596,
+            "basic": {
+              "n_items": 46596,
+              "nonempty_ratio": 0.9990557129367328,
+              "char_len_mean": 58.353978882307494,
+              "char_len_median": 56.0,
+              "word_count_mean": 10.28038887458151,
+              "word_count_median": 10.0
+            },
+            "vocab": {
+              "unique_tokens": 20143,
+              "total_tokens": 479025,
+              "ttr": 0.042049997390532855,
+              "top50_coverage": 0.394968947340953
+            }
+          },
+          "freq": {
+            "n_items": 24440,
+            "basic": {
+              "n_items": 24440,
+              "nonempty_ratio": 0.9985270049099836,
+              "char_len_mean": 61.80773322422259,
+              "char_len_median": 60.0,
+              "word_count_mean": 10.91366612111293,
+              "word_count_median": 11.0
+            },
+            "vocab": {
+              "unique_tokens": 12491,
+              "total_tokens": 266730,
+              "ttr": 0.0468301278446369,
+              "top50_coverage": 0.41789450005623663
+            }
+          }
+        }
+      },
+      "mv_potential_heuristic": "high"
+    }
+  ]
+}

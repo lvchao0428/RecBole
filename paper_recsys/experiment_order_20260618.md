@@ -1,14 +1,33 @@
 # 实验执行顺序 TodoList
 
-> **日期**: 2026-06-18  
-> **最后核对**: 2026-06-18 21:04（5090 实时；详见 `experiment_status_20260618.md`）  
+> **日期**: 2026-06-18（初版）· **主线更新 2026-06-22**  
+> **最后核对**: 2026-06-22 17:12（5090 实时；详见 [`experiment_status_20260622.md`](experiment_status_20260622.md)）  
 > **机器**: 5090 (`charlie@www.ultrapp.online:/home/charlie/project/RecBole`)  
 > **Balanced 参数**: `align_weight=0.1, cold_text_boost=3.0, infer_boost=0.6, cold_threshold=10`  
-> **默认 seed**: 2025（单 seed 验证通过后，再跑 42 / 123 / 2024）
+> **当前 P0 主线**: **Food 四配置**（seed=2024，`RUN_ID=20260622_food`）— book-crossing **已暂停**
 
 **图例**: `- [ ]` 待跑 · `- [x]` 已完成 · `🔄` 进行中
 
 > **换机续跑**: 在新电脑上 `git pull` / `./sync_recbole.sh` 同步代码即可；**不要**用旧版 sync（已修复 `--exclude dataset/`）。实验产物只在 5090 的 `saved/`、`logs/`，不在本机。
+
+---
+
+## P0 — Food 第三域四配置（**当前最高优先级**，2026-06-22 起）
+
+> 设计文档: [`experiment_food_20260621.md`](experiment_food_20260621.md) · 状态: [`experiment_status_20260622.md`](experiment_status_20260622.md)  
+> 脚本: `run_5090_food_serial.sh` · seed=2024 · 超参与 Beauty/Toys 主表 V3 一致
+
+- [x] 同步 Food 脚本/YAML 到本地 + 5090
+- [x] 0_setup — 数据集 `dataset/Food/`
+- [x] 1_emb — TF-IDF + Qwen2.5-7B 1v/4v（6/22 05:13）
+- [x] 2_id — SASRec ID baseline 50ep（test MRR@10=0.0060）
+- [🔄] 3_tfidf — two-phase TF-IDF V3（Phase-B epoch 16/40，valid MRR@10 最高 0.0059）
+- [ ] 4_tfidf_llm — two-phase TF-IDF+LLM
+- [ ] 5_mv — two-phase MV 7B
+- [ ] 对比 Beauty/Toys 同配置趋势，决定是否 multiseed / 入主表
+- [ ] 修复 `METRIC_BASELINE` 自动解析（valid MRR@10=0.0052）
+
+~~6/21 `RUN_ID=20260621_food_v2` embedding 完成后中断~~ → 6/22 已从 `2_id` 重启。
 
 ---
 
@@ -27,19 +46,20 @@
 
 ---
 
-## Book-Crossing 完整实验矩阵（5090 状态）
+## Book-Crossing 完整实验矩阵（5090 状态 — **⏸ 已暂停 6/21**）
 
 > **4 配置**：baseline（ID-only）· TF-IDF · single-view（`tfidf_llm` / Qwen3）· multi-view（4-view）  
-> **默认 4 seeds**：42 / 2024 / 2025 / 2026
+> **默认 4 seeds**：42 / 2024 / 2025 / 2026  
+> 暂停快照: 5090 `paper_recsys/book_crossing_status_snapshot_20260621.md`
 
 | Backbone | baseline | TF-IDF | single-view | multi-view | 备注 |
 |----------|----------|--------|-------------|------------|------|
-| **SASRec** | ✅ seed2025 V3 | ✅ seed2025 新跑 | ✅ seed2025 新跑 | ❌ **views.json 缺失失败** | Apr 旧跑作废；6/18 新跑见 status 文档 |
-| **GRU4Rec** | ⏸ 待趋势通过后 | ⏸ | ⏸ | ⏸ | 原 `run_all_book_crossing_remaining_serial.sh` 已暂停 |
-| **FDSA** | ⏸ | ⏸ | ⏸ | ⏸ | 同上 |
-| **UniSRec** | — | ⏸ | — | — | 同上 |
+| **SASRec** | ✅ 4 seeds + aligned | ✅ 多 seed | ✅ 多 seed | ✅ 4 seeds | 6/21 暂停；aligned g0–g3 已跑 |
+| **GRU4Rec** | ✅ seed2025 | ✅ seed2025 | ✅ seed2025 | ✅ seed2025 | 同上 |
+| **FDSA** | ⏸ | ⏸ | ⏸ | ⏸ | 未跑 |
+| **UniSRec** | — | ⏸ | — | — | 未跑 |
 
-**当前最高优先级**：`run_book_crossing_v3_trend_check.sh` — **seed=2025**，四配置串行，**METRIC_BASELINE=0.028**（对齐 6/18 新 baseline valid MRR@10）。与 Beauty/Toys 主指标趋势一致后再 multiseed / backbone。
+~~**当前最高优先级**：book-crossing 趋势验证~~ → **已切换至 Food**（见上方 P0）。
 
 ~~Apr 旧 checkpoint 仅作参考，趋势验证以 6/18 新 baseline 为锚重跑 text 三配置。~~
 

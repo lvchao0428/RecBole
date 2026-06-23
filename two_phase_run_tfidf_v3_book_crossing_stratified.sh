@@ -11,6 +11,10 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 GPU_ID=${GPU_ID:-0}
+# Phase-A: grid/warmup（不计入主表可比训练量）→ Phase-B: 50ep（与 ID-only 50ep 对齐）
+PHASE_A_EPOCHS="${PHASE_A_EPOCHS:-20}"
+PHASE_B_EPOCHS="${PHASE_B_EPOCHS:-50}"
+CHECKPOINT_TAG="${CHECKPOINT_TAG:-phaseb50}"
 # 两阶段 Phase-A 自动切 Phase-B 的参照 MRR@10，建议先跑 baseline 再按需修改
 METRIC_BASELINE=${METRIC_BASELINE:-0.015}
 SEED="${SEED:-2025}"
@@ -38,7 +42,7 @@ python scripts/two_phase_train.py \
 	--tau_grid "0.05" \
 	--backbone_burnin_epochs 0 \
 	--burnin_eval_step 2 \
-	--phase_a_epochs 20 \
+	--phase_a_epochs ${PHASE_A_EPOCHS} \
 	--phase_a_eval_step 1 \
 	--phase_a_valid_metric "MRR@10" \
 	--metric_baseline $METRIC_BASELINE \
@@ -46,11 +50,11 @@ python scripts/two_phase_train.py \
 	--lr_text_head 2e-3 \
 	--lr_dnn_cross 5e-4 \
 	--phase_a_auto_to_b \
-	--phase_b_epochs 40 \
+	--phase_b_epochs ${PHASE_B_EPOCHS} \
 	--backbone_lr_scale 0.1 \
-	--checkpoint_dir "./saved/two_phase_run_tfidf_v3_book_crossing_stratified_seed${SEED}" \
+	--checkpoint_dir "./saved/two_phase_run_tfidf_v3_book_crossing_stratified_${CHECKPOINT_TAG}_seed${SEED}" \
 	--seed "$SEED" \
-	--variant_features "sasrec,tfidf,v3,book_crossing,stratified,seed_${SEED}" \
+	--variant_features "sasrec,tfidf,v3,book_crossing,stratified,${CHECKPOINT_TAG},seed_${SEED}" \
 	--watchdog_disable \
 	--save
 

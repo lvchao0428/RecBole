@@ -1,0 +1,290 @@
+{
+  "datasets": [
+    {
+      "label": "book-crossing",
+      "dataset_dir": "dataset/book-crossing",
+      "embeddings": {
+        "tfidf": {
+          "name": "tfidf",
+          "shape": [
+            271379,
+            256
+          ],
+          "norm_mean": 15.091718182636685,
+          "norm_std": 6.0879197295843355,
+          "inter_item_sim_mean": 0.0004464764122484968,
+          "inter_item_sim_std": 0.06272882609976525,
+          "inter_item_sim_p90": 0.0790619823485514,
+          "high_sim_ratio_gt0.9": 0.0,
+          "low_sim_ratio_lt0.3": 0.998060120240481
+        },
+        "llm_single": {
+          "name": "llm_single",
+          "shape": [
+            271379,
+            256
+          ],
+          "norm_mean": 0.9828523232482114,
+          "norm_std": 0.008342106244101066,
+          "inter_item_sim_mean": 0.8361902454280211,
+          "inter_item_sim_std": 0.08663800571392827,
+          "inter_item_sim_p90": 0.9225232225480279,
+          "high_sim_ratio_gt0.9": 0.22674949899799599,
+          "low_sim_ratio_lt0.3": 0.0
+        },
+        "llm_multiview_concat": {
+          "name": "llm_multiview_concat",
+          "shape": [
+            271379,
+            256
+          ],
+          "norm_mean": 15.669044463540438,
+          "norm_std": 3.246340449690613,
+          "inter_item_sim_mean": -0.00016094888671164503,
+          "inter_item_sim_std": 0.06334852605718931,
+          "inter_item_sim_p90": 0.07714388032772926,
+          "high_sim_ratio_gt0.9": 0.0,
+          "low_sim_ratio_lt0.3": 0.9988857715430862
+        },
+        "views": {
+          "view_0": {
+            "name": "view_0",
+            "shape": [
+              271379,
+              64
+            ],
+            "norm_mean": 7.695531072027146,
+            "norm_std": 2.1602497998878794,
+            "inter_item_sim_mean": 0.0006087093442408504,
+            "inter_item_sim_std": 0.12736063895038682,
+            "inter_item_sim_p90": 0.1576436832374409,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9779041248606466
+          },
+          "view_1": {
+            "name": "view_1",
+            "shape": [
+              271379,
+              64
+            ],
+            "norm_mean": 7.478165067404976,
+            "norm_std": 2.687777920657755,
+            "inter_item_sim_mean": 0.0016713216042497975,
+            "inter_item_sim_std": 0.1297856447079308,
+            "inter_item_sim_p90": 0.16222714012131279,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9758751393534002
+          },
+          "view_2": {
+            "name": "view_2",
+            "shape": [
+              271379,
+              64
+            ],
+            "norm_mean": 7.449967246376159,
+            "norm_std": 2.643644995613968,
+            "inter_item_sim_mean": 0.0013595910695617494,
+            "inter_item_sim_std": 0.12899108330243084,
+            "inter_item_sim_p90": 0.16152339487755699,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9770122630992196
+          },
+          "view_3": {
+            "name": "view_3",
+            "shape": [
+              271379,
+              64
+            ],
+            "norm_mean": 7.753008924013719,
+            "norm_std": 1.9907323752863464,
+            "inter_item_sim_mean": 0.0004066589437488979,
+            "inter_item_sim_std": 0.1264032505544209,
+            "inter_item_sim_p90": 0.15792390972677026,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9789966555183947
+          }
+        }
+      },
+      "whiten": {
+        "tfidf": {
+          "whiten_diag_mean": 0.8201876906969119,
+          "whiten_offdiag_mean": 0.004959494408454617,
+          "whiten_offdiag_ratio": 0.006046779858686367
+        },
+        "llm_single": {
+          "whiten_diag_mean": 54.0737778370094,
+          "whiten_offdiag_mean": 0.7964281021976523,
+          "whiten_offdiag_ratio": 0.014728545591881003
+        },
+        "llm_mv": {
+          "whiten_diag_mean": 0.16581167906440442,
+          "whiten_offdiag_mean": 0.19746694079928379,
+          "whiten_offdiag_ratio": 1.1909109292680942
+        }
+      },
+      "multiview": {
+        "view_diversity": {
+          "pairwise": {
+            "view_0_vs_view_1": 0.04808918875442052,
+            "view_0_vs_view_2": 0.11307803722794847,
+            "view_0_vs_view_3": -0.002887128859117719,
+            "view_1_vs_view_2": 0.06488404271212327,
+            "view_1_vs_view_3": 0.007761102924148148,
+            "view_2_vs_view_3": 0.10156633650023922
+          },
+          "avg_cross_view_cosine": 0.05541526320996032,
+          "diversity_score": 0.9445847367900397
+        },
+        "single_vs_concat": {
+          "single_vs_concat_cosine": -0.007634430910499441,
+          "concat_incremental_diversity": 1.0076344309104994
+        }
+      },
+      "mv_advantage_heuristic": "moderate",
+      "mv_advantage_note": "diversity_score>=0.06 and whiten offdiag low → views decorrelated enough for MV gain"
+    },
+    {
+      "label": "Amazon_Beauty",
+      "dataset_dir": "dataset/Amazon_Beauty",
+      "embeddings": {
+        "tfidf": {
+          "name": "tfidf",
+          "shape": [
+            259205,
+            256
+          ],
+          "norm_mean": 15.226291075454288,
+          "norm_std": 4.220855373098966,
+          "inter_item_sim_mean": 0.00029734565246937765,
+          "inter_item_sim_std": 0.06346694146161472,
+          "inter_item_sim_p90": 0.08044591803342618,
+          "high_sim_ratio_gt0.9": 8.016032064128256e-06,
+          "low_sim_ratio_lt0.3": 0.9985971943887776
+        },
+        "llm_single": {
+          "name": "llm_single",
+          "shape": [
+            259205,
+            256
+          ],
+          "norm_mean": 15.157382659997651,
+          "norm_std": 2.6378526608129618,
+          "inter_item_sim_mean": -3.2665801140414025e-05,
+          "inter_item_sim_std": 0.06319273703210938,
+          "inter_item_sim_p90": 0.07133629464816534,
+          "high_sim_ratio_gt0.9": 8.016032064128256e-06,
+          "low_sim_ratio_lt0.3": 0.9971943887775551
+        },
+        "llm_multiview_concat": {
+          "name": "llm_multiview_concat",
+          "shape": [
+            259205,
+            256
+          ],
+          "norm_mean": 15.885281702496235,
+          "norm_std": 2.824089946202079,
+          "inter_item_sim_mean": -0.00017513154636789857,
+          "inter_item_sim_std": 0.0626099775297547,
+          "inter_item_sim_p90": 0.07500880922727794,
+          "high_sim_ratio_gt0.9": 8.016032064128256e-06,
+          "low_sim_ratio_lt0.3": 0.9984609218436874
+        },
+        "views": {
+          "view_0": {
+            "name": "view_0",
+            "shape": [
+              259205,
+              64
+            ],
+            "norm_mean": 7.664560773098321,
+            "norm_std": 1.501815302058158,
+            "inter_item_sim_mean": 0.0003995640611871204,
+            "inter_item_sim_std": 0.12589182104426552,
+            "inter_item_sim_p90": 0.15560051837480104,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9772798216276477
+          },
+          "view_1": {
+            "name": "view_1",
+            "shape": [
+              259205,
+              64
+            ],
+            "norm_mean": 7.658307067179215,
+            "norm_std": 1.652028121316979,
+            "inter_item_sim_mean": -5.602130603505554e-05,
+            "inter_item_sim_std": 0.12605881363549132,
+            "inter_item_sim_p90": 0.15649655020273248,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9770122630992196
+          },
+          "view_2": {
+            "name": "view_2",
+            "shape": [
+              259205,
+              64
+            ],
+            "norm_mean": 7.6260299940228276,
+            "norm_std": 1.5893809161613681,
+            "inter_item_sim_mean": 0.0002439699867048173,
+            "inter_item_sim_std": 0.12579710518935958,
+            "inter_item_sim_p90": 0.15609644096401054,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9769676700111483
+          },
+          "view_3": {
+            "name": "view_3",
+            "shape": [
+              259205,
+              64
+            ],
+            "norm_mean": 7.656700687635967,
+            "norm_std": 1.4568730725419887,
+            "inter_item_sim_mean": 0.0003233552983546357,
+            "inter_item_sim_std": 0.12558924983006942,
+            "inter_item_sim_p90": 0.15509766785896437,
+            "high_sim_ratio_gt0.9": 0.0,
+            "low_sim_ratio_lt0.3": 0.9777480490523969
+          }
+        }
+      },
+      "whiten": {
+        "tfidf": {
+          "whiten_diag_mean": 20.93519189208746,
+          "whiten_offdiag_mean": 0.21577166509595846,
+          "whiten_offdiag_ratio": 0.010306648547009495
+        },
+        "llm_single": {
+          "whiten_diag_mean": 53.01411821314832,
+          "whiten_offdiag_mean": 0.8413741747247636,
+          "whiten_offdiag_ratio": 0.015870756754680377
+        },
+        "llm_mv": {
+          "whiten_diag_mean": 0.29225513274695913,
+          "whiten_offdiag_mean": 0.3016285930003204,
+          "whiten_offdiag_ratio": 1.0320728678542832
+        }
+      },
+      "multiview": {
+        "view_diversity": {
+          "pairwise": {
+            "view_0_vs_view_1": -0.09358126303309092,
+            "view_0_vs_view_2": -0.017139579468159943,
+            "view_0_vs_view_3": 0.1031249339158129,
+            "view_1_vs_view_2": -0.19170614067654276,
+            "view_1_vs_view_3": -0.0282867668008322,
+            "view_2_vs_view_3": 0.08768804312654083
+          },
+          "avg_cross_view_cosine": -0.02331679548937868,
+          "diversity_score": 1.0233167954893787
+        },
+        "single_vs_concat": {
+          "single_vs_concat_cosine": 0.008918157705670792,
+          "concat_incremental_diversity": 0.9910818422943292
+        }
+      },
+      "mv_advantage_heuristic": "moderate",
+      "mv_advantage_note": "diversity_score>=0.06 and whiten offdiag low → views decorrelated enough for MV gain"
+    }
+  ]
+}
