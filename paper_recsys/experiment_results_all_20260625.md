@@ -1,5 +1,9 @@
 # 实验结果汇总 2026-06-25
 
+> **更新**: 2026-06-25 17:30 CST（5090 实查）  
+> **状态文档**: [`experiment_status_20260625.md`](experiment_status_20260625.md)  
+> **分析与规划**: [`experiment_plan_20260625.md`](experiment_plan_20260625.md)
+
 ## 实验进展状态
 
 | 阶段 | 状态 | 备注 |
@@ -8,9 +12,9 @@
 | Toys 主表 (SASRec, 4 seeds) | ✅ 完成 | seeds=2024/2025/2026/42 |
 | Book-Crossing (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
 | Grocery (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
-| **UniSRec Beauty (3 configs, seed=2024)** | 🔄 运行中 | 优先级最高，预计 ~4.5h |
-| Grocery SASRec multiseed (3 seeds × 4 configs) | ⏳ 排队中 | 在 UniSRec 之后 |
-| GRU4Rec (第二 backbone) | 📋 计划中 | 在 Grocery multiseed 之后 |
+| **UniSRec Beauty (3 configs, seed=2024)** | ✅ 完成 | 6/25 06:36；Base 作外部 text baseline |
+| Grocery SASRec multiseed (2025/2026/42 × 4) | 🔄 运行中 | 2025/2026 ✅；seed42 ID ✅，TF-IDF 进行中 |
+| GRU4Rec (第二 backbone) | 📋 计划中 | pipeline 完成后 |
 
 ---
 
@@ -120,21 +124,62 @@
 
 ---
 
-## 进行中: UniSRec Beauty 实验
+## Amazon Beauty — SASRec MV-Align vs UniSRec 对比（seed=2024）
 
-### 实验设计
+> 协议: TO 划分 · full ranking · neg=100 · seed=2024  
+> SASRec 来源: `main_table.txt` · UniSRec 来源: 5090 `logs/unisrec_*_beauty_seed2024.log`  
+> **主文对比口径**: SASRec MV-Align (7B) vs **UniSRec Base**（外部 text-enhanced baseline）
 
-| # | 模型 | 文本融合方式 | Cross | Align | MV |
-|---|------|------------|-------|-------|-----|
-| 1 | UniSRec (原版) | ID + MoE(PLM) additive | ❌ | ❌ | ❌ |
-| 2 | UniSRecAlignV3 | ID + MoE + DCN-V2 cross + InfoNCE | ✅ | ✅ | ❌ |
-| 3 | UniSRecAlignMultiViewV3 | ID + MoE + cross + align + 4-view SENet | ✅ | ✅ | ✅ |
+### 总体指标 @10（test）
 
-### 预期论文叙事
+| 模型族 | Config | 角色 | MRR@10 | HR@10 | NDCG@10 | vs SASRec ID (MRR) |
+|--------|--------|------|--------|-------|---------|-------------------|
+| **SASRec MV-Align** | ID-only (50ep) | 内部 ablation | 2.16% | 5.31% | 2.91% | — |
+| SASRec MV-Align | TF-IDF | 内部 ablation | 3.13% | 5.60% | 3.71% | +45% |
+| SASRec MV-Align | TF-IDF+LLM (7B) | 内部 ablation | 3.16% | 5.66% | 3.75% | +46% |
+| **SASRec MV-Align** | **MV-Align (7B)** | **主方法** | **3.18%** | **5.79%** | **3.79%** | **+47%** |
+| **UniSRec** | **Base (MoE additive)** | **外部 baseline** | **2.47%** | **6.60%** | **3.44%** | **+14%** |
+| UniSRec | AlignV3 (+cross+align) | portability | 3.25% | 6.52% | 4.02% | +51% |
+| UniSRec | AlignMultiViewV3 (+MV) | portability | 3.33% | 6.67% | 4.11% | +54% |
 
-- UniSRec 和 SASRecAlignV3 共享相同 Transformer backbone 和 PLM embedding
-- 唯一变量 = 融合方式（additive vs cross+align+MV）
-- 差异直接归因于 cross/align 组件 → 支撑 mechanism 论证
+> SASRec 4-seed mean（MV-Align 7B）: MRR@10 **3.19±0.02%**, HR@10 **5.79±0.04%**, NDCG@10 **3.80±0.02%**
 
-### 启动时间: 2026-06-24 22:39 (CST)
-### 预计完成: 2026-06-25 ~03:00 (CST)
+### 分层 MRR@10（test · seed=2024）
+
+| 模型族 | Config | MRR_new | MRR_few | MRR_freq |
+|--------|--------|---------|---------|----------|
+| SASRec MV-Align | ID-only | 0.79% | 1.45% | 3.65% |
+| SASRec MV-Align | TF-IDF | 1.11% | 2.08% | 5.31% |
+| SASRec MV-Align | TF-IDF+LLM | 1.10% | 2.10% | 5.38% |
+| **SASRec MV-Align** | **MV-Align (7B)** | **1.08%** | **2.18%** | **5.38%** |
+| **UniSRec** | **Base** | **0.90%** | **1.66%** | **4.17%** |
+| UniSRec | AlignV3 | 1.12% | 1.87% | 5.68% |
+| UniSRec | AlignMultiViewV3 | 1.17% | 1.91% | 5.80% |
+
+### 主文叙事要点（对齐 `0625zhidao.txt`）
+
+1. **外部 baseline 对比**: UniSRec Base (MRR 2.47%) **强于** SASRec ID-only (2.16%)，说明 PLM+MoE 文本融合有效；但 **弱于** MV-Align (3.18%)，MV-Align 在排序指标上仍领先 (+29% MRR vs UniSRec Base)。
+2. **HR 形态**: UniSRec Base HR@10=6.60% **高于** MV-Align 5.79%，呈现 MRR–HR trade-off；写作时区分 MRR/NDCG vs HR，与 Grocery 叙事一致。
+3. **UniSRec+MV 改造版**: AlignV3/MV 仅作 **portability / sanity check**，不作为新主线；避免 reviewer 混淆「外部 baseline」与「新方法」。
+4. **机制对照**: SASRec MV 与 UniSRec Base 共享 PLM embedding，差异在融合方式（cross+align+MV vs MoE additive）→ 支撑 cross/align 组件贡献。
+
+### 实验耗时（5090 · seed=2024）
+
+| Config | 完成时间 | 耗时 |
+|--------|----------|------|
+| UniSRec Base | 6/25 00:21 | ~1.6h |
+| UniSRecAlignV3 | 6/25 02:16 | ~1.9h |
+| UniSRecAlignMultiViewV3 | 6/25 06:36 | ~4.3h |
+
+---
+
+## Grocery multiseed 进展（5090 · 2026-06-25 17:10）
+
+| Seed | ID | TF-IDF | TF-IDF+LLM | MV | 状态 |
+|------|-----|--------|------------|-----|------|
+| 2024 | ✅ | ✅ | ✅ | ✅ | 见上文 § Grocery |
+| 2025 | ✅ | ✅ 2.92% | ✅ 2.94% | ✅ **3.03%** | 完成 |
+| 2026 | ✅ | ✅ 2.92% | ✅ 2.96% | ✅ **3.02%** | 完成 |
+| 42 | ✅ 17:08 | 🔄 运行中 | ⏳ | ⏳ | 进行中 |
+
+**结论（2025/2026）**: MV MRR@10 ≈ 3.02–3.03%，与 seed=2024（3.01%）一致，第三域 multiseed 形态稳定。
