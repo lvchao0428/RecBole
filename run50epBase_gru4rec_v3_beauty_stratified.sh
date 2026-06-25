@@ -7,6 +7,10 @@ export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 GPU_ID=${GPU_ID:-0}
 SEED="${SEED:-2025}"
+BATCH_CFG=""
+if [[ -n "${TRAIN_BATCH_SIZE:-}" ]]; then
+  BATCH_CFG="'train_batch_size': ${TRAIN_BATCH_SIZE}, 'eval_batch_size': ${EVAL_BATCH_SIZE:-${TRAIN_BATCH_SIZE}}, "
+fi
 echo "Using GPU: $GPU_ID"
 echo "SEED: $SEED"
 echo "========================================="
@@ -17,7 +21,7 @@ python scripts/two_phase_train.py \
 	--model GRU4RecAlignMultiViewV3 \
 	--dataset Amazon_Beauty \
 	--config_files "gru4rec_baseline_beauty_stratified_v3.yaml" \
-	--config_dict "{'freeze_backbone': False}" \
+	--config_dict "{${BATCH_CFG}'freeze_backbone': False}" \
 	--gpu_id $GPU_ID \
 	--phase_a_epochs 50 \
 	--phase_a_eval_step 5 \

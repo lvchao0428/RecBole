@@ -88,3 +88,6 @@ done
 
 log ">>> Phase 2 complete: Grocery multiseed"
 log "======== Main Pipeline 20260625 complete ========"
+
+log ">>> Chaining Phase 3: mechanism + supplemental analysis"
+bash "$ROOT/run_5090_post_main_pipeline_20260625.sh"

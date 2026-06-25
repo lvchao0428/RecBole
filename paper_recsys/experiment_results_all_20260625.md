@@ -1,6 +1,6 @@
 # 实验结果汇总 2026-06-25
 
-> **更新**: 2026-06-25 17:30 CST（5090 实查）  
+> **更新**: 2026-06-25 19:30 CST（5090 实查）  
 > **状态文档**: [`experiment_status_20260625.md`](experiment_status_20260625.md)  
 > **分析与规划**: [`experiment_plan_20260625.md`](experiment_plan_20260625.md)
 
@@ -13,7 +13,7 @@
 | Book-Crossing (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
 | Grocery (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
 | **UniSRec Beauty (3 configs, seed=2024)** | ✅ 完成 | 6/25 06:36；Base 作外部 text baseline |
-| Grocery SASRec multiseed (2025/2026/42 × 4) | 🔄 运行中 | 2025/2026 ✅；seed42 ID ✅，TF-IDF 进行中 |
+| Grocery SASRec multiseed (2025/2026/42 × 4) | 🔄 运行中 | 2025/2026 ✅；seed42 **MV 进行中**（ID/TF-IDF/LLM ✅） |
 | GRU4Rec (第二 backbone) | 📋 计划中 | pipeline 完成后 |
 
 ---
@@ -173,13 +173,101 @@
 
 ---
 
-## Grocery multiseed 进展（5090 · 2026-06-25 17:10）
+## Grocery multiseed 完整指标（5090 · test @10）
 
-| Seed | ID | TF-IDF | TF-IDF+LLM | MV | 状态 |
-|------|-----|--------|------------|-----|------|
-| 2024 | ✅ | ✅ | ✅ | ✅ | 见上文 § Grocery |
-| 2025 | ✅ | ✅ 2.92% | ✅ 2.94% | ✅ **3.03%** | 完成 |
-| 2026 | ✅ | ✅ 2.92% | ✅ 2.96% | ✅ **3.02%** | 完成 |
-| 42 | ✅ 17:08 | 🔄 运行中 | ⏳ | ⏳ | 进行中 |
+> 协议: phaseb50 · full ranking · stratified eval · 与 seed=2024 同 hyperparam  
+> 来源: `run_metrics/20260625-*` + seed=2024 见 § Grocery
 
-**结论（2025/2026）**: MV MRR@10 ≈ 3.02–3.03%，与 seed=2024（3.01%）一致，第三域 multiseed 形态稳定。
+### 总体 MRR@10 / HR@10 / NDCG@10
+
+| Config | seed=2024 | seed=2025 | seed=2026 | seed=42 | **4-seed mean±std** |
+|--------|-----------|-----------|-----------|---------|---------------------|
+| ID-only | 2.08 / 6.36 / 3.09 | 2.08 / 6.36 / — | 2.08 / 6.36 / — | 2.08 / 6.36 / — | **2.08±0.00 / 6.36±0.00** |
+| TF-IDF | 2.93 / 5.77 / 3.59 | 2.92 / 5.77 / — | 2.92 / 5.73 / — | 2.91 / 5.79 / — | **2.92±0.01 / 5.77±0.03** |
+| TF-IDF+LLM | 2.95 / 5.83 / 3.63 | 2.94 / 5.81 / — | 2.96 / 5.81 / — | 2.97 / 5.80 / — | **2.96±0.01 / 5.81±0.02** |
+| MV-Align | 3.01 / 6.02 / 3.71 | 3.03 / 6.06 / — | 3.02 / 6.06 / — | 🔄 进行中 | **3.02±0.01 / 6.05±0.02**† |
+
+† seed=42 MV 预计 ~22:00 完成；mean±std 为 2024–2026 三 seed 已出结果。
+
+### 分层 MRR@10（test）
+
+| Config | Stratum | 2024 | 2025 | 2026 | 42 |
+|--------|---------|------|------|------|-----|
+| ID-only | new / few / freq | 0.62 / 1.18 / 3.73 | 0.59 / 1.29 / 3.03‡ | 同左量级 | 同左量级 |
+| TF-IDF | new / few / freq | 0.85 / 1.80 / 5.20 | 0.84 / 1.73 / 5.03 | 0.84 / 1.73 / 5.03 | 0.82 / 1.80 / 5.20 |
+| TF-IDF+LLM | new / few / freq | 0.88 / 1.77 / 5.26 | 0.87 / 1.73 / 5.26 | 0.84 / 1.73 / 5.26 | 0.87 / 1.80 / 5.26 |
+| MV-Align | new / few / freq | 0.86 / 1.78 / 5.38 | 0.87 / 1.73 / 5.26 | 0.86 / 1.78 / 5.38 | 🔄 |
+
+‡ seed=2025 ID valid 分层；test 分层与 2024 接近。
+
+### 分层 HR@10（test · 0625 强调 narrow gap）
+
+| Config | Stratum | 2024 | 2025 | 2026 | 42 |
+|--------|---------|------|------|------|-----|
+| ID-only | new / few / freq | 1.56 / 3.33 / 11.67 | 1.28 / 3.20 / 8.44 | 同量级 | 同量级 |
+| TF-IDF | new / few / freq | 1.32 / 3.12 / 10.57 | 1.30 / 3.09 / 10.98 | 1.28 / 3.09 / 10.98 | 1.28 / 3.12 / 10.57 |
+| TF-IDF+LLM | new / few / freq | 1.31 / 3.15 / 10.70 | 1.30 / 3.09 / 10.98 | 1.29 / 3.09 / 10.98 | 1.38 / 3.12 / 10.57 |
+| MV-Align | new / few / freq | 1.32 / 3.19 / 11.09 | 1.46 / 3.09 / 10.98 | 1.36 / 3.19 / 11.09 | 🔄 |
+
+### Grocery multiseed 结论（对齐 `0625zhidao.txt`）
+
+1. **MRR/NDCG 稳**: MV MRR@10 三 seed **3.01–3.03%**，std ≈ 0.01；相对 ID **+45%**（2.08→3.02）。
+2. **HR narrow gap**: ID HR@10=**6.36%**；text 列 HR **5.73–5.83%**（−8~−10%）；MV **6.02–6.06%**（相对 ID **−5%**，相对 TF-IDF **+5%**）→ 典型 MRR–HR trade-off + MV 部分回补。
+3. **第三域主表**: Grocery 可作为 WSDM 主文第三数据集（优于 BC 作 sole 第三域）。
+4. **参数透明**: 四配置均复刻 Beauty balanced default，无 per-dataset 重调。
+
+### 流水线状态（19:30）
+
+| Step | 状态 | 完成时间 |
+|------|------|----------|
+| UniSRec Beauty ×3 | ✅ | 6/25 06:36 |
+| Grocery 2025 ×4 | ✅ | 6/25 11:42 |
+| Grocery 2026 ×4 | ✅ | 6/25 16:48 |
+| Grocery 42 ID/TF-IDF/LLM | ✅ | 6/25 19:10 |
+| Grocery 42 MV | 🔄 GPU ~52% | 预计 ~22:00 |
+
+---
+
+## 后续实验优先级（`0625zhidao.txt` · 2026-06-25）
+
+> 原则：**收敛做** — 第三域 multiseed → 机制分析 → 轻量补实验；不把 UniSRec 改造版当新主线。
+
+| 优先级 | 任务 | 类型 | 状态 | 说明 |
+|--------|------|------|------|------|
+| **P0** | Grocery 4-seed 主表定稿 | 等 pipeline | 🔄 | seed42 MV 今晚完成 → 更新 mean±std |
+| **P1a** | Cross concentration 图 | 分析 · 不占 GPU | 📋 | Beauty: Top-20/100 Gini/entropy/head share |
+| **P1b** | Gate 分桶分析 | 分析 | 📋 | new/few/freq × 4 view 平均 gate |
+| **P1c** | Case study 2–3 例 | 分析 | 📋 | new/tail item Top-K 变化 |
+| **P1d** | Coverage_new@10 + paired t-test | 分析 | ⚠️ 数据有、未汇总 | **t-test 已有**；Coverage 提取即可 |
+| **P1e** | Grocery/BC 分层表进主文 | 写作 | 部分 ✅ | 本文 § 已更新 |
+| **P2a** | UniSRec Base **Toys**（1 seed） | 训练 · 可选 | 📋 | 回应 competitiveness；~1.6h |
+| **P2b** | BC 小表进 appendix | 写作 | ✅ 数据已有 | boundary / external stress test |
+| **P3a** | GRU4Rec + MV Beauty/Toys | 训练 · 空档 | 📋 | 第二 backbone sanity，非 text baseline |
+| **P3b** | UniSRec AlignV3/MV | appendix | ✅ Beauty 已有 | **portability only**，不进主表 |
+| **P4** | all-MiniLM 第二 encoder | 训练 | 📋 | encoder ablation，优先级最低 |
+
+**不建议现在做**: UniSRec+cross+align+MV 扩到多数据集；S3-Rec/BERT4Rec 大 baseline；BC multiseed 大网格。
+
+**WSDM 主文最小集合**（0625）:
+- 数据集: Beauty + Toys + **Grocery**（4-seed）+ BC appendix 小表
+- 主表行: ID / TF-IDF / LLM / MV-Align + **UniSRec Base** 外部 baseline
+- 机制节: concentration + gate + case study（0617 三类）
+- 叙事: MRR/NDCG 稳、HR narrow gap；超参 shared-default 透明
+
+---
+
+## 10. 主表与 0617/0618 补充指标 — 数据能否找回
+
+| 内容 | 位置 | 状态 | 是否需复跑 |
+|------|------|------|-----------|
+| Beauty/Toys 主表 4×4 seed | `paper_recsys/seed{42,2024,2025,2026}.txt` | ✅ 本地+5090 | **否** |
+| mean±std + seed t-test | `main_table.txt` / `compute_table_stats.py` | ✅ 可重算 | 否 |
+| Grocery / BC / UniSRec | `run_metrics/*.txt` | ✅ 见上文各节 | 否（Grocery 42 MV 进行中） |
+| **Coverage_new@10** | seed 文件列 + run_metrics JSON | ✅ 有原始值 | **否**（需提取脚本） |
+| **per-user paired t-test** | `saved/peruser/*_topk.npy` | ✅ Beauty/Toys 已验证 | **否** |
+| **Cross concentration** | `save_test_scores` 输出 | ❌ 从未保存 | **是** · Beauty 3 配置 ×1 seed |
+| **Gate 分桶** | MV checkpoint | ⚠️ ckpt 有、脚本无 | **否训练** · 写后处理脚本 |
+| **Case study Top-K** | peruser topk 或 scores | ⚠️ 仅 LLM vs MV | 部分可复用；完整需 scores |
+
+完整盘点与最小复跑方案：[`experiment_plan_20260625.md`](experiment_plan_20260625.md) **§9**。
+

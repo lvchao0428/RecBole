@@ -43,3 +43,6 @@ for SEED in "${GROCERY_SEEDS[@]}"; do
   done
 done
 log "======== Pipeline resume complete ========"
+
+log ">>> Chaining Phase 3: mechanism + supplemental analysis"
+bash "$ROOT/run_5090_post_main_pipeline_20260625.sh"

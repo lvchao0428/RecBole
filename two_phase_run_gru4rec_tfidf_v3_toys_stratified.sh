@@ -17,7 +17,10 @@ METRIC_BASELINE=${METRIC_BASELINE:-0.0272}
 
 SEED="${SEED:-2025}"
 
-
+BATCH_CFG=""
+if [[ -n "${TRAIN_BATCH_SIZE:-}" ]]; then
+  BATCH_CFG="'train_batch_size': ${TRAIN_BATCH_SIZE}, 'eval_batch_size': ${EVAL_BATCH_SIZE:-${TRAIN_BATCH_SIZE}}, "
+fi
 
 python scripts/two_phase_train.py \
 
@@ -27,7 +30,7 @@ python scripts/two_phase_train.py \
 
 	--config_files "gru4rec_align_toys_base_stratified_v3.yaml" \
 
-	--config_dict "{'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
+	--config_dict "{${BATCH_CFG}'align_weight': 0.1, 'cold_text_boost': 3.0, 'infer_boost': 0.6, 'cold_threshold': 10}" \
 
 	--gpu_id $GPU_ID \
 

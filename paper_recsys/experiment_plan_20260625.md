@@ -1,7 +1,7 @@
 # WSDM 实验分析与规划（2026-06-25）
 
 > **来源**: `0617zhidao.txt` · `0618zhidao.txt` · `0625zhidao.txt` · `0201/0215/0311zhidao`  
-> **更新**: 2026-06-25 17:30 CST（5090 实查 + 本地整理）  
+> **更新**: 2026-06-25 19:30 CST（5090 实查 + 本地整理）  
 > **关联**: [`experiment_status_20260625.md`](experiment_status_20260625.md) · [`experiment_results_all_20260625.md`](experiment_results_all_20260625.md)
 
 ---
@@ -55,26 +55,29 @@ WSDM 版定位：**full-ranking 下文本特征、cross、alignment 如何影响
 
 | 维度 | 已完成 | 还缺 |
 |------|--------|------|
-| Beauty/Toys 主表 4-seed | ✅ | paired t-test 汇总、Coverage 进表 |
-| Grocery 第三域 | 2024/2025/2026 ✅，42 🔄 | 4-seed mean±std |
+| Beauty/Toys 主表 4-seed | ✅ seed 文件 + main_table | Coverage 进表（可提取）；机制图 |
+| Grocery 第三域 | 2024–2026 ✅，42 MV 🔄 | 4-seed mean±std 定稿 |
 | BC appendix | seed2024 phaseb50 ✅ | 小表 + boundary 叙事 |
 | UniSRec 外部 baseline | Beauty Base ✅ | Toys Base（可选） |
-| 机制图（0617 三类） | 工具在 repo | Beauty 上系统跑一遍 |
+| per-user t-test | ✅ npy 已有，脚本可跑 | 写入论文脚注 |
+| 机制图（0617 三类） | 工具在 repo | **scores 未保存** → 见 plan §9.5 |
 | GRU4Rec 第二 backbone | 📋 | 空档再补 |
+
+> 完整数据盘点见 [`experiment_plan_20260625.md`](experiment_plan_20260625.md) **§9**。
 
 ---
 
-## 3. 当前 5090 进度（2026-06-25 17:30）
+## 3. 当前 5090 进度（2026-06-25 19:30）
 
 ```
 [✅] UniSRec Beauty 三配置 seed=2024        6/25 06:36
 [✅] Grocery multiseed 2025 ×4               6/25 11:42
 [✅] Grocery multiseed 2026 ×4               6/25 16:48
-[🔄] Grocery multiseed 42                    ID ✅ 17:08 · TF-IDF 运行中
+[🔄] Grocery multiseed 42                    ID/TF-IDF/LLM ✅ · MV 19:10 起
 ```
 
 **流水线**: `run_5090_main_pipeline_20260625_resume.sh`  
-**预计**: seed=42 剩余 ~5h → 今晚 ~22:00 前后 pipeline 完成
+**预计**: seed=42 MV ~2.7h → pipeline **今晚 ~22:00** 完成
 
 ---
 
@@ -138,7 +141,7 @@ WSDM 版定位：**full-ranking 下文本特征、cross、alignment 如何影响
 | 数据集 | 角色 | 状态 |
 |--------|------|------|
 | Beauty + Toys | 主表（Amazon 两域，4-seed） | ✅ |
-| **Grocery** | **第三域主表** | multiseed 🔄 |
+| **Grocery** | **第三域主表** | multiseed 11/12 🔄 |
 | Book-Crossing | external stress test / appendix | seed2024 ✅，不必 multiseed |
 | Food | 非 Amazon 对照 | ✅ |
 | UniSRec Base | 外部 text-enhanced baseline | Beauty ✅ |
@@ -172,3 +175,142 @@ WSDM 版定位：**full-ranking 下文本特征、cross、alignment 如何影响
 | Gate 权重 | checkpoint `text_view_gate_params` · `markdown/GATE_COMPARISON_SUMMARY.md` |
 | 敏感性 Pareto | `paper_recsys/scripts/plot_sensitivity.py` |
 | 分层 metrics 拉取 | `tools/pull_bc_metrics.py` · run_metrics JSON |
+
+---
+
+## 9. 数据资产盘点（0617/0618 指标 · 5090 实查 2026-06-25）
+
+> 结论先说：**Beauty/Toys 主表四 seed 完整可恢复**；Grocery/BC/UniSRec 在 `run_metrics/` JSON 中可拉；**0617 三类机制图大多需后处理或轻量复跑**，不是主表缺失。
+
+### 9.1 指标需求 ↔ 数据来源对照
+
+| 指标/分析 | 0617/0618 要求 | 数据在哪 | 能否直接拿到 | 若缺失怎么办 |
+|-----------|----------------|----------|--------------|--------------|
+| **主表 overall** | MRR/NDCG/HR@10 | `seed{42,2024,2025,2026}.txt` | ✅ 本地+5090 均有 | `compute_table_stats.py` 重算 |
+| **主表分层** | MRR/NDCG/HR × new/few/freq | 同上 seed 文件 | ✅ | 同上 |
+| **4-seed mean±std** | 0625/0311 | `main_table.txt` | ✅ 5090 可重算 | — |
+| **seed 级 t-test** | 0311 sanity | `compute_table_stats.py` 内置 | ✅ 已出 MV vs LLM/TF-IDF | 注意 n=4 低 power |
+| **per-user t-test** | 0311/0402 主文星号 | `saved/peruser/*_topk.npy` | ✅ **已有** Beauty/Toys | 见 §9.4 |
+| **Coverage_new@10** | 0201/0215 长尾 | seed 文件列 + `run_metrics` JSON | ✅ 有原始值 | 需写提取脚本进 appendix |
+| **Grocery 第三域** | 0625 | `run_metrics/20260625-*` + 2024 旧文件 | ✅ 2024–2026；42 MV 🔄 | pipeline 完成后汇总 |
+| **BC appendix** | 0618 boundary | `run_metrics/*book*` Phase-B | ✅ seed2024 四配置 | 已在 results 文档 |
+| **UniSRec 外部 baseline** | 0625 | `run_metrics/20260625-*UniSRec*` | ✅ Beauty seed2024 三配置 | Toys 可选补跑 |
+| **Cross concentration** | 0617 机制图① | `ablation_study_doc/scores/*.npy` | ❌ **从未保存** | **轻量复跑** + `--save_test_scores` |
+| **Gate 分桶** | 0617 机制图② | MV checkpoint `.pth` | ⚠️ 有 ckpt、**无分桶脚本** | **写 inference 脚本**，不必重训 |
+| **Case study Top-K** | 0617 机制图③ | `saved/peruser/*_topk.npy` | ⚠️ 仅 LLM vs MV | 补 ID/TF-IDF topk 或 scores |
+| **超参透明** | 0618 | yaml + phase 日志 | ✅ Grocery/BC 复刻 balanced | 写 appendix search protocol |
+
+### 9.2 主表 Beauty/Toys — 完整可用
+
+**权威来源**：`paper_recsys/seed42.txt` · `seed2024.txt` · `seed2025.txt` · `seed2026.txt`
+
+- 本地与 5090 **均存在**（各 13 行：Beauty 4 配置 + Toys 4 配置 + 表头）
+- 每行含 **80+ 列**：overall + 分层 + **Coverage_new/few/freq**（header 里有，但 `compute_table_stats.py` 目前只导出 12 列主表指标）
+- **不在** `run_metrics/*.txt` JSON 里（Beauty/Toys SASRec 历史跑在 seed 文件时代完成）
+
+**验证命令**（5090）：
+```bash
+cd paper_recsys && source ../scripts/recbole_env.sh && python compute_table_stats.py
+# → 输出 main_table.txt，Beauty/Toys 4-seed mean±std 与 seed 级 t-test
+```
+
+**Beauty MV-Align 4-seed mean（5090 重算）**：MRR@10 **3.19±0.02%**，HR@10 **5.79±0.04%**，MRR_new **1.12±0.03%**
+
+### 9.3 扩展数据集 — run_metrics JSON
+
+| 数据集 | run_metrics 条目 | 四配置齐全？ | 备注 |
+|--------|------------------|-------------|------|
+| Grocery | 28+ 条（0624–0625） | ✅ 2024–2026；42 缺 MV | MV seed42 今晚完成 |
+| Book-Crossing | 20+ 条 | ✅ seed2024 phaseb50 | ID/TF-IDF/LLM/MV Phase-B 均有 |
+| UniSRec Beauty | 3 条 Phase-A | Base/AlignV3/AlignMV | 无 SASRec 对照 JSON |
+| Food | 5 条 | 部分 | appendix 对照，非主表 |
+
+**Grocery Coverage_new@10 示例（MV test）**：2024 **12.26%** · 2025 **13.32%** · 2026 **12.75%**
+
+### 9.4 per-user 显著性 — 已有，可直接写进论文
+
+5090 上 `saved/peruser/` 已有 4 个文件（seed=2025 重跑时生成）：
+
+| 文件 | 用途 |
+|------|------|
+| `beauty_tfidf_llm_topk.npy` | Beauty baseline top-k |
+| `beauty_mv_7b_topk.npy` | Beauty MV top-k |
+| `toys_tfidf_llm_topk.npy` | Toys baseline |
+| `toys_mv_7b_topk.npy` | Toys MV |
+
+**已验证可跑**（5090）：
+```bash
+python paper_recsys/compute_peruser_significance.py \
+  --model_a saved/peruser/beauty_tfidf_llm_topk.npy \
+  --model_b saved/peruser/beauty_mv_7b_topk.npy \
+  --label_a "TF-IDF+LLM" --label_b "MV-Align(7B)"
+# Beauty @10: HR p=1.56e-05***, NDCG p=7.3e-04***, MRR p=0.032*
+```
+
+Toys @10 同样显著（MRR p≈0.05*，HR/NDCG p<0.001**）。
+
+### 9.5 0617 机制分析 — 缺口与最小复跑方案
+
+#### ① Cross top-concentration（Gini / entropy / head share）
+
+| 状态 | ❌ 无数据 |
+|------|----------|
+| 原因 | 历史训练**未加** `--save_test_scores`；5090 `find` 无 `*test_score*` / `scores/` |
+| **最小复跑** | Beauty · **seed=2024** · 3 配置：**ID / TF-IDF / MV** · eval only 或短 phase-B + `--save_test_scores` |
+| 工具 | `ablation_study_doc/visualize_ablation.py --plot-score-dist` |
+| 预估 | ~3 × 1.5h ≈ **4–5h GPU**（可串行） |
+
+#### ② View/Gate 分桶（new/few/freq × 4 view）
+
+| 状态 | ⚠️ checkpoint 有，分析脚本无 |
+|------|---------------------------|
+| 已有 | `saved/peruser_runs/beauty_mv_7b/*.pth`（seed2025）；模型内 `text_view_gate_params` |
+| **不需要完整重训** | 写脚本：load ckpt → 按 item 频次桶聚合 4 view gate |
+| 预估 | **0 GPU**（纯后处理，半天开发） |
+
+#### ③ Case study（TF-IDF / LLM / MV Top-K 变化）
+
+| 状态 | ⚠️ 部分 |
+|------|--------|
+| 已有 | LLM vs MV 的 per-user topk（Beauty/Toys） |
+| 缺口 | ID-only、TF-IDF 单列的 Top-K 对比；或需 full score 挑 tail item |
+| **方案 A** | 从已有 topk 做 2 模型 case study（弱化版） |
+| **方案 B** | 同 ① 的 `save_test_scores` 跑 TF-IDF + MV + ID，离线挑 case |
+| 预估 | A=0h；B 并入 ① 复跑 |
+
+### 9.6 Coverage_new 进表 — 不需复跑
+
+- **Beauty/Toys**：从 `seed*.txt` 解析 `Coverage_new@10`（列在 header 中）
+- **Grocery/BC**：从 `run_metrics` JSON 的 `Coverage_new@10` 字段直接读
+- 动作：写一个 `extract_coverage.py` 汇总进 appendix 表（**0 GPU**）
+
+### 9.7 复跑优先级（仅机制/补充项）
+
+| 优先级 | 任务 | GPU | 说明 |
+|--------|------|-----|------|
+| **0** | 从 seed/run_metrics **提取 Coverage** | 0 | 今晚可做 |
+| **0** | **per-user t-test** 结果写入主表脚注 | 0 | 数据已有 |
+| **1** | Beauty **save_test_scores** ×3（ID/TF-IDF/MV） | ~5h | 0617 机制图①③ |
+| **2** | **Gate 分桶脚本** + 跑 beauty_mv ckpt | 0 | 0617 机制图② |
+| **3** | Case study 成图 | 0 | 依赖 1 或现有 topk |
+| **4** | UniSRec Base Toys（1 seed） | ~1.6h | 0625 可选 |
+| **5** | GRU4Rec Beauty+Toys **4 seed × 4 config** | ~60–80h | 第二 backbone；**已入 Phase 4 队列** |
+
+**5090 自动排队**（主 pipeline 结束后）:
+```bash
+# 已在跑的主 pipeline 结束后自动拉起（无需手动）:
+nohup bash run_5090_wait_and_post_pipeline_20260625.sh \
+  >> logs/wait_post_pipeline_20260625_nohup.log 2>&1 &
+
+# 或新跑完整 pipeline 时末尾已 chain:
+bash run_5090_main_pipeline_20260625.sh   # → Phase 3 自动执行
+```
+
+Phase 3 脚本: `run_5090_post_main_pipeline_20260625.sh`
+- 3A: `paper_recsys/run_post_analysis.sh`（Coverage / t-test / gate）
+- 3B: `run_beauty_mechanism_save_scores.sh`（eval-only scores）
+- 3C: `visualize_ablation.py` concentration 图
+- **4**: `run_gru4rec_v3_multiseed_beauty_toys.sh`（Beauty+Toys × seed{42,2024,2025,2026} × ID/TF-IDF/LLM/MV）
+
+**明确不需要为主表复跑**：Beauty/Toys 四 seed 四配置（seed 文件完整）；Grocery/BC 已有 run_metrics。
+
