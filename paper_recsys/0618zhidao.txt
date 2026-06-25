@@ -1,0 +1,11 @@
+就像前面同学说的，如果转WSDM的话，确实应该把文章从推荐核心算法新模型稍微转成full-ranking下文本特征、cross、alignment如何影响序列推荐行为的机制研究。这样原创性压力会小一些，但对叙事、分析、现象解释的要求会更高。现阶段的话，建议同学不要再围绕是不是SOTA来想，而是围绕发现了什么现象、为什么会这样、什么场景下该怎么选来改。
+
+SE Block这里，我建议这次可以不要作为核心组件继续强调。如果它效果marginal，就把它降级成一个轻量校准模块或者implementation detail，甚至WSDM版可以考虑从主方法图里弱化，只在ablation里说它contribution small。这个不丢人，反而和同学现在的定位一致。我们不是堆所有模块，而是在shared scaffold下识别哪些text components真正重要。主线应该是normalization/per-view L2、multi-view text、cross、alignment这几件事，这样SE不要抢叙事空间。
+
+关于LLM召回这块，我觉得同学不用和semantic ID+beam search那条主流generative retrieval路线正面竞争。这里不是要声称提出一个工业级召回引擎，而是在做full-catalog ranking/item scoring的分析，也就是在完整item space下，文本特征和显式交叉会如何改变候选覆盖、头部排序和长尾分配。语义ID+beam search是另一条生成式召回范式，这篇可以在related work里说complementary。建议同学不要再说自己用排序方式实现召回这种容易被抓的表述，改成full-ranking evaluation under a scoring-based sequential recommender会更稳。
+
+超参数这里，我强烈不建议不暴露，这个其实我们直播课最后两周也是和同学说过。三个数据集用三组参数是可以的，但必须说成同一搜索空间、同一验证协议、同一预算下的dataset-specific
+validation selection，而不是藏起来。WSDM reviewer对机制研究会更在意透明性，如果不写参数反而会被怀疑是调出来的。最好保留一个shared-default的结果作为sanity，主表用validation-selected，Appendix或repo给best params和搜索空间。这样既不牺牲结果也不显得黑盒。
+
+接下来我建议同学是可以把SE从贡献点降级。还一个是把召回表述改成full-ranking scoring，不和semantic ID/beam search正面对打。以及把超参写成transparent search
+protocol，不要隐藏。如果Book-Crossing的balanced参数效果一般，就不要强塞进主结论，可以放appendix或者repo当boundary case，说明在某些数据上multi-view不稳定，这反而支持这篇的机制分析而不是削弱它。

@@ -10,21 +10,21 @@ SEED="${SEED:-2024}"
 echo "Using GPU: $GPU_ID"
 echo "SEED: $SEED"
 echo "========================================="
-echo "UniSRec (transductive, no pretrain) - Beauty"
+echo "UniSRecAlignMultiViewV3 (+ Cross + Align + MV) - Beauty"
 echo "========================================="
 
 python scripts/two_phase_train.py \
-	--model UniSRec \
+	--model UniSRecAlignMultiViewV3 \
 	--dataset Amazon_Beauty \
-	--config_files "unisrec_beauty_stratified.yaml" \
+	--config_files "unisrec_align_multiview_v3_beauty_stratified.yaml" \
 	--config_dict "{'freeze_backbone': False}" \
 	--gpu_id $GPU_ID \
 	--phase_a_epochs 50 \
 	--phase_a_eval_step 5 \
 	--phase_a_valid_metric "MRR@10" \
 	--only_phase_a \
-	--checkpoint_dir "./saved/unisrec_beauty_stratified_seed${SEED}" \
+	--checkpoint_dir "./saved/unisrec_align_multiview_v3_beauty_stratified_seed${SEED}" \
 	--seed "$SEED" \
-	--variant_features "unisrec,transductive,beauty,stratified,seed_${SEED}" \
+	--variant_features "unisrec_align_multiview_v3,cross,align,mv,beauty,stratified,seed_${SEED}" \
 	--watchdog_disable \
 	--save

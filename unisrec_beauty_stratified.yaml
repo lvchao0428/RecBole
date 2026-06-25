@@ -17,8 +17,8 @@ temperature: 0.07
 n_exps: 8
 adaptor_dropout_prob: 0.2
 
-# Text embeddings (use LLM embeddings for UniSRec)
-item_text_emb_path: "dataset/Amazon_Beauty/item_text_emb.qwen3.base.npy"
+# Text embeddings (use same Qwen2.5-7B single-view as main table LLM column)
+item_text_emb_path: "dataset/Amazon_Beauty/item_text_emb.qwen2.5_7b.base.npy"
 
 dataset: Amazon_Beauty
 field_separator: "\t"

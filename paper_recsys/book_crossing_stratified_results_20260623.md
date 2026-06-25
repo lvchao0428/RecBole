@@ -1,6 +1,6 @@
 # book-crossing 分层指标汇总（5090 实拉）
 
-> 更新: 2026-06-23  
+> 更新: 2026-06-24 20:18（5090 实查 · phaseb50 四配置全部完成）  
 > 数据源: 5090 `run_metrics/` · 工具: `tools/pull_bc_metrics.py`  
 > 协议: TO 划分 + timestamp · full ranking · neg=100
 
@@ -10,10 +10,19 @@
 
 | 队列 | 状态 | 说明 |
 |------|------|------|
-| `run_5090_queue_bc_four_configs_phaseb50.sh` | **进行中** | 17:06 重启；step 1/4 **SASRecAlign 50ep seed=2024**（正确协议） |
-| 旧 v3 baseline (MultiViewV3) | 已停 | 16:26 错误队列，epoch~31 时被 kill |
+| `run_5090_queue_bc_four_configs_phaseb50.sh` | **✅ 完成** | 6/24 09:26；seed=2024 · phaseb50 四配置 |
+| `run_5090_queue_after_bc_grocery.sh` | **✅ 完成** | 6/24 17:59；已接 Grocery pipeline |
 
-当前 baseline 进度（17:16）：epoch **8/50**，~60s/epoch → ID 约 **~4h**，四配置合计 **~12–14h**。
+**BC phaseb50 全部完成（6/24 09:26）**
+
+| Step | 配置 | 状态 | 完成时间 | test MRR@10 | test HR@10 |
+|------|------|------|----------|-------------|------------|
+| 1 | ID SASRecAlign 50ep | ✅ | 17:57 | **1.95%** | 3.87% |
+| 2 | TF-IDF phaseb50 | ✅ | 20:45 | **2.20%** (+13%) | 3.65% |
+| 3 | TF-IDF+LLM phaseb50 | ✅ | 00:20 | **2.20%** (+13%) | 3.71% |
+| 4 | MV phaseb50 | ✅ | 09:26 | **2.27%** (+16%) | 3.87% |
+
+> ⚠️ Step 1 run_metrics 中 `seed=2020`（yaml 默认覆盖 CLI）；Step 2–4 seed=2024 已确认。
 
 ---
 
@@ -85,13 +94,24 @@ phaseb50 MV（6/22）Phase-B **未完成**（仅 1 ckpt，训练中断）。
 
 ---
 
-## 5. 待出结果（当前队列 seed=2024 · phaseb50）
+## 5. phaseb50 seed=2024 队列结果（✅ 完成）
 
-| Step | 配置 | 预期 |
-|------|------|------|
-| 1 | ID SASRecAlign 50ep | MRR ~1.9–2.0%（对齐 4 月 60ep） |
-| 2 | TF-IDF phaseb50 | MRR ~2.2% |
-| 3 | TF-IDF+LLM phaseb50 | ~2.2% |
-| 4 | MV phaseb50 | ~2.3% |
+### 5.1 Overall @10（test）
 
-跑完后: `python tools/pull_bc_metrics.py` 更新 §4。
+| Model | MRR@10 | HR@10 | vs ID (MRR) | run_metrics |
+|-------|--------|-------|-------------|-------------|
+| ID (50ep) | **1.95%** | 3.87% | — | `20260623-175744` |
+| TF-IDF | 2.20% | 3.65% | **+13%** | `20260623-204501` |
+| TF-IDF+LLM | 2.20% | 3.71% | **+13%** | `20260624-002001` |
+| MV | **2.27%** | 3.87% | **+16%** | `20260624-092622` |
+
+### 5.2 Stratified MRR@10（test · phaseb50 seed=2024）
+
+| Model | new [1,3) | few [3,10) | frequent [10,∞) |
+|-------|-----------|------------|-----------------|
+| ID | 1.09% | 2.04% | 3.93% |
+| TF-IDF | 1.42% (+30%) | 2.47% (+21%) | 4.26% (+8%) |
+| TF-IDF+LLM | 1.38% | 2.45% | 4.29% |
+| MV | **1.42%** | **2.44%** | **4.48%** |
+
+**对比 seed≈2025 Phase-B 40ep（§2）**: 四配置 MRR 与历史 run 一致（±0.07pp）；增益形态 **+13~16% MRR**，MV 略优于 TF-IDF（+0.07pp），仍远低于 Beauty +45%。**appendix 定性不变，不必 multiseed**。

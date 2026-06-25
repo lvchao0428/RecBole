@@ -60,4 +60,6 @@ from recbole.model.sequential_recommender.srgnn import SRGNN
 from recbole.model.sequential_recommender.stamp import STAMP
 from recbole.model.sequential_recommender.transrec import TransRec
 from recbole.model.sequential_recommender.unisrec import UniSRec
+from recbole.model.sequential_recommender.unisrecalignv3 import UniSRecAlignV3
+from recbole.model.sequential_recommender.unisrecalignmultiviewv3 import UniSRecAlignMultiViewV3
 from recbole.model.sequential_recommender.fearec import FEARec

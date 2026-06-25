@@ -114,68 +114,49 @@ METRIC_BASELINE: AUTO（从 ID valid MRR@10 解析）
 
 ## 5. 执行顺序 & 时间线
 
-### Phase 0 — 等 BC 队列结束（~12–14h，进行中）
+### ✅ 已完成（RUN_ID=`20260623_grocery` · seed=2024 · 6/24 17:59）
 
-当前 5090 GPU 被 BC phaseb50 占用。Grocery **不要并行抢 GPU**。
+| Step | 配置 | 完成时间 | 耗时 | test MRR@10 | test HR@10 |
+|------|------|----------|------|-------------|------------|
+| setup | dataset | 6/23 18:00 | — | — | — |
+| 1_emb | TF-IDF + Qwen 1v/4v | 12:53 | 3.4h | — | — |
+| 2_id | SASRecAlign 50ep（5090 fallback） | 13:13 | 20min | **2.08%** | **6.36%** |
+| 3_tfidf | two-phase | 14:07 | 54min | **2.93%** | 5.77% |
+| 4_llm | two-phase | 15:15 | 68min | **2.95%** | 5.83% |
+| 5_mv | two-phase | 17:59 | 2.7h | **3.01%** | 6.02% |
 
-### Phase 1 — 数据 + Embedding（Day 1 上午，~8h）
+> log10 ID（6/23 19:16）test MRR@10=2.08%；pipeline 中 log10 wait 失败，5090 重跑 ID 结果一致。  
+> 日志: `logs/5090_grocery_20260623_grocery/` · `logs/grocery_pipeline_history.log`
 
-```bash
-ssh charlie@www.ultrapp.online
-cd /home/charlie/project/RecBole
+### Phase 3 — 趋势判断 → **Go ✅**
 
-# 同步脚本后
-bash tools/setup_grocery_dataset.sh
-bash tools/gen_text_emb_grocery_qwen2.5_7b.sh   # nohup overnight OK
-python tools/verify_whiten.py dataset/Amazon_Grocery_and_Gourmet_Food  # 可选
-```
+| 指标 | Beauty 参考 | Grocery 实测 | 判定 |
+|------|-------------|--------------|------|
+| TF-IDF / ID (MRR@10) | ~1.45× | **1.41×** (2.93/2.08) | ✅ ≥1.30× |
+| MV / TF-IDF+LLM (MRR) | 显著 > | 3.01% > 2.95% | ✅ |
+| MV vs ID MRR 增益 | ~+45% | **+45%** | ✅ |
+| TF-IDF vs ID (HR@10) | +2.6% (5.56/5.42) | **−9.3%** (5.77/6.36) | ⚠️ trade-off |
+| MV vs ID (HR@10) | +6.8% (5.79/5.42) | **−5.3%** (6.02/6.36) | ⚠️ MV 部分收回 |
+| HR_few@10 | MV > TF-IDF | 3.19% > 3.12% | ✅ |
+| HR_freq@10 | MV ≈ ID | 11.09% vs 11.67% | ✅ 接近 |
 
-### Phase 2 — 四配置训练（Day 1 晚 ~ Day 2，~12–16h）
+→ **建议启动 Phase 4 multiseed**（2024/2025/2026/42 × 四配置）
 
-```bash
-RUN_ID=20260624_grocery SEED=2024 \
-  nohup bash run_5090_grocery_serial.sh \
-  > logs/exp_5090_grocery_20260624.log 2>&1 &
-```
+### Phase 4 — Multiseed（待启动）
 
-| Step | 配置 | 预估 |
-|------|------|------|
-| 2_id | SASRecAlign 50ep | ~1 h |
-| 3_tfidf | two-phase | ~3 h |
-| 4_llm | two-phase | ~3 h |
-| 5_mv | two-phase | ~3.5 h |
-
-### Phase 3 — 趋势判断（Day 2）
-
-**Go / No-Go 标准**（对比 Beauty 主表 seed=2024）:
-
-| 指标 | Beauty 参考 | Grocery 目标 |
-|------|-------------|--------------|
-| TF-IDF / ID (MRR@10) | ~1.45× | **≥1.30×** |
-| MV / TF-IDF+LLM | 显著 > | **MV MRR > LLM MRR** |
-| new/few MRR 提升 | 明显 | TF-IDF new MRR > 2× ID |
-
-- **Go** → multiseed（2024/2025/2026/42，仿主表 4-seed）
-- **No-Go** → 检查 embedding whiten / infer_boost；Grocery 仍比 Food/BC 更接近 Beauty，优先调参而非换域
-
-### Phase 4 — Multiseed（Day 3–5，~48h）
-
-仅 trend OK 后启动；4 seeds × 4 configs ≈ **2–3 天**。
+4 seeds × 4 configs ≈ **2–3 天**。**当前状态: 待启动**。
 
 ---
 
 ## 6. 5090 资源调度建议
 
 ```
-现在 ────────────── BC phaseb50 四配置 (~14h)
-BC 完成 ─────────── Grocery setup + embedding (~8h, 可 nohup)
-embedding OK ────── Grocery 四配置 seed=2024 (~14h)
-trend OK ────────── Grocery multiseed (~48h)
+6/24 09:26 ──────── BC phaseb50 四配置 ✅ 完成
+6/24 17:59 ──────── Grocery seed=2024 四配置 ✅ 完成（Go）
+下一步 ──────────── Grocery multiseed（4 seeds × 4 configs，~2–3 天）
 ```
 
-**总日历**: 约 **4–5 天**（单卡 5090，串行）。
-
-BC 队列跑完后不必 multiseed（已定性为 appendix）；GPU 让给 Grocery。
+**5090 GPU 当前空闲**（2026-06-24 20:18）。BC appendix 不必 multiseed。
 
 ---
 
@@ -192,18 +173,18 @@ BC 队列跑完后不必 multiseed（已定性为 appendix）；GPU 让给 Groce
 
 ## 8. 待创建文件 checklist
 
-- [ ] `tools/setup_grocery_dataset.sh`
-- [ ] `tools/prepare_grocery_item_mapping.py`（或 inline 于 gen script）
-- [ ] `tools/gen_text_emb_grocery_qwen2.5_7b.sh`
-- [ ] `sasrec_baseline_50ep_grocery_stratified.yaml`
-- [ ] `sasrec_align_grocery_base_stratified_v3.yaml`
-- [ ] `sasrec_align_grocery_qwen_stratified_v3.yaml`
-- [ ] `sasrec_align_multi_view_v3_grocery_stratified_7b.yaml`
-- [ ] `run50epBase_grocery_stratified.sh`
-- [ ] `two_phase_run_tfidf_v3_grocery_stratified.sh`
-- [ ] `two_phase_run_tfidf_llm_v3_grocery_stratified.sh`
-- [ ] `two_phase_run_multiview_v3_grocery_stratified_7b.sh`
-- [ ] `run_5090_grocery_serial.sh`
+- [x] `tools/setup_grocery_dataset.sh`
+- [x] `tools/prepare_grocery_item_mapping.py`（inline 于 gen script）
+- [x] `tools/gen_text_emb_grocery_qwen2.5_7b.sh`
+- [x] `sasrec_baseline_50ep_grocery_stratified.yaml`
+- [x] `sasrec_align_grocery_base_stratified_v3.yaml`
+- [x] `sasrec_align_grocery_qwen_stratified_v3.yaml`
+- [x] `sasrec_align_multi_view_v3_grocery_stratified_7b.yaml`
+- [x] `run50epBase_grocery_stratified.sh`
+- [x] `two_phase_run_tfidf_v3_grocery_stratified.sh`
+- [x] `two_phase_run_tfidf_llm_v3_grocery_stratified.sh`
+- [x] `two_phase_run_multiview_v3_grocery_stratified_7b.sh`
+- [x] `run_5090_grocery_pipeline.sh` + `run_5090_queue_after_bc_grocery.sh`
 
 **实现策略**: 批量 `sed 's/Amazon_Toys_and_Games/Amazon_Grocery_and_Gourmet_Food/g'` 从 Toys yaml/script fork，比从 Food fork 更干净（Grocery 也是 title+categories Amazon 评论域）。
 
