@@ -1,7 +1,40 @@
-# Saved models
+# Saved models & training artifacts
 /saved*
+saved/
 *.pth
+*.pt
 run_metrics/
+logs/
+log/
+*.log
+ray_log*
+
+# Large embedding / dataset binaries (never commit)
+*.npy
+*.npz
+*.pkl
+*.safetensors
+*.h5
+*.hdf5
+*.ckpt
+*.bin
+**/item_text_emb*.npy
+**/*_4views/
+**/*_4views_no_whiten/
+ProcessedDatasets/
+release/dataset/
+
+# macOS / editor junk
+.DS_Store
+._*
+.idea/
+.vscode/
+
+# Pipeline runtime markers (5090-local)
+.gru4rec_owner_*
+**/5090_pipeline_all_complete.done
+
+# Saved models (legacy paths)
 dataset/Amazon_All_Beauty/
 dataset/Amazon_All_Beauty.zip
 dataset/Amazon_All_Beauty/
@@ -20,15 +53,10 @@ dataset/yelp/
 dataset/yelp2018.zip
 dataset/yelp2018/
 dataset/
-.vscode/
-.idea/
 *.pyc
-*.log
 log_tensorboard
-saved/
 *.lprof
 *.egg-info/
 docs/build/
 wandb/*
-/ray_log*
-release/
+/release/

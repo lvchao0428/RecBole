@@ -28,6 +28,7 @@ if [[ "$USE_LOG10" == "1" ]]; then
     log "⚠️ log10 start failed — falling back to full 5090 run"
     USE_LOG10=0
   }
+  sleep 2
 fi
 
 if [[ "$USE_LOG10" == "1" ]]; then

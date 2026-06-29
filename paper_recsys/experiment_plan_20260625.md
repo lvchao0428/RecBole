@@ -253,20 +253,17 @@ Toys @10 同样显著（MRR p≈0.05*，HR/NDCG p<0.001**）。
 
 #### ① Cross top-concentration（Gini / entropy / head share）
 
-| 状态 | ❌ 无数据 |
-|------|----------|
-| 原因 | 历史训练**未加** `--save_test_scores`；5090 `find` 无 `*test_score*` / `scores/` |
-| **最小复跑** | Beauty · **seed=2024** · 3 配置：**ID / TF-IDF / MV** · eval only 或短 phase-B + `--save_test_scores` |
-| 工具 | `ablation_study_doc/visualize_ablation.py --plot-score-dist` |
-| 预估 | ~3 × 1.5h ≈ **4–5h GPU**（可串行） |
+| 状态 | ✅ **已完成 6/25 22:03** |
+|------|--------------------------|
+| 产出 | `ablation_study_doc/scores/beauty_{id_only,tfidf_v3,mv_v3}_seed2024_mechanism_phase_b_topk_scores.npy` |
+| 图 | `ablation_study_doc/figures/id_vs_tfidf/` · `tfidf_vs_mv/score_distribution_real.png` |
+| 备注 | Phase 3B 曾 OOM → `trainer.py` 改为 top-100 增量保存 |
 
 #### ② View/Gate 分桶（new/few/freq × 4 view）
 
-| 状态 | ⚠️ checkpoint 有，分析脚本无 |
-|------|---------------------------|
-| 已有 | `saved/peruser_runs/beauty_mv_7b/*.pth`（seed2025）；模型内 `text_view_gate_params` |
-| **不需要完整重训** | 写脚本：load ckpt → 按 item 频次桶聚合 4 view gate |
-| 预估 | **0 GPU**（纯后处理，半天开发） |
+| 状态 | ✅ **已完成 6/25 22:03** |
+|------|--------------------------|
+| 产出 | Phase 3A · `paper_recsys/analyze_mv_gate_buckets.py` |
 
 #### ③ Case study（TF-IDF / LLM / MV Top-K 变化）
 
@@ -288,29 +285,23 @@ Toys @10 同样显著（MRR p≈0.05*，HR/NDCG p<0.001**）。
 
 | 优先级 | 任务 | GPU | 说明 |
 |--------|------|-----|------|
-| **0** | 从 seed/run_metrics **提取 Coverage** | 0 | 今晚可做 |
-| **0** | **per-user t-test** 结果写入主表脚注 | 0 | 数据已有 |
-| **1** | Beauty **save_test_scores** ×3（ID/TF-IDF/MV） | ~5h | 0617 机制图①③ |
-| **2** | **Gate 分桶脚本** + 跑 beauty_mv ckpt | 0 | 0617 机制图② |
-| **3** | Case study 成图 | 0 | 依赖 1 或现有 topk |
+| ~~**0**~~ | ~~Coverage 提取~~ | — | ✅ Phase 3A |
+| ~~**0**~~ | ~~per-user t-test~~ | — | ✅ Phase 3A |
+| ~~**1**~~ | ~~Beauty save_test_scores ×3~~ | — | ✅ Phase 3B+3C |
+| ~~**2**~~ | ~~Gate 分桶~~ | — | ✅ Phase 3A |
+| **3** | Case study 成图 | 0 | 写作阶段；mechanism scores 已有 |
 | **4** | UniSRec Base Toys（1 seed） | ~1.6h | 0625 可选 |
-| **5** | GRU4Rec Beauty+Toys **4 seed × 4 config** | ~60–80h | 第二 backbone；**已入 Phase 4 队列** |
+| **5** | GRU4Rec Beauty+Toys 4×4 | 🔄 | **Phase 4 进行中** · 5090 1/16 + log10 1/16 |
 
-**5090 自动排队**（主 pipeline 结束后）:
+**5090 Phase 4 当前**（6/25 22:09 起）:
 ```bash
-# 已在跑的主 pipeline 结束后自动拉起（无需手动）:
-nohup bash run_5090_wait_and_post_pipeline_20260625.sh \
-  >> logs/wait_post_pipeline_20260625_nohup.log 2>&1 &
+# 5090 text（LLM+MV）— 与 log10 baseline 并行
+nohup bash run_5090_phase4_text_only.sh >> logs/phase4_text_only_nohup.log 2>&1 &
 
-# 或新跑完整 pipeline 时末尾已 chain:
-bash run_5090_main_pipeline_20260625.sh   # → Phase 3 自动执行
+# log10 baseline 监控见 experiment_status_log10_20260625.md
 ```
 
-Phase 3 脚本: `run_5090_post_main_pipeline_20260625.sh`
-- 3A: `paper_recsys/run_post_analysis.sh`（Coverage / t-test / gate）
-- 3B: `run_beauty_mechanism_save_scores.sh`（eval-only scores）
-- 3C: `visualize_ablation.py` concentration 图
-- **4**: `run_gru4rec_v3_multiseed_beauty_toys.sh`（Beauty+Toys × seed{42,2024,2025,2026} × ID/TF-IDF/LLM/MV）
+Phase 3 脚本: `run_5090_post_main_pipeline_20260625_resume.sh` — **3A–3C ✅ 6/25 22:03**
 
 **明确不需要为主表复跑**：Beauty/Toys 四 seed 四配置（seed 文件完整）；Grocery/BC 已有 run_metrics。
 

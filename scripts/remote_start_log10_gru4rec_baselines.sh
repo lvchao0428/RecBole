@@ -19,10 +19,16 @@ bash "$ROOT/scripts/verify_log10_datasets.sh" || {
   bash "$ROOT/scripts/verify_log10_datasets.sh"
 }
 
+if ssh "$LOG10_SSH" "pgrep -f 'run_log10_gru4rec_baselines|two_phase_train.*GRU4Rec' >/dev/null"; then
+  echo ">>> log10 GRU4Rec already running — skip duplicate start"
+  ssh "$LOG10_SSH" "pgrep -af 'run_log10_gru4rec_baselines|two_phase_train.*GRU4Rec' | head -3"
+  exit 0
+fi
+
 echo ">>> Starting log10 GRU4Rec baselines (all seeds, background)"
-ssh "$LOG10_SSH" "mkdir -p ${LOG10_PROJECT}/logs"
-ssh "$LOG10_SSH" "cd ${LOG10_PROJECT} && nohup bash run_log10_gru4rec_baselines.sh --all-seeds \
-  > logs/${LOG_NAME} 2>&1 & echo \$!" | tee "$PID_FILE"
+ssh -n "$LOG10_SSH" "mkdir -p ${LOG10_PROJECT}/logs"
+ssh -n "$LOG10_SSH" "cd ${LOG10_PROJECT} && nohup bash run_log10_gru4rec_baselines.sh --all-seeds \
+  > logs/${LOG_NAME} 2>&1 </dev/null & echo \$!" | tee "$PID_FILE"
 
 echo "log10 PID: $(cat "$PID_FILE")"
 echo "log10 log: ${LOG10_LOG}"

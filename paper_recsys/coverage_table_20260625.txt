@@ -1,0 +1,49 @@
+Coverage extraction (auto-generated)
+========================================================================
+
+## Beauty/Toys from seed files (Coverage_new@10)
+  seed  dataset   config              Cov_new@10
+----------------------------------------------------
+    42  beauty    ID-only                       
+  2023  beauty    ID-only                     NA
+  2024  beauty    ID-only                       
+  2025  beauty    ID-only                       
+  2026  beauty    ID-only                       
+    42  beauty    MV-Align(7B)             12.35
+  2023  beauty    MV-Align(7B)                NA
+  2024  beauty    MV-Align(7B)              8.48
+  2025  beauty    MV-Align(7B)              -2.1
+  2026  beauty    MV-Align(7B)             14.99
+    42  beauty    TF-IDF                   11.73
+  2023  beauty    TF-IDF                      NA
+  2024  beauty    TF-IDF                   12.66
+  2025  beauty    TF-IDF                   -2.03
+  2026  beauty    TF-IDF                   13.17
+    42  beauty    TF-IDF+LLM                8.35
+  2023  beauty    TF-IDF+LLM                  NA
+  2024  beauty    TF-IDF+LLM               11.85
+  2025  beauty    TF-IDF+LLM                0.04
+  2026  beauty    TF-IDF+LLM               16.82
+    42  toys      ID-only                       
+  2023  toys      ID-only                     NA
+  2024  toys      ID-only                       
+  2025  toys      ID-only                       
+  2026  toys      ID-only                       
+    42  toys      MV-Align(7B)              7.18
+  2023  toys      MV-Align(7B)                NA
+  2024  toys      MV-Align(7B)              1.43
+  2025  toys      MV-Align(7B)              6.18
+  2026  toys      MV-Align(7B)              9.21
+    42  toys      TF-IDF                   10.27
+  2023  toys      TF-IDF                      NA
+  2024  toys      TF-IDF                    7.98
+  2025  toys      TF-IDF                    2.44
+  2026  toys      TF-IDF                    4.54
+    42  toys      TF-IDF+LLM                2.19
+  2023  toys      TF-IDF+LLM                  NA
+  2024  toys      TF-IDF+LLM                7.21
+  2025  toys      TF-IDF+LLM                4.06
+  2026  toys      TF-IDF+LLM                9.74
+
+## Grocery/BC/others from run_metrics
+----------------------------------------------------

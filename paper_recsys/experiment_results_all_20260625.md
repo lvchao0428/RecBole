@@ -1,7 +1,8 @@
 # 实验结果汇总 2026-06-25
 
-> **更新**: 2026-06-25 19:30 CST（5090 实查）  
-> **状态文档**: [`experiment_status_20260625.md`](experiment_status_20260625.md)  
+> **更新**: 2026-06-29 11:05 CST（5090 实查 · Phase 4 text 16/16 · UniSRec balanced 完成）  
+> **状态文档**: [`experiment_status_20260629.md`](experiment_status_20260629.md)  
+> **GRU4Rec 矩阵**: [`gru4rec_phase4_matrix_20260629.md`](gru4rec_phase4_matrix_20260629.md)  
 > **分析与规划**: [`experiment_plan_20260625.md`](experiment_plan_20260625.md)
 
 ## 实验进展状态
@@ -12,9 +13,12 @@
 | Toys 主表 (SASRec, 4 seeds) | ✅ 完成 | seeds=2024/2025/2026/42 |
 | Book-Crossing (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
 | Grocery (SASRec, seed=2024) | ✅ 完成 | phaseb50 |
-| **UniSRec Beauty (3 configs, seed=2024)** | ✅ 完成 | 6/25 06:36；Base 作外部 text baseline |
-| Grocery SASRec multiseed (2025/2026/42 × 4) | 🔄 运行中 | 2025/2026 ✅；seed42 **MV 进行中**（ID/TF-IDF/LLM ✅） |
-| GRU4Rec (第二 backbone) | 📋 计划中 | pipeline 完成后 |
+| Grocery SASRec multiseed (2025/2026/42 × 4) | ✅ 完成 | 6/25 21:54 · 4-seed 齐全 |
+| Phase 3 机制分析 (3A–3C) | ✅ 完成 | 6/25 22:03 |
+| **UniSRec Beauty (3 configs, seed=2024)** | ✅ 完成 | 6/25 · Base + Align/MV（**infer_boost=0** 旧版） |
+| GRU4Rec text LLM+MV (5090) | ✅ 完成 | **16/16** · 6/27 18:59 |
+| GRU4Rec baseline ID+TF-IDF | 🔄 进行中 | **9/16** · 5090+log10 分工 |
+| **UniSRec +Align/+MV balanced** | ✅ 完成 | 6/29 · infer_boost=0.6 · seed=2024 |
 
 ---
 
@@ -139,8 +143,10 @@
 | SASRec MV-Align | TF-IDF+LLM (7B) | 内部 ablation | 3.16% | 5.66% | 3.75% | +46% |
 | **SASRec MV-Align** | **MV-Align (7B)** | **主方法** | **3.18%** | **5.79%** | **3.79%** | **+47%** |
 | **UniSRec** | **Base (MoE additive)** | **外部 baseline** | **2.47%** | **6.60%** | **3.44%** | **+14%** |
-| UniSRec | AlignV3 (+cross+align) | portability | 3.25% | 6.52% | 4.02% | +51% |
-| UniSRec | AlignMultiViewV3 (+MV) | portability | 3.33% | 6.67% | 4.11% | +54% |
+| UniSRec | AlignV3 (+cross+align) | portability · **infer_boost=0** | 3.25% | 6.52% | 4.02% | +51% |
+| UniSRec | AlignMultiViewV3 (+MV) | portability · **infer_boost=0** | 3.33% | 6.67% | 4.11% | +54% |
+| UniSRec | AlignV3 **balanced** | Phase 5 · **infer_boost=0.6** | **3.27%** | 6.57% | 4.04% | +52% |
+| UniSRec | AlignMultiViewV3 **balanced** | Phase 5 · **infer_boost=0.6** | **3.25%** | 6.53% | 4.02% | +51% |
 
 > SASRec 4-seed mean（MV-Align 7B）: MRR@10 **3.19±0.02%**, HR@10 **5.79±0.04%**, NDCG@10 **3.80±0.02%**
 
@@ -216,15 +222,14 @@
 3. **第三域主表**: Grocery 可作为 WSDM 主文第三数据集（优于 BC 作 sole 第三域）。
 4. **参数透明**: 四配置均复刻 Beauty balanced default，无 per-dataset 重调。
 
-### 流水线状态（19:30）
+### 流水线状态（6/27 16:05 · 断电暂停计划）
 
-| Step | 状态 | 完成时间 |
-|------|------|----------|
-| UniSRec Beauty ×3 | ✅ | 6/25 06:36 |
-| Grocery 2025 ×4 | ✅ | 6/25 11:42 |
-| Grocery 2026 ×4 | ✅ | 6/25 16:48 |
-| Grocery 42 ID/TF-IDF/LLM | ✅ | 6/25 19:10 |
-| Grocery 42 MV | 🔄 GPU ~52% | 预计 ~22:00 |
+| Step | 状态 | 备注 |
+|------|------|------|
+| Phase 4 5090 | 🔄 **9/16** | 当前 Beauty MV seed=2025 · 完成后 **自动暂停** |
+| Phase 4 log10 | 🔄 **4/16** | Beauty TF-IDF seed=2024 |
+| Phase 5 UniSRec balanced | ✅ | 6/29 · AlignV3 3.27% / AlignMV 3.25% MRR@10 |
+| 断电 checkpoint | ⏸️ watcher 已挂 | `scripts/pipeline_pause_after_current.sh` |
 
 ---
 
@@ -234,16 +239,17 @@
 
 | 优先级 | 任务 | 类型 | 状态 | 说明 |
 |--------|------|------|------|------|
-| **P0** | Grocery 4-seed 主表定稿 | 等 pipeline | 🔄 | seed42 MV 今晚完成 → 更新 mean±std |
-| **P1a** | Cross concentration 图 | 分析 · 不占 GPU | 📋 | Beauty: Top-20/100 Gini/entropy/head share |
-| **P1b** | Gate 分桶分析 | 分析 | 📋 | new/few/freq × 4 view 平均 gate |
+| **P0** | Grocery 4-seed 主表定稿 | 完成 | ✅ | 6/25 21:54 · 含 seed=42 MV |
+| **P1a** | Cross concentration 图 | 分析 · 不占 GPU | ✅ 6/25 | Phase 3B+3C · top-100 scores + 分布图 |
+| **P1b** | Gate 分桶分析 | 分析 | ✅ 6/25 | `analyze_mv_gate_buckets.py` · Phase 3A |
 | **P1c** | Case study 2–3 例 | 分析 | 📋 | new/tail item Top-K 变化 |
 | **P1d** | Coverage_new@10 + paired t-test | 分析 | ⚠️ 数据有、未汇总 | **t-test 已有**；Coverage 提取即可 |
 | **P1e** | Grocery/BC 分层表进主文 | 写作 | 部分 ✅ | 本文 § 已更新 |
 | **P2a** | UniSRec Base **Toys**（1 seed） | 训练 · 可选 | 📋 | 回应 competitiveness；~1.6h |
 | **P2b** | BC 小表进 appendix | 写作 | ✅ 数据已有 | boundary / external stress test |
-| **P3a** | GRU4Rec + MV Beauty/Toys | 训练 · 空档 | 📋 | 第二 backbone sanity，非 text baseline |
-| **P3b** | UniSRec AlignV3/MV | appendix | ✅ Beauty 已有 | **portability only**，不进主表 |
+| **P3a** | GRU4Rec + MV Beauty/Toys | 训练 | 🔄 | Phase 4 text **16/16** · baseline **9/16** |
+| **P3b** | UniSRec AlignV3/MV balanced | 训练 | ✅ 6/29 | Beauty seed=2024 · MRR 3.27%/3.25% |
+| **P3c** | UniSRec AlignV3/MV（旧 infer=0） | appendix | ✅ 6/25 | portability 参考 · 写 footnote |
 | **P4** | all-MiniLM 第二 encoder | 训练 | 📋 | encoder ablation，优先级最低 |
 
 **不建议现在做**: UniSRec+cross+align+MV 扩到多数据集；S3-Rec/BERT4Rec 大 baseline；BC multiseed 大网格。
@@ -262,12 +268,12 @@
 |------|------|------|-----------|
 | Beauty/Toys 主表 4×4 seed | `paper_recsys/seed{42,2024,2025,2026}.txt` | ✅ 本地+5090 | **否** |
 | mean±std + seed t-test | `main_table.txt` / `compute_table_stats.py` | ✅ 可重算 | 否 |
-| Grocery / BC / UniSRec | `run_metrics/*.txt` | ✅ 见上文各节 | 否（Grocery 42 MV 进行中） |
-| **Coverage_new@10** | seed 文件列 + run_metrics JSON | ✅ 有原始值 | **否**（需提取脚本） |
-| **per-user paired t-test** | `saved/peruser/*_topk.npy` | ✅ Beauty/Toys 已验证 | **否** |
-| **Cross concentration** | `save_test_scores` 输出 | ❌ 从未保存 | **是** · Beauty 3 配置 ×1 seed |
-| **Gate 分桶** | MV checkpoint | ⚠️ ckpt 有、脚本无 | **否训练** · 写后处理脚本 |
-| **Case study Top-K** | peruser topk 或 scores | ⚠️ 仅 LLM vs MV | 部分可复用；完整需 scores |
+| Grocery / BC / UniSRec | `run_metrics/*.txt` | ✅ 见上文各节 | 否（Grocery 4-seed 齐全 6/25 21:54） |
+| **Coverage_new@10** | seed 文件列 + run_metrics JSON | ✅ 已提取 | 否（`extract_coverage.py` Phase 3A） |
+| **per-user paired t-test** | `saved/peruser/*_topk.npy` | ✅ Beauty/Toys 已验证 | 否 |
+| **Cross concentration** | `ablation_study_doc/scores/*mechanism*topk_scores.npy` | ✅ 6/25 Phase 3B | 否 |
+| **Gate 分桶** | MV checkpoint + Phase 3A 脚本 | ✅ 6/25 | 否 |
+| **Case study Top-K** | peruser topk 或 scores | ⚠️ 部分 | 写作阶段人工挑选；完整对比可用 mechanism scores |
 
 完整盘点与最小复跑方案：[`experiment_plan_20260625.md`](experiment_plan_20260625.md) **§9**。
 

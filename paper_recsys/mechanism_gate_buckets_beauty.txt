@@ -1,0 +1,14 @@
+MV view gate / bucket analysis (0617 mechanism #2)
+checkpoint: saved/peruser_runs/beauty_mv_7b/SASRecAlignMultiViewV3-Mar-11-2026_16-42-34.pth
+
+Global view gates (sigmoid):
+  view_0: 0.4054
+  view_1: 0.3976
+  view_2: 0.3859
+  view_3: 0.4122
+
+Mean weighted-view L2 by bucket:
+bucket       n_items  v0  v1  v2  v3
+new           217450  0.4054  0.3976  0.3859  0.4122
+few            30469  0.4054  0.3976  0.3859  0.4122
+frequent       11285  0.4054  0.3976  0.3859  0.4122
