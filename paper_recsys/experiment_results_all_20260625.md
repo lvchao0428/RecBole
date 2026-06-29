@@ -1,6 +1,6 @@
 # 实验结果汇总 2026-06-25
 
-> **更新**: 2026-06-29 11:05 CST（5090 实查 · Phase 4 text 16/16 · UniSRec balanced 完成）  
+> **更新**: 2026-06-29 14:22 CST（5090 · baseline 12/16 · seed2025 完成 · log10 停重叠）  
 > **状态文档**: [`experiment_status_20260629.md`](experiment_status_20260629.md)  
 > **GRU4Rec 矩阵**: [`gru4rec_phase4_matrix_20260629.md`](gru4rec_phase4_matrix_20260629.md)  
 > **分析与规划**: [`experiment_plan_20260625.md`](experiment_plan_20260625.md)
@@ -17,7 +17,7 @@
 | Phase 3 机制分析 (3A–3C) | ✅ 完成 | 6/25 22:03 |
 | **UniSRec Beauty (3 configs, seed=2024)** | ✅ 完成 | 6/25 · Base + Align/MV（**infer_boost=0** 旧版） |
 | GRU4Rec text LLM+MV (5090) | ✅ 完成 | **16/16** · 6/27 18:59 |
-| GRU4Rec baseline ID+TF-IDF | 🔄 进行中 | **9/16** · 5090+log10 分工 |
+| GRU4Rec baseline ID+TF-IDF | 🔄 进行中 | **12/16** · 5090 补 2026×4 · log10 当前 job 后停 |
 | **UniSRec +Align/+MV balanced** | ✅ 完成 | 6/29 · infer_boost=0.6 · seed=2024 |
 
 ---
@@ -247,7 +247,7 @@
 | **P1e** | Grocery/BC 分层表进主文 | 写作 | 部分 ✅ | 本文 § 已更新 |
 | **P2a** | UniSRec Base **Toys**（1 seed） | 训练 · 可选 | 📋 | 回应 competitiveness；~1.6h |
 | **P2b** | BC 小表进 appendix | 写作 | ✅ 数据已有 | boundary / external stress test |
-| **P3a** | GRU4Rec + MV Beauty/Toys | 训练 | 🔄 | Phase 4 text **16/16** · baseline **9/16** |
+| **P3a** | GRU4Rec + MV Beauty/Toys | 训练 | 🔄 | text **16/16** · baseline **12/16** · 剩 2026 |
 | **P3b** | UniSRec AlignV3/MV balanced | 训练 | ✅ 6/29 | Beauty seed=2024 · MRR 3.27%/3.25% |
 | **P3c** | UniSRec AlignV3/MV（旧 infer=0） | appendix | ✅ 6/25 | portability 参考 · 写 footnote |
 | **P4** | all-MiniLM 第二 encoder | 训练 | 📋 | encoder ablation，优先级最低 |

@@ -41,6 +41,8 @@ RSYNC+=(
   --filter "P log/"
   --filter "P run_metrics/"
   --filter "P results/"
+  --exclude "run_metrics/**"
+  --exclude "log_tensorboard/**"
   # Python 缓存
   --exclude "__pycache__/"
   --exclude "*.py[cod]"

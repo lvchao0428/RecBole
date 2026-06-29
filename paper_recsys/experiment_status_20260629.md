@@ -1,81 +1,65 @@
 # 5090 + log10 实验状态（2026-06-29）
 
 > **5090**: `charlie@www.ultrapp.online:/home/charlie/project/RecBole`  
-> **log10**: `charlie@192.168.0.137`（5090 内网 · `scripts/log10_env.sh`）  
-> **核对时间**: 2026-06-29（5090 重分配 · baseline 5090 独占）
+> **log10**: `charlie@192.168.0.107`（5090 内网 · `scripts/log10_env.sh`）  
+> **核对时间**: 2026-06-29 15:45 CST（收尾检查 · 三端同步）
 
 **相关文档**:
 - 任务分配: [`pipeline_task_allocation_20260628.md`](pipeline_task_allocation_20260628.md)
+- 导师指导: [`0626zhidao.txt`](0626zhidao.txt)
 - 结果汇总: [`experiment_results_all_20260625.md`](experiment_results_all_20260625.md)
 - GRU4Rec 矩阵: [`gru4rec_phase4_matrix_20260629.md`](gru4rec_phase4_matrix_20260629.md)
-- 分析与规划: [`experiment_plan_20260625.md`](experiment_plan_20260625.md)
 
 ---
 
-## 1. 进度总览
+## 1. 当前进度
 
 ```
 [✅] SASRec 主表 · Grocery 4-seed · BC · Phase 3 机制分析
-[✅] 0625 pipeline（UniSRec 旧版 + Grocery multiseed）  6/25 21:54
+[✅] UniSRec balanced（Base/Align/MV · Beauty seed=2024）
 [✅] Phase 4 GRU4Rec text (5090 LLM+MV)                 16/16
-[🔄] Phase 4 GRU4Rec baseline (ID+TF-IDF)               9/16
-[✅] Phase 5 UniSRec balanced（AlignV3 + AlignMV）       2/2
-[🔄] Tail: GRU4Rec baseline seeds 2024/2025/2026  on 5090
+[🔄] Phase 4 GRU4Rec baseline                           14/16 · 合计 30/32
+[⏸] log10 baseline                                     当前重复 job 后自动停
+[🔄] 5090 独占 seed=2026                               仅剩 Toys 2026 ×2
 ```
 
 | 任务 | 状态 | 备注 |
 |------|------|------|
-| GRU4Rec LLM+MV (5090) | ✅ **16/16** | 6/27 18:59 末项 Toys 2025 完成 |
-| GRU4Rec ID+TF-IDF | 🔄 **9/16** | **5090 独占补跑 7 块** · log10 暂停 |
-| UniSRec Base | ✅ | seed=2024 · 外部 baseline |
-| UniSRec +Align balanced | ✅ | 6/29 02:38 · infer_boost=0.6 |
-| UniSRec +MV balanced | ✅ | 6/29 10:52 · infer_boost=0.6 |
-| 5090 baseline 队列 | 🔄 已重启 | batch=512 · seeds 2024/2025/2026 |
-
-**5090 GPU**: tail 重启后应 ~90%+ · 5090 独占剩余 baseline
+| GRU4Rec LLM+MV (5090) | ✅ **16/16** | 已完成 |
+| GRU4Rec baseline | 🔄 **14/16** | seed **2026** 只剩 `Toys ID` + `Toys TF-IDF` |
+| 5090 当前 | 🔄 | `Beauty TF-IDF 2026` 已出 ckpt，正在向 `Toys 2026` 推进 |
+| log10 当前 | ⏸ | 仍在跑重复的 `Beauty TF-IDF 2025` |
+| log10 停机 | ✅ | `log10_pipeline_pause_after_current.sh` 已挂，另补 direct stop watcher |
 
 ---
 
-## 2. UniSRec Beauty balanced（seed=2024 · test @10）
+## 2. 收尾判断
 
-| 模型 | MRR@10 | HR@10 | NDCG@10 | infer_boost | 完成 |
-|------|--------|-------|---------|-------------|------|
-| SASRec MV-Align（主方法） | **3.18%** | 5.79% | 3.79% | 0.6 | 已有 |
-| UniSRec Base | 2.47% | **6.60%** | 3.44% | — | 6/25 |
-| UniSRec +Align **balanced** | **3.27%** | 6.57% | 4.04% | **0.6** | 6/29 |
-| UniSRec +MV **balanced** | **3.25%** | 6.53% | 4.02% | **0.6** | 6/29 |
-| UniSRec +Align（旧 infer=0） | 3.25% | 6.52% | 4.02% | 0.0 | 6/25 |
-| UniSRec +MV（旧 infer=0） | 3.33% | 6.67% | 4.11% | 0.0 | 6/25 |
-
-**写作**: 主文小表用 **Base + balanced Align/MV**；旧版 infer=0 放 footnote / portability。
+- **5090 当前训练健康**：GPU 约 **96%**，checkpoint 正常新增，已从 `Beauty ID 2026` 顺利推进到 `Beauty TF-IDF 2026`。
+- **今晚可正常结束**：如果不再出现新异常，剩余仅 `Toys 2026` 两块，ready 目标仍可按 **约 20:00 左右** 预期。
+- **log10 不再作为关键路径**：它现在只是在消化一个重复任务，结束后应自动停队列，不影响最终 ready。
 
 ---
 
-## 3. GRU4Rec Phase 4 矩阵
+## 3. log10 停重复任务
 
-详见 [`gru4rec_phase4_matrix_20260629.md`](gru4rec_phase4_matrix_20260629.md)。
+| 动作 | 状态 |
+|------|------|
+| 常规 watcher | `log10_pipeline_pause_after_current.sh` 已启动 |
+| 加固 watcher | 额外按当前 `two_phase_train` PID 启动 stop-after-current |
+| 目标 | 当前 `Beauty TF-IDF 2025` 结束后，停止 `run_log10_gru4rec_baselines_from_2024.sh` |
 
-| 块 | 进度 |
-|----|------|
-| 5090 text (LLM+MV) | **16/16** ✅ |
-| baseline (ID+TF-IDF) | **9/16** 🔄 |
-| 合计 checkpoint | **25/32** |
-
-**待补 baseline**: Beauty/Toys × TF-IDF/ID · seeds 2025/2026（5090 + log10 分工见 matrix）
+**勿再手动启动** `run_log10_resume_after_poweroff.sh` / `run_log10_gru4rec_baselines_from_2024.sh`。
 
 ---
 
-## 4. 5090 当前队列（6/29 重分配）
+## 4. 三端同步
 
-| 脚本 | 内容 | 状态 |
-|------|------|------|
-| `run_5090_phase4_tail_rebalanced.sh` | Phase5 skip + baseline 2024–2026 @512 | 🔄 已重启 |
-| `run_5090_gru4rec_baselines_seeds.sh` | 5090 独占剩余 7 块 | 🔄 |
-| log10 | `log10_pipeline_pause_after_current.sh` | ⏸ 当前 job 后停 |
-
-**修复**: 补全 `run_unisrec_v3_align_balanced_batch_beauty.sh`；watchdog 空转已 kill。
-
-完成标记: `logs/5090_pipeline_all_complete.done`
+| 机器 | 状态 |
+|------|------|
+| 本机 | ✅ 最新文档已写入 |
+| 5090 | ✅ 已同步最新状态与脚本 |
+| log10 | ✅ 已同步文档与暂停脚本 |
 
 ---
 
@@ -83,21 +67,9 @@
 
 ```bash
 ssh charlie@www.ultrapp.online 'cd ~/project/RecBole && \
-  bash scripts/collect_gru4rec_phase4_results.sh | tail -15; \
-  pgrep -af "gru4rec|phase4|unisrec" | grep -v pgrep; nvidia-smi'
+  bash scripts/collect_gru4rec_phase4_results.sh | tail -10; \
+  nvidia-smi; \
+  pgrep -af "5090_gru4rec|two_phase_train" | grep -v pgrep | head -3'
 ```
 
----
-
-## 6. 文档 / 代码同步
-
-```bash
-# 本机 ← 5090（代码+文档，不含 npy）
-./pull_from_5090.sh
-
-# 本机 → 5090
-./sync_recbole.sh
-
-# 5090 → log10（在 5090 上）
-bash scripts/sync_log10_code_from_5090.sh
-```
+完成标记：`logs/5090_pipeline_all_complete.done`

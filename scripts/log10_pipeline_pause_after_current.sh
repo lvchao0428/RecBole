@@ -10,17 +10,27 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 LOG="$ROOT/logs/log10_pipeline_pause.log"
-POLL_SEC="${POLL_SEC:-30}"
+POLL_SEC="${POLL_SEC:-5}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
 
-log "======== log10 pause watcher started ========"
+TARGET_PID="${1:-}"
+if [[ -z "$TARGET_PID" ]]; then
+  TARGET_PID="$(pgrep -fo "python .*two_phase_train.py" || true)"
+fi
 
-while pgrep -f "two_phase_train.py" >/dev/null 2>&1; do
+if [[ -z "$TARGET_PID" ]]; then
+  log "No active two_phase_train found. Exiting."
+  exit 0
+fi
+
+log "======== log10 pause watcher started (target_pid=$TARGET_PID) ========"
+
+while kill -0 "$TARGET_PID" >/dev/null 2>&1; do
   sleep "$POLL_SEC"
 done
 
-log "Current log10 training job finished."
+log "Current log10 training job finished (target_pid=$TARGET_PID)."
 
 PIPE_PID=""
 while read -r pid cmd; do

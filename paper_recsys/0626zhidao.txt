@@ -1,0 +1,7 @@
+好的，同学，这组UniSRec结果我感觉非常有用，而且比单纯补一个GRU4Rec更能回应reviewer的核心质疑。同学发来的图片里UniSRec Base的HR@10是6.60，高于同学SASRec系列的HR，但MRR@10/NDCG@10明显低一些；加AlignV3以后MRR@10从2.47到3.25，NDCG@10从3.44到4.02。再加MultiViewV3以后MRR@10到3.33、NDCG@10到4.11，同时HR@10也回到6.67。这个现象很好，因为它不是简单“换个模型也涨一点”，而是说明同学的align/multi-view插件能把一个外部text-enhanced baseline的排序质量明显拉起来，同时不牺牲HR。
+
+我建议同学在WSDM版本里把UniSRec的角色定清楚。它不是第二主线，也不是要被完整改造成另一个MV-Align论文，而是一个external text-enhanced baseline+portability sanity check。main paper里可以放一张小表，分成UniSRec Base、UniSRec+Align、UniSRec+Align+MultiView三行。结论就写，在一个已有text-enhanced SR框架上，alignment和multi-view仍然改善NDCG/MRR，说明组件不是SASRec-specific。这样可以同时回应“没有外部baseline”和“只有一个backbone”两个问题。
+
+但这里也要小心两点。一个是是不要把UniSRec改得太复杂，否则reviewer会问这是baseline还是新方法。现在这三行刚好够，别再往里面塞cross或者cold boost以及一堆参数。还一个是和SASRec主表的比较要分开讲。SASRec那边是controlled ablation，UniSRec这边是portability check。不要直接说UniSRec+MV比SASRec+MV谁更强，因为两个模型族、训练目标、参数量都不一样，容易引出新问题。
+
+接下来我建议优先顺序是，先把Grocery作为第三数据集跑完整四层级，因为它和Beauty/Toy同族，最能强化论文的核心机制。然后把UniSRec这张小表放进主文或者appendix的prominent位置。Book-Crossing如果结果一般，就放repo或appendix作为外部域stress test，不要强行写成主证据。GRU4Rec和all-MiniLM-L6-v2可以先不急，除非同学还有明显空档。现在UniSRec已经更直接地解决了“text baseline/backbone generality”这个reviewer痛点。
