@@ -22,7 +22,9 @@ phase4_text_done() {
 tail_running() {
   pgrep -f "run_5090_phase4_tail_rebalanced.sh" >/dev/null \
     || pgrep -f "run_unisrec_v3_align_balanced_batch_beauty" >/dev/null \
-    || pgrep -f "run_5090_gru4rec_baselines_seeds.sh" >/dev/null
+    || pgrep -f "run_5090_gru4rec_baselines_seeds.sh" >/dev/null \
+    || pgrep -f "scripts/gru4rec_baseline_run_one.sh" >/dev/null \
+    || pgrep -f "python scripts/two_phase_train.py.*gru4rec" >/dev/null
 }
 
 log "watchdog started (poll=${POLL}s)"

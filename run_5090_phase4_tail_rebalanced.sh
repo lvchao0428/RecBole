@@ -33,16 +33,26 @@ log "======== 5090 Phase 4 tail (self-contained v3) ========"
 log ">>> pull log10 (best effort, no wait)"
 bash "$ROOT/scripts/pull_log10_gru4rec_best_effort.sh" >> "$LOG" 2>&1 || true
 
-log ">>> Phase 5: UniSRec Align/MV balanced (Beauty seed=2024)"
-t0=$SECONDS
-env GPU_ID="$GPU_ID" SEED=2024 \
-  bash "$ROOT/run_unisrec_v3_align_balanced_batch_beauty.sh" \
-  >> "logs/unisrec_align_balanced_batch_beauty_nohup.log" 2>&1
-log "  ✅ Phase 5 UniSRec balanced done ($((SECONDS - t0))s)"
+phase5_done() {
+  compgen -G "${ROOT}/saved/unisrec_align_v3_beauty_stratified_balanced_seed2024/*.pth" >/dev/null \
+    && compgen -G "${ROOT}/saved/unisrec_align_multiview_v3_beauty_stratified_balanced_seed2024/*.pth" >/dev/null
+}
 
-log ">>> 5090 GRU4Rec baselines seed=2024 2025 2026 (all remaining; skip existing ckpt)"
+if phase5_done; then
+  log ">>> Phase 5 skip (UniSRec balanced ckpts exist)"
+else
+  log ">>> Phase 5: UniSRec Align/MV balanced (Beauty seed=2024)"
+  t0=$SECONDS
+  env GPU_ID="$GPU_ID" SEED=2024 \
+    bash "$ROOT/run_unisrec_v3_align_balanced_batch_beauty.sh" \
+    >> "logs/unisrec_align_balanced_batch_beauty_nohup.log" 2>&1
+  log "  ✅ Phase 5 UniSRec balanced done ($((SECONDS - t0))s)"
+fi
+
+log ">>> 5090 GRU4Rec baselines seed=2024 2025 2026 (5090 aggressive; skip existing ckpt)"
 t0=$SECONDS
-env GPU_ID="$GPU_ID" bash "$ROOT/run_5090_gru4rec_baselines_seeds.sh" 2024 2025 2026 >> "$LOG" 2>&1
+env GPU_ID="$GPU_ID" TRAIN_BATCH_SIZE=512 EVAL_BATCH_SIZE=512 \
+  bash "$ROOT/run_5090_gru4rec_baselines_seeds.sh" 2024 2025 2026 >> "$LOG" 2>&1
 log "  ✅ 5090 baselines done ($((SECONDS - t0))s)"
 
 log ">>> final pull log10 + collect"

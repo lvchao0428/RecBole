@@ -57,6 +57,7 @@ RSYNC+=(
   --exclude "*.pth"
   --exclude "*.safetensors"
   --exclude "log/"
+  --exclude "logs/"
   --exclude "saved/"
   # 论文 PDF（太大，不需要同步到训练服务器）
   --exclude "paper_recsys/*.pdf"

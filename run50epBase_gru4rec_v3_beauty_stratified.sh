@@ -21,7 +21,7 @@ python scripts/two_phase_train.py \
 	--model GRU4RecAlignMultiViewV3 \
 	--dataset Amazon_Beauty \
 	--config_files "gru4rec_baseline_beauty_stratified_v3.yaml" \
-	--config_dict "{${BATCH_CFG}'freeze_backbone': False}" \
+	--config_dict "{${BATCH_CFG}'initializer_range': 0.02, 'layer_norm_eps': 1e-12, 'freeze_backbone': False}" \
 	--gpu_id $GPU_ID \
 	--phase_a_epochs 50 \
 	--phase_a_eval_step 5 \
