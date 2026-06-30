@@ -25,8 +25,16 @@ from collections import OrderedDict
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+import numpy as np
 import torch
 from logging import getLogger
+
+if not hasattr(np, "bool"):
+    np.bool = np.bool_
+if not hasattr(np, "int"):
+    np.int = np.int_
+if not hasattr(np, "float"):
+    np.float = np.float64
 
 from recbole.config import Config
 from recbole.data import create_dataset, data_preparation
@@ -54,6 +62,16 @@ def load_model_for_test(model_file, override_metrics=None, override_topk=None, d
     # Load checkpoint
     checkpoint = torch.load(model_file, map_location='cpu', weights_only=False)
     config = checkpoint["config"]
+
+    # Some older checkpoints rely on model/property defaults that are not
+    # materialized in the serialized config. Fill the common init default so
+    # eval-only reconstruction does not fail before loading weights.
+    try:
+        init_range = config["initializer_range"]
+    except Exception:
+        init_range = None
+    if init_range is None:
+        config["initializer_range"] = 0.02
     
     # Override metrics if specified
     if override_metrics:
