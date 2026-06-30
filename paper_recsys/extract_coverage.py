@@ -20,8 +20,15 @@ def parse_seed_coverage(seed_dir: Path) -> list[dict]:
         lines = seed_file.read_text(encoding="utf-8", errors="replace").splitlines()
         if len(lines) < 3:
             continue
-        header = [h.strip() for h in lines[1].split("\t") if h.strip()]
-        idx = {name: i for i, name in enumerate(header)}
+        header = [h.strip() for h in lines[1].split("\t")]
+        idx = {}
+        for i, name in enumerate(header):
+            if not name:
+                continue
+            # Seed files contain duplicated metric headers later in the row
+            # for relative-delta summaries. Keep the first occurrence so we
+            # read the raw metric block instead of the delta block.
+            idx.setdefault(name, i)
 
         def row_metrics(line: str, dataset: str, config: str) -> dict | None:
             parts = line.split("\t")
@@ -36,7 +43,8 @@ def parse_seed_coverage(seed_dir: Path) -> list[dict]:
                 if key in idx:
                     val = parts[idx[key]].strip().replace("%", "")
                     try:
-                        out[key] = float(val)
+                        num = float(val)
+                        out[key] = num * 100.0 if abs(num) <= 1.0 else num
                     except ValueError:
                         out[key] = val
             return out

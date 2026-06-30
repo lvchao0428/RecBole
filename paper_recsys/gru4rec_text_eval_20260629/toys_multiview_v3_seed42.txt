@@ -1,0 +1,141 @@
+
+======================================================================
+EVALUATION RESULTS
+======================================================================
+
+📊 Standard Metrics:
+--------------------------------------------------
+  hit@10                   : 0.0708
+  hit@20                   : 0.0893
+  hit@5                    : 0.0545
+  mrr@10                   : 0.0380
+  mrr@20                   : 0.0392
+  mrr@5                    : 0.0358
+  ndcg@10                  : 0.0457
+  ndcg@20                  : 0.0504
+  ndcg@5                   : 0.0405
+  precision@10             : 0.0071
+  precision@20             : 0.0045
+  precision@5              : 0.0109
+  recall@10                : 0.0708
+  recall@20                : 0.0893
+  recall@5                 : 0.0545
+
+📈 Stratified Metrics (by ground truth item stratum):
+--------------------------------------------------
+  [NEW] (training interactions: 1-2)
+    Hit_new@10             : 0.0216
+    Hit_new@20             : 0.0277
+    Hit_new@5              : 0.0176
+    MRR_new@10             : 0.0121
+    MRR_new@20             : 0.0125
+    MRR_new@5              : 0.0116
+    NDCG_new@10            : 0.0143
+    NDCG_new@20            : 0.0159
+    NDCG_new@5             : 0.0131
+    Recall_new@10          : 0.0216
+    Recall_new@20          : 0.0277
+    Recall_new@5           : 0.0176
+  [FEW] (training interactions: 3-9)
+    Hit_few@10             : 0.0518
+    Hit_few@20             : 0.0667
+    Hit_few@5              : 0.0397
+    MRR_few@10             : 0.0283
+    MRR_few@20             : 0.0293
+    MRR_few@5              : 0.0267
+    NDCG_few@10            : 0.0338
+    NDCG_few@20            : 0.0376
+    NDCG_few@5             : 0.0299
+    Recall_few@10          : 0.0518
+    Recall_few@20          : 0.0667
+    Recall_few@5           : 0.0397
+  [FREQUENT] (training interactions: 10+)
+    Hit_frequent@10        : 0.1279
+    Hit_frequent@20        : 0.1605
+    Hit_frequent@5         : 0.0983
+    MRR_frequent@10        : 0.0681
+    MRR_frequent@20        : 0.0704
+    MRR_frequent@5         : 0.0642
+    NDCG_frequent@10       : 0.0822
+    NDCG_frequent@20       : 0.0904
+    NDCG_frequent@5        : 0.0726
+    Recall_frequent@10     : 0.1279
+    Recall_frequent@20     : 0.1605
+    Recall_frequent@5      : 0.0983
+
+🎯 Coverage Metrics (recommendation diversity):
+--------------------------------------------------
+  Coverage_few@10          : 0.1702
+  Coverage_few@20          : 0.1766
+  Coverage_few@5           : 0.1660
+  Coverage_frequent@10     : 0.6819
+  Coverage_frequent@20     : 0.6820
+  Coverage_frequent@5      : 0.6737
+  Coverage_new@10          : 0.1480
+  Coverage_new@20          : 0.1413
+  Coverage_new@5           : 0.1603
+
+======================================================================
+
+
+Raw results:
+recall@5: 0.0545
+recall@10: 0.0708
+recall@20: 0.0893
+mrr@5: 0.0358
+mrr@10: 0.038
+mrr@20: 0.0392
+ndcg@5: 0.0405
+ndcg@10: 0.0457
+ndcg@20: 0.0504
+hit@5: 0.0545
+hit@10: 0.0708
+hit@20: 0.0893
+precision@5: 0.0109
+precision@10: 0.0071
+precision@20: 0.0045
+Recall_new@5: 0.0176
+Recall_new@10: 0.0216
+Recall_new@20: 0.0277
+Recall_few@5: 0.0397
+Recall_few@10: 0.0518
+Recall_few@20: 0.0667
+Recall_frequent@5: 0.0983
+Recall_frequent@10: 0.1279
+Recall_frequent@20: 0.1605
+NDCG_new@5: 0.0131
+NDCG_new@10: 0.0143
+NDCG_new@20: 0.0159
+NDCG_few@5: 0.0299
+NDCG_few@10: 0.0338
+NDCG_few@20: 0.0376
+NDCG_frequent@5: 0.0726
+NDCG_frequent@10: 0.0822
+NDCG_frequent@20: 0.0904
+MRR_new@5: 0.0116
+MRR_new@10: 0.0121
+MRR_new@20: 0.0125
+MRR_few@5: 0.0267
+MRR_few@10: 0.0283
+MRR_few@20: 0.0293
+MRR_frequent@5: 0.0642
+MRR_frequent@10: 0.0681
+MRR_frequent@20: 0.0704
+Hit_new@5: 0.0176
+Hit_new@10: 0.0216
+Hit_new@20: 0.0277
+Hit_few@5: 0.0397
+Hit_few@10: 0.0518
+Hit_few@20: 0.0667
+Hit_frequent@5: 0.0983
+Hit_frequent@10: 0.1279
+Hit_frequent@20: 0.1605
+Coverage_new@5: 0.1603
+Coverage_few@5: 0.166
+Coverage_frequent@5: 0.6737
+Coverage_new@10: 0.148
+Coverage_few@10: 0.1702
+Coverage_frequent@10: 0.6819
+Coverage_new@20: 0.1413
+Coverage_few@20: 0.1766
+Coverage_frequent@20: 0.682
