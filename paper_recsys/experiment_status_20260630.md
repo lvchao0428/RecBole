@@ -2,7 +2,7 @@
 
 > **5090**: `charlie@www.ultrapp.online:/home/charlie/project/RecBole`  
 > **log10**: `charlie@192.168.0.107:/home/charlie/project/RecBole`（经 5090 内网检查）  
-> **核对时间**: 2026-06-30 07:23 CST  
+> **核对时间**: 2026-06-30 21:26 CST  
 
 **相关文档**:
 
@@ -20,7 +20,7 @@
 [✅] GRU4Rec Phase 4 checkpoint = 32/32
 [✅] GRU4Rec LLM / MV checkpoint 补评完成并已拉回本地
 [✅] UniSRec Toys seed=2024 已完成并同步到本地
-[🔄] log10 队列已停，但仍残留 1 个 duplicate 训练任务（Toys ID seed=2025）
+[✅] log10 当前已无活跃训练进程
 ```
 
 ---
@@ -30,7 +30,7 @@
 | 项目 | 状态 | 备注 |
 |------|------|------|
 | GPU | ✅ 空闲 | `0%`, `508 MiB / 32607 MiB` |
-| 完成标记 | ✅ | `logs/5090_pipeline_all_complete.done` 已存在 |
+| 完成标记 | ⚠️ | `done` 文件当前未见，但收尾日志已明确写出 `ALL COMPLETE` |
 | GRU4Rec text eval | ✅ | `gru4rec_text_eval_summary_20260629.md` 已生成 |
 | GRU4Rec baseline | ✅ | `2024/2025/2026` 全部补齐 |
 | UniSRec Toys | ✅ | `saved/unisrec_toys_stratified_seed2024/UniSRec-Jun-29-2026_20-07-57.pth` |
@@ -72,17 +72,20 @@
 - **log10 队列已经停掉**
 - 但**不是完全空闲**
 
-### 4.2 当前残留任务
+### 4.2 当前是否还有残留任务
 
-当前仍在跑的进程：
+最新核对结果：
 
-- `python scripts/two_phase_train.py ...`
-- 任务口径: `GRU4Rec Toys ID-only seed=2025`
-- PID: `112561`
-- 运行时长: `02:27:32`（核对时）
-- GPU: `97%`, `3578 MiB / 11264 MiB`
+- `pgrep` 未发现 `two_phase_train.py / run_log10_gru4rec_baselines / run_log10_resume_after_poweroff`
+- `nvidia-smi` 显示 `0%`, `88 MiB / 11264 MiB`
 
-这说明 log10 上还残留了一个已经起跑的 duplicate job。它**不在关键路径上**，因为对应 checkpoint 已经由 5090 侧补齐。
+因此，**log10 现在也已经空闲**。
+
+补充说明：
+
+- 早上检查时曾看到一个 `Toys ID seed=2025` 的 residual duplicate job
+- 但按今晚再次核对，它现在已经结束，不再占用 GPU
+- 该任务本来就不在关键路径上，因为对应 checkpoint 已经由 5090 补齐
 
 ---
 
@@ -91,22 +94,17 @@
 | 端 | 状态 | 已同步内容 |
 |----|------|------------|
 | 本机 | ✅ | `gru4rec_text_eval_summary_20260629.md`、`gru4rec_text_eval_20260629/*.txt`、`gru4rec_phase4_matrix_20260630.md`、`UniSRec Toys` checkpoint/log、关键 `log10` 状态日志 |
-| 5090 | ✅ | 最新脚本、Phase 4 收尾日志、`DONE` 标记、GRU4Rec 补评结果 |
-| log10 | ✅ | 通过 5090 已核对当前进程、pause watcher、最近日志；关键日志已回拉到本机 |
+| 5090 | ✅ | 最新脚本、Phase 4 收尾日志、GRU4Rec 补评结果；当前 GPU 空闲 |
+| log10 | ✅ | 通过 5090 已核对 pause watcher、最近日志；当前无活跃训练进程 |
 
 ---
 
 ## 6. 当前建议
 
-### 建议 A（最稳）
+当前从训练收口角度看，已经可以视为：
 
-- 保持现状
-- 让 log10 上这一个残留 `Toys ID seed=2025` 自己跑完
-- 由于主结果已经在 5090 收口，不影响论文表和总进度
+- `5090` 空闲
+- `log10` 空闲
+- 主结果与补评结果都已同步到本机
 
-### 建议 B（若想彻底收口）
-
-- 手动停掉 log10 当前这个 duplicate job
-- 然后 log10 就可以视为真正 idle
-
-当前从实验完整性角度看，**A 已经足够**。
+也就是说，**当前训练已经收口**。
