@@ -55,7 +55,114 @@ def _merge_config_dicts(*dicts):
     return result
 
 
-def _build_and_prepare(config: Config):
+def _filter_dataset_by_train_history(train_dataset, eval_dataset, uid_field, min_inter, logger, split_name="eval"):
+    """Filter eval dataset inter_feat to only keep users with >= min_inter training interactions.
+    
+    Must be called BEFORE creating dataloaders (so dataloader gets correct sample_size).
+    """
+    import numpy as np
+    train_uids = train_dataset.inter_feat[uid_field].numpy()
+    uid_counts = {}
+    for u in train_uids:
+        uid_counts[u] = uid_counts.get(u, 0) + 1
+
+    eval_uids = eval_dataset.inter_feat[uid_field].numpy()
+    mask = np.array([uid_counts.get(u, 0) >= min_inter for u in eval_uids])
+
+    n_before = len(eval_uids)
+    n_users_before = len(set(eval_uids))
+    if mask.sum() == n_before:
+        logger.info(f"[EvalFilter:{split_name}] all {n_users_before} users have >= {min_inter} train inters, no filtering needed")
+        return
+
+    from recbole.data.interaction import Interaction
+    mask_tensor = torch.tensor(mask, dtype=torch.bool)
+    filtered = {}
+    for col in eval_dataset.inter_feat.columns:
+        filtered[col] = eval_dataset.inter_feat[col][mask_tensor]
+    eval_dataset.inter_feat = Interaction(filtered)
+
+    n_after = int(mask.sum())
+    n_users_after = len(set(eval_dataset.inter_feat[uid_field].numpy()))
+    logger.info(
+        f"[EvalFilter:{split_name}] min_train_interactions={min_inter}: "
+        f"{n_users_before} -> {n_users_after} users, "
+        f"{n_before} -> {n_after} eval samples"
+    )
+
+
+def _data_preparation_with_filter(config, dataset, min_train_interactions=0):
+    """Like data_preparation but filters eval datasets before creating dataloaders."""
+    from recbole.data.utils import (
+        load_split_dataloaders, save_split_dataloaders,
+        create_samplers, get_dataloader,
+    )
+    from recbole.utils import ModelType
+
+    dataloaders = load_split_dataloaders(config)
+    if dataloaders is not None:
+        train_data, valid_data, test_data = dataloaders
+        dataset._change_feat_format()
+    else:
+        model_type = config["MODEL_TYPE"]
+        built_datasets = dataset.build()
+        train_dataset, valid_dataset, test_dataset = built_datasets
+
+        if min_train_interactions > 0:
+            logger = getLogger()
+            uid_field = config["USER_ID_FIELD"]
+            logger.info(f"Filtering eval users with >= {min_train_interactions} train interactions...")
+            _filter_dataset_by_train_history(
+                train_dataset, valid_dataset, uid_field, min_train_interactions, logger, "valid"
+            )
+            _filter_dataset_by_train_history(
+                train_dataset, test_dataset, uid_field, min_train_interactions, logger, "test"
+            )
+
+        train_sampler, valid_sampler, test_sampler = create_samplers(
+            config, dataset, built_datasets
+        )
+
+        if model_type != ModelType.KNOWLEDGE:
+            train_data = get_dataloader(config, "train")(
+                config, train_dataset, train_sampler, shuffle=config["shuffle"]
+            )
+        else:
+            from recbole.sampler import KGSampler
+            kg_sampler = KGSampler(
+                dataset,
+                config["train_neg_sample_args"]["distribution"],
+                config["train_neg_sample_args"]["alpha"],
+            )
+            train_data = get_dataloader(config, "train")(
+                config, train_dataset, train_sampler, kg_sampler, shuffle=True
+            )
+
+        valid_data = get_dataloader(config, "valid")(
+            config, valid_dataset, valid_sampler, shuffle=False
+        )
+        test_data = get_dataloader(config, "test")(
+            config, test_dataset, test_sampler, shuffle=False
+        )
+        if config["save_dataloaders"]:
+            save_split_dataloaders(
+                config, dataloaders=(train_data, valid_data, test_data)
+            )
+
+    prep_logger = getLogger()
+    from recbole.utils import set_color as _sc
+    prep_logger.info(
+        _sc("[Training]: ", "pink")
+        + _sc("train_batch_size", "cyan") + " = "
+        + _sc(f'[{config["train_batch_size"]}]', "yellow")
+        + " "
+        + _sc("negative sampling", "cyan") + ": "
+        + _sc(f'[{config["neg_sampling"]}]', "yellow")
+    )
+    return train_data, valid_data, test_data
+
+
+def _build_and_prepare(config: Config, min_train_interactions: int = 0):
     """Build logger, dataset, dataloaders, model, trainer for a single phase."""
     init_seed(config["seed"], config["reproducibility"])
     init_logger(config)
@@ -65,7 +172,9 @@ def _build_and_prepare(config: Config):
     dataset = create_dataset(config)
     logger.info(dataset)
 
-    train_data, valid_data, test_data = data_preparation(config, dataset)
+    train_data, valid_data, test_data = _data_preparation_with_filter(
+        config, dataset, min_train_interactions=min_train_interactions
+    )
 
     init_seed(config["seed"] + config["local_rank"], config["reproducibility"])
     model = get_model(config["model"])(config, train_data._dataset).to(config["device"])
@@ -681,6 +790,8 @@ def main(local_rank=None, queue=None, dist_config=None):
     parser.add_argument("--scores_output_dir", type=str, default="ablation_study_doc/scores", help="directory to save test scores")
     parser.add_argument("--save_peruser_topk", action="store_true", help="save per-user top-k hit indicators for paired significance testing")
     parser.add_argument("--peruser_output_dir", type=str, default="saved/peruser", help="directory to save per-user top-k data")
+    parser.add_argument("--min_train_interactions", type=int, default=0,
+                        help="filter eval users: only evaluate users with >= N interactions in train set (0 = no filter)")
     # Manual switching
     parser.add_argument("--only_phase_a", action="store_true", help="run Phase-A only")
     parser.add_argument("--only_phase_b", action="store_true", help="run Phase-B only")
@@ -742,9 +853,13 @@ def main(local_rank=None, queue=None, dist_config=None):
     # Parse and merge --config_dict if provided
     user_config_dict = {}
     if args.config_dict:
-        import ast
+        import ast, re
         try:
-            user_config_dict = ast.literal_eval(args.config_dict)
+            raw = args.config_dict
+            raw = re.sub(r'\bfalse\b', 'False', raw)
+            raw = re.sub(r'\btrue\b', 'True', raw)
+            raw = re.sub(r'\bnull\b', 'None', raw)
+            user_config_dict = ast.literal_eval(raw)
             logger = getLogger()
             logger.info(f"[Config] User config_dict override: {user_config_dict}")
         except Exception as e:
@@ -810,7 +925,7 @@ def main(local_rank=None, queue=None, dist_config=None):
             config_file_list=_split_config_files(args.config_files),
             config_dict=_merge_config_dicts(burnin_dict, dist_config_dict),
         )
-        logger_burn, dataset_burn, train_burn, valid_burn, test_burn, model_burn, trainer_burn = _build_and_prepare(config_burn)
+        logger_burn, dataset_burn, train_burn, valid_burn, test_burn, model_burn, trainer_burn = _build_and_prepare(config_burn, min_train_interactions=args.min_train_interactions)
         logger_burn.info(set_color("[Burn-in] ID-only warmup", "cyan") + f": epochs={burnin_dict['epochs']}, eval_step={burnin_dict['eval_step']}")
         res_burn = _train_and_eval_phase(logger_burn, trainer_burn, train_burn, valid_burn, test_burn, saved=True)
         burnin_ckpt = res_burn.get("saved_model_file")
@@ -869,7 +984,7 @@ def main(local_rank=None, queue=None, dist_config=None):
                         config_file_list=_split_config_files(args.config_files),
                         config_dict=_merge_config_dicts(phase_a_dict, dist_config_dict),
                     )
-                    logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
+                    logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a, min_train_interactions=args.min_train_interactions)
                     logger_a.info(set_color("[Phase-A:grid] setting", "cyan") + f": alignment_weight={aw}, temperature={tau}")
                     progress_cb = _make_phase_progress_callback(
                         phase_a_progress_logger,
@@ -1061,7 +1176,7 @@ def main(local_rank=None, queue=None, dist_config=None):
                 config_file_list=_split_config_files(args.config_files),
                 config_dict=_merge_config_dicts(phase_a_dict, dist_config_dict),
             )
-            logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a)
+            logger_a, dataset_a, train_a, valid_a, test_a, model_a, trainer_a = _build_and_prepare(config_a, min_train_interactions=args.min_train_interactions)
             logger_a.info(set_color("[Phase-A] freeze_backbone", "cyan") + f": {config_a['freeze_backbone']}")
             if "lr_text_head" in config_a and "lr_dnn_cross" in config_a:
                 logger_a.info(
@@ -1244,7 +1359,7 @@ def main(local_rank=None, queue=None, dist_config=None):
             config_file_list=_split_config_files(args.config_files),
             config_dict=_merge_config_dicts(phase_b_dict, dist_config_dict),
         )
-        logger_b, dataset_b, train_b, valid_b, test_b, model_b, trainer_b = _build_and_prepare(config_b)
+        logger_b, dataset_b, train_b, valid_b, test_b, model_b, trainer_b = _build_and_prepare(config_b, min_train_interactions=args.min_train_interactions)
         logger_b.info(
             set_color("[Phase-B] freeze_backbone", "cyan") + f": {config_b['freeze_backbone']}"
         )

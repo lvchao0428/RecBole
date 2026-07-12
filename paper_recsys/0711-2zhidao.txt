@@ -1,0 +1,16 @@
+这个Beauty的global time-split单seed pilot是一个好信号，四层模型的相对顺序还在，说明原来的结论不完全依赖leave-one-out的时间泄漏。不过现在MV-Align相比TF-IDF+LLM的差距只有0.02–0.03个百分点，而且还是单seed，所以暂时只能算sanity check，我推荐先不要直接批量跑。应当把文本预处理口径修正以后，再确认层级和方差。
+
+文本这里我建议重新生成，但要把原始文本和从数据上拟合出来的变换分开看。冻结的Qwen直接encode商品title，本身没有使用测试交互，可以视为外部静态编码器。但TF-IDF的vocabulary/IDF、SVD以及center/ZCA whitening的均值和协方差，都会吸收未来catalog的分布信息，因此必须只在train-cutoff之前已经出现的item上拟合，然后冻结并应用到valid/test item。如果模型仍然依赖ID embedding，主实验的candidate/target也应限制为cutoff前已出现的warm items。Amazon数据提供精确的交互时间戳，但商品metadata是抓取时的一份静态快照，并没有历史版本，所以论文里可以明确写假设title在商品首次出现时可用，并把历史metadata缺失列为limitation。
+
+cold-start我建议整体改成low-frequency/sparse-item recommendation。同学当前new=[1,3)仍然有训练交互和ID embedding，并不是zero-interaction item cold-start。真正的新商品需要content-only fallback，或者在测试时生成新的item representation。同学原来的论文里面把[1,3)直接叫cold-start，确实容易被再次质疑。
+
+5-core这一点不能通过不提解决。因为论文里明确写了after 5-core filtering，但截图里Amazon三个数据集平均每用户约1.7条，且只有约4.2%–4.3%的用户达到5条，这显然不是5-core。我感觉最合适的做法不是对全图重新做严格user-item 5-core，而是global split后要求主评测用户在train cutoff前至少有5条历史。这样Beauty仍有约5.2万用户、Toys约5.8万、Grocery约3.2万，规模完全够。同时再把2–4条历史的cohort放附录，专门说明极短序列边界。表里要报告train/valid/test eligible users、历史长度中位数和分位数，而不是继续写5-core。其实我在课上也包括和同学的群里沟通，是反复强调了实验的严谨性。另一方面，不写指望审稿人没有发觉，我在课上也说过，这个反而容易被审稿人抓住把柄，还失去了自我辩护的可能。
+
+组件上我建议再简化一次。SE直接从主方法删掉，training cold reweight和inference boost不要同时保留，先在修正后的Beauty global split上跑一版无SE、无inference boost、普通InfoNCE的简化模型。如果结果在一个std内，两个boost都删掉。如果low-frequency明显受损，最多保留一个训练期frequency weight，作为可选objective，而不是主贡献。Two-phase schedule可以继续保留，但只写成optimization protocol，不要当模型组件。之前RecSys的论文里SE、双重cold boost和two-phase同时出现，正是reviewer认为复杂度过高的来源。
+
+机制分析的方向大体是对的，但我感觉不要预设最后一定要大部分绿色。更稳的是先定义假设，再如实验证。
+关于Cross机制，我推荐做目标item的rank-transition matrix，分成1/2–5/6–10/11–50/>50，直接看加Cross后哪些样本从Top-10外进入、哪些从Top-10内掉出。再配同一用户内标准化后的score entropy、Top-1–Top-10 margin以及Top-K中head/tail item占比。RecSys版本目前只是文字推断winner-take-all，WSDM版需要把它变成直接证据。
+关于Align/Multi-view机制，做各frequency bucket的target-rank improvement、leave-one-view-out，以及各view的贡献或gate分布。再用UniSRec的Base->+Align->+Multi-view结果证明portability。不要假设multi-view一定让Top-10更集中，它也可能主要改善语义覆盖。
+汇总图的话，可以做component x mechanism metric的effect-size heatmap，但用连续数值和置信区间，不要人为设阈值把图调成想要的颜色。
+
+同学论文的准备标准还是按Main准备，包括global-cutoff主协议、简化方法、UniSRec portability、两张真正解释机制的图。如果审稿人认为创新性不足但实验扎实，Findings也是一个不错的结果。
