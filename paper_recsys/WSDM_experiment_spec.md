@@ -203,8 +203,120 @@ sasrec_align_{dataset}_{text_source}_{split_type}.yaml
 
 ---
 
-## 六、变更日志
+## 六、运维操作规范
+
+### 6.1 5090 实验启动流程
+
+```bash
+# 1. SSH 进入 5090
+ssh charlie@www.ultrapp.online
+
+# 2. 进入项目目录并加载环境
+cd /home/charlie/project/RecBole
+source scripts/recbole_env.sh
+export PYTHONPATH=$(pwd):${PYTHONPATH:-}
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+# 3. 确认 GPU 空闲
+nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader
+
+# 4. 启动实验（nohup 后台）
+nohup bash run_5090_xxx.sh > logs/xxx_nohup.log 2>&1 &
+echo "PID=$!"
+
+# 5. 验证启动
+sleep 15 && tail -5 logs/xxx_nohup.log
+nvidia-smi
+```
+
+### 6.2 实验脚本编写规范
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+source "$ROOT/scripts/recbole_env.sh"
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
+# 调用训练脚本
+python scripts/two_phase_train.py \
+    --model "SASRecAlignV3" \
+    --dataset "Amazon_Beauty" \
+    --config_files "$ROOT/sasrec_align_base_stratified_v3_ts.yaml" \
+    --config_dict "{'learning_rate':0.0005}" \
+    --gpu_id 0 \
+    --min_train_interactions 5
+```
+
+### 6.3 故障排查清单
+
+| 错误 | 原因 | 修复 |
+|------|------|------|
+| `ModuleNotFoundError: No module named 'recbole'` | 未 source 环境 | 添加 `source scripts/recbole_env.sh` + `export PYTHONPATH` |
+| `python: command not found` | PATH 未设置 | 使用 `/home/charlie/anaconda3/bin/python` 或 source env |
+| `CUDA out of memory` | batch 太大或多进程抢占 | 减 eval_batch_size、加 `torch.cuda.empty_cache()`、确认单进程 |
+| `.log: 没有那个文件或目录` | logs 目录不存在 | `mkdir -p logs` |
+| `set -e` 导致静默退出 | 脚本中某命令返回非 0 | 训练调用加 `|| true`，检查 exit code |
+
+### 6.4 三端代码同步流程
+
+```bash
+# 方案 A: 通过 5090 push（推荐，5090 有 git push 权限）
+# 1. 本地 commit
+cd /Users/a58/project/RecBole
+git add -A && git commit -m "描述"
+
+# 2. rsync 到 5090
+rsync -avz <files> charlie@www.ultrapp.online:/home/charlie/project/RecBole/
+
+# 3. 5090 commit + push
+ssh charlie@www.ultrapp.online "cd /home/charlie/project/RecBole && git add -A && git commit -m '描述' && git push origin exp1110"
+
+# 4. logMac pull
+ssh charlie@www.ultrapp.online "ssh mac128 'cd /Users/lvchao0428/project/ownRecBole/RecBole && git pull origin exp1110 --no-edit'"
+
+# 5. 本地 fetch + reset
+cd /Users/a58/project/RecBole && git fetch origin && git reset --hard origin/exp1110
+```
+
+### 6.5 进展检查命令（快速参考）
+
+```bash
+# GPU 状态
+ssh charlie@www.ultrapp.online "nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader"
+
+# 当前进程
+ssh charlie@www.ultrapp.online "ps aux | grep -E 'two_phase|python.*scripts' | grep -v grep"
+
+# 网格搜索进展
+ssh charlie@www.ultrapp.online "tail -20 /home/charlie/project/RecBole/logs/shared_grid_nohup.log"
+
+# 网格结果 CSV
+ssh charlie@www.ultrapp.online "cat /home/charlie/project/RecBole/logs/grid_results_beauty_seed2025.csv"
+
+# 具体实验日志
+ssh charlie@www.ultrapp.online "tail -30 /home/charlie/project/RecBole/logs/grid_beauty_<TAG>_seed2025.log"
+```
+
+### 6.6 分析工具使用
+
+| 工具 | 命令 | 需要 GPU | 预计耗时 |
+|------|------|:--------:|:--------:|
+| Distribution shift | `python scripts/analyze_distribution_shift.py --dataset Amazon_Beauty` | ❌ | 5s |
+| View redundancy | `python scripts/analyze_view_redundancy.py --dataset Amazon_Beauty` | ❌ | 2s |
+| SVD 谱图 | 先生成 json，再用 matplotlib 绘图 | ❌ | 10s |
+| Rank-transition | `python scripts/analyze_rank_transition.py --ckpt_nocross ... --ckpt_cross ...` | ✅ | 5-30min |
+| Leave-one-view-out | `python scripts/analyze_leave_one_view_out.py --ckpt ...` | ✅ | 10-60min |
+| 嵌入塌缩诊断 | `python scripts/diagnose_collapse.py --mode A --dataset Amazon_Beauty` | ❌ (Mode A) | 30s |
+| 共享小网格 | `bash run_5090_shared_grid.sh` | ✅ | 9-12h |
+
+---
+
+## 七、变更日志
 
 | 日期 | 变更 |
 |------|------|
 | 2026-07-17 | 文档创建；整合 0711/0712/0717 老师建议为统一规范 |
+| 2026-07-17 15:50 | 新增§六运维操作规范：启动流程、脚本编写、故障排查、三端同步、分析工具 |

@@ -6,15 +6,18 @@
 #
 # 执行：nohup bash run_5090_shared_grid.sh > logs/shared_grid_nohup.log 2>&1 &
 
-set -e
-ROOT=/home/charlie/project/RecBole
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+source "$ROOT/scripts/recbole_env.sh"
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
 PYTHON=/home/charlie/anaconda3/bin/python
 DATASET=Amazon_Beauty
 SEED=2025
 GPU=0
 export CUDA_VISIBLE_DEVICES=$GPU
-
-cd $ROOT
 
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
 GRID_LOG="logs/shared_grid_${TIMESTAMP}.log"
@@ -28,6 +31,8 @@ LRS=(0.0001 0.0005 0.001)
 DROPOUTS=(0.1 0.3 0.5)
 WD=0.0
 
+MIN5=5
+
 run_experiment() {
     local MODEL=$1
     local CONFIG=$2
@@ -39,48 +44,50 @@ run_experiment() {
     
     local LOG_FILE="logs/grid_beauty_${TAG}_seed${SEED}.log"
     
-    $PYTHON scripts/two_phase_train.py \
-        --model_type=$MODEL \
-        --config_files=$CONFIG \
-        --learning_rate=$LR \
-        --attn_dropout_prob=$DROPOUT \
-        --hidden_dropout_prob=$DROPOUT \
-        --weight_decay=$WD \
-        > $LOG_FILE 2>&1
+    local CFG_DICT="{'learning_rate':${LR},'attn_dropout_prob':${DROPOUT},'hidden_dropout_prob':${DROPOUT},'weight_decay':${WD}}"
+    
+    python scripts/two_phase_train.py \
+        --model "$MODEL" \
+        --dataset "$DATASET" \
+        --config_files "$CONFIG" \
+        --config_dict "$CFG_DICT" \
+        --gpu_id $GPU \
+        --min_train_interactions $MIN5 \
+        > $LOG_FILE 2>&1 || true
     
     local EXIT_CODE=$?
     
     # Extract valid best MRR
-    local VALID_MRR=$(grep -i "valid.*mrr@10" $LOG_FILE | tail -1 | grep -oP '\d+\.\d+' | head -1)
+    local VALID_MRR=$(grep -oP "mrr@10\s*:\s*\K[0-9.]+" $LOG_FILE | tail -1)
     
     echo "[$(date '+%H:%M')] $TAG done (exit=$EXIT_CODE) valid_mrr=${VALID_MRR:-N/A}" | tee -a $GRID_LOG
-    echo "$TAG,$LR,$DROPOUT,$WD,$VALID_MRR" >> "logs/grid_results_beauty_seed${SEED}.csv"
+    echo "$TAG,$LR,$DROPOUT,$WD,${VALID_MRR:-0}" >> "logs/grid_results_beauty_seed${SEED}.csv"
 }
 
 # Initialize CSV
 echo "tag,lr,dropout,wd,valid_mrr" > "logs/grid_results_beauty_seed${SEED}.csv"
 
 echo "" | tee -a $GRID_LOG
-echo "=== Phase 1: TF-IDF ===" | tee -a $GRID_LOG
+echo "=== Phase 1: TF-IDF (SASRecAlignV3, base) ===" | tee -a $GRID_LOG
 for LR in "${LRS[@]}"; do
     for DO in "${DROPOUTS[@]}"; do
-        run_experiment "SASRecAlignV3" "sasrec_align_base_stratified_v3_ts.yaml" $LR $DO
+        run_experiment "SASRecAlignV3" "$ROOT/sasrec_align_base_stratified_v3_ts.yaml" $LR $DO
     done
 done
 
 echo "" | tee -a $GRID_LOG
-echo "=== Phase 2: LLM ===" | tee -a $GRID_LOG
+echo "=== Phase 2: LLM (SASRecAlignV3, qwen) ===" | tee -a $GRID_LOG
 for LR in "${LRS[@]}"; do
     for DO in "${DROPOUTS[@]}"; do
-        run_experiment "SASRecAlignV3" "sasrec_align_qwen3_stratified_v3_ts.yaml" $LR $DO
+        run_experiment "SASRecAlignV3" "$ROOT/sasrec_align_qwen3_stratified_v3_ts.yaml" $LR $DO
     done
 done
 
 echo "" | tee -a $GRID_LOG
-echo "=== Phase 3: MV ===" | tee -a $GRID_LOG
+echo "=== Phase 3: MV (SASRecAlignMultiViewV3) ===" | tee -a $GRID_LOG
 for LR in "${LRS[@]}"; do
     for DO in "${DROPOUTS[@]}"; do
-        run_experiment "SASRecAlignMultiViewV3" "sasrec_align_multi_view_v3_stratified_ts.yaml" $LR $DO
+        run_experiment "SASRecAlignMultiViewV3" "$ROOT/sasrec_align_multi_view_v3_stratified_ts.yaml" $LR $DO
     done
 done
 
