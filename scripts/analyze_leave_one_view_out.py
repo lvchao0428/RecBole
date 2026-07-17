@@ -29,23 +29,31 @@ if str(ROOT) not in sys.path:
 VIEW_NAMES = ["Description", "Function", "Audience", "Style"]
 
 
-def evaluate_with_views(model, test_data, config, view_indices):
-    """Evaluate model with subset of views."""
+def evaluate_with_views(model, test_data, config, view_indices, max_users=500):
+    """Evaluate model with subset of views, limited to max_users to avoid OOM."""
     original_indices = getattr(model, 'text_view_indices', list(range(4)))
     model.text_view_indices = view_indices
 
-    from recbole.evaluator import Evaluator
-    evaluator = Evaluator(config)
-
     model.eval()
     device = config["device"]
+    n_items = test_data._dataset.item_num
 
     all_results = []
-    for batch in test_data:
-        batch = batch.to(device)
+    total_users = 0
+    for batched_data in test_data:
+        if total_users >= max_users:
+            break
+        interaction, history_index, positive_u, positive_i = batched_data
+        interaction = interaction.to(device)
         with torch.no_grad():
-            scores = model.full_sort_predict(batch)
-        all_results.append((batch, scores))
+            scores = model.full_sort_predict(interaction)
+        scores = scores.view(-1, n_items)
+        scores[:, 0] = -np.inf
+        if history_index is not None:
+            scores[history_index] = -np.inf
+        all_results.append((positive_u, positive_i, scores.cpu()))
+        total_users += len(positive_u)
+        torch.cuda.empty_cache()
 
     model.text_view_indices = original_indices
     return all_results
@@ -53,17 +61,13 @@ def evaluate_with_views(model, test_data, config, view_indices):
 
 def compute_mrr_at_k(results, dataset, k=10):
     """Compute MRR@K from prediction results."""
-    n_items = dataset.item_num
     mrr_sum = 0.0
     count = 0
 
-    for batch, scores in results:
-        scores = scores.view(-1, n_items)
-        target_items = batch['item_id']
-
-        for i in range(scores.size(0)):
-            user_scores = scores[i]
-            target = target_items[i].item()
+    for positive_u, positive_i, scores in results:
+        for i in range(len(positive_u)):
+            user_scores = scores[positive_u[i]]
+            target = positive_i[i].item()
 
             sorted_indices = torch.argsort(user_scores, descending=True)
             rank = int((sorted_indices == target).nonzero(as_tuple=True)[0].item()) + 1
@@ -97,12 +101,17 @@ def main():
     config, model, dataset, train_data, valid_data, test_data = load_data_and_model(str(pth_files[0]))
     model.eval()
 
-    print(f"\nDataset: {args.dataset}, Test users: ~{sum(1 for _ in test_data)}")
+    # Reduce eval batch size to avoid OOM
+    if hasattr(test_data, '_batch_size'):
+        test_data._batch_size = min(test_data._batch_size, 32)
+
+    max_users = 500
+    print(f"\nDataset: {args.dataset}, max_users for eval: {max_users}")
 
     all_views = list(range(4))
 
     print("\nEvaluating full model (all 4 views)...")
-    results_full = evaluate_with_views(model, test_data, config, all_views)
+    results_full = evaluate_with_views(model, test_data, config, all_views, max_users)
     mrr_full = compute_mrr_at_k(results_full, dataset)
     print(f"  Full MV MRR@10 = {mrr_full:.6f}")
 
@@ -116,7 +125,7 @@ def main():
     for drop_idx in range(4):
         remaining = [v for v in all_views if v != drop_idx]
         print(f"\nEvaluating without view_{drop_idx} ({VIEW_NAMES[drop_idx]})...")
-        results = evaluate_with_views(model, test_data, config, remaining)
+        results = evaluate_with_views(model, test_data, config, remaining, max_users)
         mrr = compute_mrr_at_k(results, dataset)
         delta = mrr - mrr_full
         contribution = -delta

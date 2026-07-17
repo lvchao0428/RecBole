@@ -129,13 +129,15 @@ def main():
             label = f"{VIEW_NAMES[i]} vs {VIEW_NAMES[j]}"
             print(f"{label:<35} {stats['mean']:>8.4f} {stats['std']:>8.4f} {stats['median']:>8.4f}")
 
-    if tf_emb is not None:
+    if tf_emb is not None and tf_emb.shape[1] == views[0].shape[1]:
         for i in range(len(views)):
             stats = pairwise_cosine_stats(tf_emb, views[i])
             key = f"tfidf_vs_view_{i}"
             cos_matrix[key] = stats
             label = f"TF-IDF vs {VIEW_NAMES[i]}"
             print(f"{label:<35} {stats['mean']:>8.4f} {stats['std']:>8.4f} {stats['median']:>8.4f}")
+    elif tf_emb is not None:
+        print(f"\n  (Skipping TF-IDF vs view cosine: dim mismatch {tf_emb.shape[1]} vs {views[0].shape[1]})")
 
     results["pairwise_cosine"] = cos_matrix
 
@@ -156,7 +158,8 @@ def main():
 
     if tf_emb is not None:
         for i in range(len(views)):
-            cka = linear_CKA(tf_emb, views[i])
+            n = min(tf_emb.shape[0], views[i].shape[0], 5000)
+            cka = linear_CKA(tf_emb[:n], views[i][:n])
             key = f"tfidf_vs_view_{i}"
             cka_matrix[key] = cka
             label = f"TF-IDF vs {VIEW_NAMES[i]}"

@@ -89,29 +89,31 @@ def load_model_and_predict(ckpt_dir: str):
 
 def compute_ranks_and_scores(model, test_data, dataset, config, max_users=2000):
     """Compute target item ranks and score distributions for each test user."""
-    from recbole.data.interaction import Interaction
-
     results = []
     device = config["device"]
     n_items = dataset.item_num
 
     count = 0
-    for batch in test_data:
+    for batched_data in test_data:
         if count >= max_users:
             break
 
-        batch = batch.to(device)
+        interaction, history_index, positive_u, positive_i = batched_data
+        interaction = interaction.to(device)
+
         with torch.no_grad():
-            scores = model.full_sort_predict(batch)
+            scores = model.full_sort_predict(interaction)
 
         scores = scores.view(-1, n_items)
-        target_items = batch['item_id']
+        scores[:, 0] = -np.inf
+        if history_index is not None:
+            scores[history_index] = -np.inf
 
-        for i in range(scores.size(0)):
+        for i in range(len(positive_u)):
             if count >= max_users:
                 break
-            user_scores = scores[i].cpu().numpy()
-            target = target_items[i].item()
+            user_scores = scores[positive_u[i]].cpu().numpy()
+            target = positive_i[i].item()
 
             sorted_indices = np.argsort(-user_scores)
             rank = int(np.where(sorted_indices == target)[0][0]) + 1
@@ -120,7 +122,6 @@ def compute_ranks_and_scores(model, test_data, dataset, config, max_users=2000):
             ent = score_entropy(top_k_scores[:10])
             margins = top_margin(top_k_scores)
 
-            head_in_topk = 0
             results.append({
                 "target_item": target,
                 "rank": rank,
