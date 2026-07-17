@@ -1,0 +1,11 @@
+现在per-source align、融合容量、Cross/no-Cross的口径终于公平了，所以当前数据虽然没有原来的漂亮层级，可信度反而高得多。现在看下来no-Cross下TF-IDF、single-view LLM、multi-view的MRR@10分别是0.0162、0.0164、0.0158，加Cross后也没有出现稳定的HR-ranking trade-off，整体反而略有下降。这个时候我推荐不要再加cold boost、扩大维度或者换更多融合trick去追回层级，而是应当先接受一个事实，在严格time split下文本特征整体有效，但multi-view和Cross的额外收益目前并不稳定。
+
+valid到test都有约44%的下降，而且TF、LLM、MV三路下降幅度接近，我感觉这更像整体temporal distribution shift，而不一定是某个模型单独过拟合。现阶段的话，我觉得同学第一件事是先检查valid/test两个时间窗口里的item popularity、catalog overlap、目标item age、用户历史长度和文本分布是否变化。超参数确实需要在新协议下重新确定，但我建议只开一个很小且共享的valid网格，比如learning rate、dropout、weight decay各2-3个值，所有模型同预算调参，绝对不要再根据test反复选配置。最好再加一个较早的rolling validation window看模型排序是否稳定，否则单个valid window很可能代表不了最终test period。
+
+item-frequency分桶我建议仍然保留。min-user-history>=5解决的是用户序列是否有意义，item-frequency bucket分析的是目标商品流行度，两者不是同一件事。分桶全部按照train cutoff前的交互次数计算，我建议改叫low/mid/head或sparse-item，不再叫真正的cold-start。另外也可以考虑加item age分桶，因为global split下低频和刚出现不是完全相同的概念。
+
+multi-view暂时不要扩成4x256。四个view都来自同一title和同一个Qwen encoder，它们很可能只是语义重述，扩带宽不能创造新的独立信息。解决方案上，可以先做pairwise cosine/CKA、奇异值谱或effective rank、leave-one-view-out，判断到底是view redundancy还是容量不足。如果四个view高度相关，那结论应当是prompt-based multi-view information is largely redundant。如果view确实互补但4x64容量不足，再做一次参数匹配的4x256 vs single-view 1024 pilot，不能直接拿更大模型和256维baseline比。
+
+我建议给当前方向设一个明确的stop gate，修正train-only TF-IDF/SVD/whitening后，在Beauty上跑3 seeds以及至少两个temporal windows。如果multi-view相对single-view在大部分窗口和主指标上仍不能超过一个std，就停止把MV-Align当主方法，转成leakage-aware controlled study。Cross如果不能稳定改善NDCG/MRR也从默认模型删除，只作为负结果和机制分析。SE和cold boosts都删掉，两阶段训练只作为optimization protocol。
+
+如果同学按照我的建议来的话，WSDM版的主线可以改成，严格global temporal evaluation下静态文本仍显著改善ID-only，TF-IDF与single-view LLM已解释大部分收益，prompt-based multi-view的边际价值受到视角冗余、时间漂移和item frequency的限制，Cross对score distribution的作用依赖数据与窗口，并非稳定增益。机制分析再围绕rank transition、score entropy、Top-1到Top-10 margin、Top-K head share、view redundancy和UniSRec portability展开。这样不需要所有格子都涨，也不需要硬把模型调回漂亮层级，反而更符合WSDM或Findings对严谨洞察的要求。
