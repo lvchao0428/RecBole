@@ -1,0 +1,14 @@
+感觉整体确实需要调整，但不是把TF-IDF去掉、继续想办法凑出multi-view的层级。恰恰相反，TF-IDF必须保留，因为它现在是最重要的strong baseline。修正成global time split、只评估有足够历史的用户以后，TF-IDF、TF-IDF+LLM、MV-Align基本打平，这说明原先一部分层层递进可能来自evaluation protocol、cold boost和多组旋钮，而不是multi-view本身稳定带来的增益。如果现在删TF-IDF，reviewer很容易认为是在回避最强的简单基线。
+
+V2的ID-only是0.0112，TF-IDF是0.0157/0.0162，TF-IDF+LLM是0.0157/0.0158，MV-Align是0.0157/0.0159。这里最稳的结论已经不是multi-view显著更强，而是静态文本明显补充ID-only，但更复杂的LLM/multi-view在leakage-free protocol下边际收益有限。这个叙事其实也算适合WSDM，解释为什么简单文本如此强、复杂组件什么时候真正有效、旧eval protocol为什么会夸大差异。
+
+另外的话，min-user-history>=5和item-frequency分桶是两回事，所以item交互次数分层仍然要保留。前者保证用户序列有意义，后者分析popularity/low-frequency item。我建议根据train cutoff之前的item frequency分成low/mid/head，而不是再叫cold-start。真正zero-interaction的新item由于没有训练好的ID embedding，当前的模型本来就不能直接处理，除非另外设计content-only fallback，所以正文最好不要再用zero-shot cold-start的语气。
+
+机制分析方向可以保留，但不要预设加Cross一定让Top-1更集中或者大部分格子应该是绿色。我建议先提出可验证假设，再看数据。Cross最值得做的是per-user target rank transition，从>50、11-50、6-10、2-5、1这些区间，观察加Cross后真实item往哪里移动，同时报告score entropy、Top-1到Top-10 margin、Top-K中head item比例。如果Cross提高NDCG/MRR，但让一部分target跌出Top-10，就能直接解释trade-off。Multi-view/Align则看view间cosine redundancy、leave-one-view-out、不同item-frequency桶里的gate/对齐相似度，以及alignment gain和target-rank improvement的相关性。热力图可以做，但展示连续effect size和置信区间，不要人为选阈值把结果调成想要的颜色。
+
+下一步的话，我建议同学只做三件事：
+(1）锁死global time split，TF-IDF的vocabulary/IDF、SVD、center/whiten全部只在train cutoff前拟合，再用同一seed复跑四个核心配置，先确认同学得到的打平现象不是实现问题。尤其V1 no-boost的TF-IDF+LLM=0.0042很像异常，必须排查。
+(2）简化模型，SE、training/inference cold boost从主方法删掉，两阶段训练只作为optimization protocol。主模型最多保留multi-view、align，Cross作为机制旋钮，如果Cross没带来稳定净收益就不要硬塞进最终模型。
+(3）WSDM版这样来看需要改成leakage-aware controlled study，也就是TF-IDF是强baseline，复杂文本模型在严格时间协议下边际收益收缩，Cross改变coverage-ranking分配，multi-view/align的作用依赖backbone、frequency和domain。
+
+最后的话，UniSRec portability和第三数据集仍然有用，但必须在新eval protocol下重跑，旧split的结果只能放历史分析。现阶段只能说最好不要再追求所有配置形成漂亮层级，真实、可复现、解释得通，比MV-Align每行都最好更有录用价值。

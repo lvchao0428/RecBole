@@ -1,0 +1,99 @@
+---
+# SASRecAlignMultiViewV3 + Stratified Evaluation (Toys, 7B)
+# Global Time-based Split (TS) — SE gating disabled per advisor
+
+model: SASRecAlignMultiViewV3
+hidden_size: 256
+fusion_chunk_size: 16384
+n_layers: 2
+n_heads: 2
+inner_size: 256
+hidden_act: gelu
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+gpu_id: "0"
+
+dataset: Amazon_Toys_and_Games
+field_separator: "\t"
+seq_separator: " "
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+LABEL_FIELD: label
+NEG_PREFIX: neg_
+RATING_FIELD: rating
+TIME_FIELD: timestamp
+ITEM_LIST_LENGTH_FIELD: item_length
+LIST_SUFFIX: _list
+MAX_ITEM_LIST_LENGTH: 50
+POSITION_FIELD: position_id
+load_col:
+  inter: [user_id, item_id, rating, timestamp]
+  item: [item_id, title, categories]
+
+epochs: 50
+train_batch_size: 512
+eval_batch_size: 512
+learning_rate: 0.0001
+eval_step: 5
+stopping_step: 20
+clip_grad_norm: { max_norm: 5 }
+eval_args:
+  group_by: user
+  order: TO
+  split: {'TS': [0.8, 0.1, 0.1]}
+  mode:  {'valid': 'full','test':'full'}
+eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
+topk: [5, 10, 20]
+
+metrics: [
+  Recall, MRR, NDCG, Hit, Precision,
+  StratifiedRecall, StratifiedNDCG, StratifiedMRR, StratifiedHit,
+  ItemPopularityStats
+]
+
+valid_metric: MRR@10
+loss_type: CE
+train_neg_sample_args: null
+
+align_weight: 0.1
+cold_text_boost: 3.0
+infer_boost: 0.0
+cold_threshold: 10
+
+item_text_emb_path_base: dataset/Amazon_Toys_and_Games/item_text_emb.base.npy
+item_text_emb_path_llm: ""
+item_text_emb_split_dir: dataset/Amazon_Toys_and_Games/qwen2.5_7b_4views
+use_llm: false
+use_align: true
+use_cross: true
+text_cross_layer_num: 1
+use_text_view_split: true
+use_multiview_text_cross: true
+num_text_views: 4
+# Fair vs LLM both: TF(256) || views(4x64=256) = 512; text_view_indices for ablation
+mv_include_base: true
+text_view_indices: null
+
+text_view_half_precision: true
+
+temperature: 0.05
+detach_text_emb: true
+normalize_text: true
+text_weight: 1.0
+text_gate_init: 0.7
+
+weight_decay: 1e-5
+label_smoothing: 0.1
+hidden_dropout_prob: 0.2
+attn_dropout_prob: 0.2
+token_dropout_prob: 0.2
+cross_dropout_prob: 0.2
+cosine_score: true
+cosine_scale: 10.0
+
+text_proj_norm: true
+fused_item_norm: true
+disable_text_feature: false
+text_mlp_bn: false
+freeze_backbone: false
+fuse_text_feature: true

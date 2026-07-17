@@ -2,17 +2,18 @@
 """
 SASRecAlign V3 - Simplified Weight Configuration
 
-简化权重配置，仅保留三个核心权重控制参数：
-1. align_weight: 全局对齐权重，控制对齐损失强度
-2. cold_text_boost: 冷启动文本增强，训练时给低频商品更高的对齐损失权重
-3. infer_boost: 推理增强，推理时给低频商品更强的文本信号
+Per-source align (pre-concat):
+  Each text source (TF-IDF, LLM) is independently aligned with ID via its own
+  lightweight projection → InfoNCE.  Fusion still uses the concat→proj pipeline.
+  - text_mode=base  → 1× InfoNCE via align_proj_base (base_dim→H)
+  - text_mode=llm   → 1× InfoNCE via align_proj_llm  (llm_dim→H)
+  - text_mode=both  → 2× InfoNCE (base + llm), averaged
+  align_proj_* are separate from item_text_proj (fusion projection).
 
-相比 sasrec_align.py 的变化：
-- 移除 cold_start_align_boost / cold_start_align_threshold / inference_cold_text_boost 等重复配置
-- 移除 use_ipw_weighting 及 IPW 系列参数（IPW 逻辑已融入 cold_text_boost）
-- 移除 text_gate_reg_l2 / text_gate_reg_entropy / text_view_residual_weight 等低效配置
-- 保留 text_weight、temperature、text_gate_init 等必要参数
-- 统一冷启动阈值为 cold_threshold（默认 10）
+Core weight parameters:
+1. align_weight: global align loss coefficient
+2. cold_text_boost: cold-start sample reweighting in align
+3. infer_boost: inference-time text signal amplification for cold items
 """
 
 import os
@@ -178,16 +179,22 @@ class SASRecAlignV3(SequentialRecommender):
         self.register_buffer("item_text_emb_base", emb_base if emb_base is not None else None)
         self.register_buffer("item_text_emb_llm", emb_llm if emb_llm is not None else None)
 
+        # MultiView subclass may supply text only via item_text_emb_split_dir
+        # (no TF-IDF base / LLM path). Skip the base/llm presence check in that case.
+        use_text_view_split = (
+            bool(config["use_text_view_split"]) if "use_text_view_split" in config else False
+        )
+
         if self.disable_text_feature:
             self.fuse_text_feature = False
         else:
             if self.use_llm:
-                if self.item_text_emb_llm is None:
+                if self.item_text_emb_llm is None and not use_text_view_split:
                     raise ValueError(
                         "SASRecAlignV3: use_llm=True but item_text_emb_path_llm is missing."
                     )
             else:
-                if self.item_text_emb_base is None:
+                if self.item_text_emb_base is None and not use_text_view_split:
                     raise ValueError(
                         "SASRecAlignV3: text features are enabled but item_text_emb_path_base is missing."
                     )
@@ -268,15 +275,33 @@ class SASRecAlignV3(SequentialRecommender):
             if self.fused_item_norm_flag:
                 self.fused_item_norm = nn.LayerNorm(self.hidden_size, eps=self.layer_norm_eps)
 
+        # Per-source align projections (independent of fusion proj)
+        self.align_proj_base = None
+        self.align_proj_llm = None
+        self._base_dim = base_dim
+        self._llm_dim = llm_dim
+        if text_in_dim > 0 and self.use_align and self.align_weight > 0:
+            if self._text_mode in ("base", "both") and base_dim > 0:
+                self.align_proj_base = nn.Linear(base_dim, self.hidden_size)
+            if self._text_mode in ("llm", "both") and llm_dim > 0:
+                self.align_proj_llm = nn.Linear(llm_dim, self.hidden_size)
+
         self._align_debug_logged = False
         self._gate_debug_logged = False
         self._fusion_chunk_warned = False
 
         # Logging
+        align_sources = []
+        if self.align_proj_base is not None:
+            align_sources.append(f"base({base_dim}→{self.hidden_size})")
+        if self.align_proj_llm is not None:
+            align_sources.append(f"llm({llm_dim}→{self.hidden_size})")
         if self.align_weight > 0.0 and self._has_item_text():
             self.logger.info(
-                "SASRecAlignV3: text_mode=%s, align_weight=%.3f, cold_text_boost=%.2f, infer_boost=%.2f, cold_threshold=%d",
-                self._text_mode, self.align_weight, self.cold_text_boost, self.infer_boost, self.cold_threshold
+                "SASRecAlignV3: text_mode=%s, per-source align=[%s], "
+                "align_weight=%.3f, cold_text_boost=%.2f, infer_boost=%.2f, cold_threshold=%d",
+                self._text_mode, ", ".join(align_sources) if align_sources else "none",
+                self.align_weight, self.cold_text_boost, self.infer_boost, self.cold_threshold
             )
 
         self.apply(self._init_weights)
@@ -510,31 +535,44 @@ class SASRecAlignV3(SequentialRecommender):
                 logits = torch.matmul(seq_output, test_item_emb.transpose(0, 1))
             loss = self.loss_fct(logits, pos_items)
 
-        # 对齐损失
-        if (
-            self.use_align
-            and self.align_weight > 0.0
-            and self._has_item_text()
-            and ((self.use_cross and self.text_predictor is not None) or 
-                 ((not self.use_cross) and self.item_text_proj is not None))
-        ):
+        # Per-source align: each text source independently aligned with ID
+        has_align_proj = (self.align_proj_base is not None or self.align_proj_llm is not None)
+        if self.use_align and self.align_weight > 0.0 and has_align_proj:
             pos_ids_flat = pos_items.view(-1)
             id_item_e = self.item_embedding(pos_ids_flat)
-            txt_raw = self._gather_text_raw(pos_ids_flat)
-            if self.detach_text_emb:
-                txt_raw = txt_raw.detach()
-            txt_item_e = self._project_text(txt_raw)
-
-            # 计算冷启动权重
             cold_weights = self._compute_cold_weights(pos_ids_flat) if self.cold_text_boost > 0 else None
-            align_loss = self._info_nce_align(id_item_e, txt_item_e, cold_weights)
-            loss = loss + self.align_weight * align_loss
+
+            align_losses = []
+            align_labels = []
+
+            if self.align_proj_base is not None and self.item_text_emb_base is not None:
+                base_raw = self.item_text_emb_base[pos_ids_flat]
+                if self.detach_text_emb:
+                    base_raw = base_raw.detach()
+                base_proj = self.align_proj_base(base_raw.to(self.align_proj_base.weight.dtype))
+                align_losses.append(self._info_nce_align(id_item_e, base_proj, cold_weights))
+                align_labels.append("base")
+
+            if self.align_proj_llm is not None and self.item_text_emb_llm is not None:
+                llm_raw = self.item_text_emb_llm[pos_ids_flat]
+                if self.detach_text_emb:
+                    llm_raw = llm_raw.detach()
+                llm_proj = self.align_proj_llm(llm_raw.to(self.align_proj_llm.weight.dtype))
+                align_losses.append(self._info_nce_align(id_item_e, llm_proj, cold_weights))
+                align_labels.append("llm")
+
+            if len(align_losses) > 0:
+                align_loss = sum(align_losses) / len(align_losses)
+                loss = loss + self.align_weight * align_loss
 
             if not self._align_debug_logged:
                 try:
+                    parts = ", ".join(
+                        f"{lbl}={l.item():.4f}" for lbl, l in zip(align_labels, align_losses)
+                    )
                     self.logger.info(
-                        "SASRecAlignV3: first-step align_loss=%.6f, batch_pos=%d",
-                        align_loss.item(), int(pos_ids_flat.numel())
+                        "SASRecAlignV3: per-source align | avg=%.6f | [%s]",
+                        align_loss.item() if align_losses else 0.0, parts,
                     )
                     if self.cold_text_boost > 0 and cold_weights is not None:
                         sample_weights = 1.0 + self.cold_text_boost * cold_weights
