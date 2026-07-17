@@ -70,16 +70,16 @@ text_cross_layer_num: 1
 use_text_view_split: true
 use_multiview_text_cross: true
 num_text_views: 4
+# Fair vs LLM both: TF(256) || views(4x64=256) = 512; text_view_indices for ablation
+mv_include_base: true
+text_view_indices: null
 
-text_view_senet_ratio: 2
-per_view_l2_norm: true
-use_text_view_senet: false
 text_view_half_precision: true
 
 temperature: 0.05
 detach_text_emb: true
 normalize_text: true
-text_weight: 0.7
+text_weight: 1.0
 text_gate_init: 0.7
 
 weight_decay: 1e-5
@@ -87,7 +87,7 @@ label_smoothing: 0.1
 hidden_dropout_prob: 0.2
 attn_dropout_prob: 0.2
 token_dropout_prob: 0.2
-cross_dropout_prob: 0.15
+cross_dropout_prob: 0.2
 cosine_score: true
 cosine_scale: 10.0
 

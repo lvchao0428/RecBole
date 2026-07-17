@@ -79,7 +79,7 @@ log "======== All ID-only experiments complete ========"
 
 # Sync logs and results to 5090
 log ">>> Syncing results to 5090 ..."
-REMOTE_5090="charlie@192.168.0.106"
+REMOTE_5090="charlie@192.168.0.122"
 REMOTE_DIR="/home/charlie/project/RecBole"
 
 rsync -avz logs/ts_*_id_only_min5_seed*.log \
