@@ -314,9 +314,108 @@ ssh charlie@www.ultrapp.online "tail -30 /home/charlie/project/RecBole/logs/grid
 
 ---
 
-## 七、变更日志
+## 七、实验前检查清单（Preflight Checklist）
+
+> **每次启动新实验前必须逐条过一遍。** 来源于历史踩坑，每条附触发场景和后果。
+
+### 7.1 日志 / 文件名
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 1 | **日志文件名是否包含 text source 标识**（tfidf/llm/mv），而非仅用模型类名 | 7/17 grid search 中 TF-IDF 和 LLM 都叫 `SASRecAlignV3`，TAG 相同 | Phase-2 日志覆盖 Phase-1，TF-IDF 全部 test 数据丢失 |
+| 2 | 同一脚本中多阶段串行时，确认后续阶段不会覆盖前面的 log/ckpt | 同上 | 无法恢复已覆盖文件 |
+| 3 | CSV 结果追加（`>>`）还是覆盖（`>`）？确认 header 只写一次 | 如果脚本重跑，header 行会重复或覆盖之前的结果 | 结果文件损坏 |
+
+### 7.2 两阶段训练参数
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 4 | **MV 是否传了完整的 Phase-A 参数**：`--phase_a_epochs`, `--phase_a_grid`, `--lr_text_head`, `--lr_dnn_cross`, `--backbone_lr_scale` | 7/18 grid 中 MV 用了 `two_phase_train.py` 默认值（Phase-A 8ep, 无 lr groups） | MV Phase-A MRR 仅 0.0057（正常应 ~0.02+），严重低估 MV 能力 |
+| 5 | **CLI `--phase_a_epochs` / `--phase_b_epochs` 会覆盖 YAML 中的 `epochs`**，确认最终实际 epoch 数 | YAML 写 epochs=50 但 CLI 默认 phase_a=8 / phase_b=40 | 实际训练轮次与预期不符 |
+| 6 | `freeze_backbone` 的值是否为 **bool True/False** 而非字符串 `"true"`/`"false"` | V1 中 config_dict 的 `"false"` 被当作 truthy string | backbone 始终冻结，Phase-B 失效 |
+| 7 | Phase-A 的 `--phase_a_valid_metric` 是否与主表主指标一致（默认是 `NDCG@10`，主指标是 `MRR@10`） | 不一致时 Phase-A 选出的最优 align/tau 可能不是 MRR-optimal | 次优超参进入 Phase-B |
+
+### 7.3 模型配置公平性
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 8 | **跨模型对比时 boost / Cross / align 设置完全一致** | 7/16 TF boost 用了 `+Cross` 的结果去对比 MV 的 `no-Cross`，声称 MRR 相同 | 错误的公平性结论 |
+| 9 | TF / LLM / MV 的 align 策略是否统一为 per-source | 旧版 LLM 用 concat-align（1×），MV 用 per-view-align（5×），TF 无 align | 不同 align 信号量导致对比不公平 |
+| 10 | MV 的 fusion 是否使用 `concat+predictor`（而非简单加法） | 7/15 MV no-Cross 用了 `item_emb + text_proj` 加法融合 | MV MRR 被低估 ~15%，错误结论 |
+| 11 | `cold_text_boost` 和 `infer_boost` 是否显式设为 0（V4 不使用） | 某些 YAML 可能残留旧默认值 | 引入不可控变量 |
+
+### 7.4 连接 / 环境
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 12 | SSH 地址是否正确：`charlie@www.ultrapp.online`（非 IP） | 曾用错 IP `0.0.19.226` | 连接失败或连到错误机器 |
+| 13 | 启动前确认 `source scripts/recbole_env.sh` + `export PYTHONPATH` | 忘记 source 导致 `ModuleNotFoundError` | 实验立即失败 |
+| 14 | 确认 GPU 空闲（`nvidia-smi`），无其他训练进程占用显存 | 多进程抢占导致 OOM | 实验中途崩溃 |
+| 15 | `nohup` 后确认进程存活（`sleep 15 && tail -5 nohup.log`） | 脚本权限问题或语法错误导致秒退 | 以为在跑实际已退出 |
+
+### 7.5 数据 / 指标
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 16 | 对比不同实验的数据时，确认 **valid vs test 不要搞混** | 7/16 一度把 valid MRR 当成 test MRR 展示 | 误判模型表现 |
+| 17 | 分桶指标名已更新：`MRR_new` / `MRR_few` / `MRR_frequent`，确认提取正确字段 | 旧代码用 `cold`/`warm`，新代码用 `new`/`few`/`frequent` | 提取到空值或错误值 |
+| 18 | 结果表中标注数据来源（是哪个 log / 哪个 checkpoint），方便回溯 | 多轮实验后忘记某个数字的来源 | 无法验证/复现 |
+
+### 7.6 脚本编写
+
+| # | 检查项 | 触发场景 | 后果 |
+|:-:|--------|----------|------|
+| 19 | Grid 脚本中训练调用加 `\|\| true`，防止 `set -e` 导致整个队列中断 | 某一组 OOM 或异常退出后，后续所有实验被跳过 | 浪费排队时间 |
+| 20 | 长队列脚本中每完成一组立即写 **queue log**（valid MRR + 耗时），即使主 log 丢失也有记录 | TF-IDF log 被覆盖后仅 queue log 有 valid MRR | 最后的数据保命线 |
+| 21 | 队列脚本中不同模型的日志文件名必须**全局唯一**（含 text source + 模型名 + 超参） | 见 #1 | 不可恢复的数据丢失 |
+
+---
+
+### 快速检查命令
+
+```bash
+# 一键 preflight（在 5090 上执行）
+echo "=== GPU ===" && nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader \
+&& echo "=== Processes ===" && ps aux | grep -E 'two_phase|python.*scripts' | grep -v grep \
+&& echo "=== PYTHONPATH ===" && echo $PYTHONPATH \
+&& echo "=== Logs dir ===" && ls -d logs/ 2>/dev/null && echo "OK" || echo "MISSING: mkdir -p logs"
+```
+
+---
+
+## 八、训练执行规范
+
+### 8.1 后台脚本执行原则
+
+| 项目 | 规范 |
+|------|------|
+| **执行方式** | 所有训练任务通过 `nohup bash <script>.sh > logs/<name>_nohup.log 2>&1 &` 后台执行 |
+| **对话框职责** | 对话框仅负责：①启动训练 ②检查启动是否成功 ③记录状态到进展文档。**不需要持续跟进训练结果** |
+| **结果查收** | 下次对话开始时，先读取 nohup log 和 queue log 获取已完成实验的结果 |
+| **跨对话衔接** | 每次对话结束前创建 **下一日实验计划文档**，包含：实验背景、待跑任务、恢复指南、依赖文件列表 |
+| **进展追踪** | 每日一份 `experiment_status_YYYYMMDD.md`，记录当日结论、结果、问题、时间线 |
+
+### 8.2 跨对话上下文传递
+
+新对话启动时需读取以下文件获取上下文：
+
+```
+paper_recsys/
+├── WSDM_experiment_spec.md          # 实验规范（本文档）
+├── WSDM_convergence_tracker.md      # 收敛追踪（整体进展）
+├── experiment_plan_YYYYMMDD.md      # 当日实验计划（含待跑任务和恢复指南）
+├── experiment_status_YYYYMMDD.md    # 最近的进展文档（含结果和结论）
+├── 0712zhidao.txt                   # 老师指导（核心方向）
+└── 0717zhidao.txt                   # 老师指导（实验方法论）
+```
+
+---
+
+## 九、变更日志
 
 | 日期 | 变更 |
 |------|------|
 | 2026-07-17 | 文档创建；整合 0711/0712/0717 老师建议为统一规范 |
 | 2026-07-17 15:50 | 新增§六运维操作规范：启动流程、脚本编写、故障排查、三端同步、分析工具 |
+| 2026-07-18 11:48 | 新增§七 Preflight Checklist (21 条)：日志命名、两阶段参数、配置公平性、环境、数据指标、脚本编写 |
+| 2026-07-18 23:30 | 新增§八训练执行规范：后台脚本执行、跨对话上下文传递 |

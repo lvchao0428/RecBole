@@ -1,7 +1,7 @@
 # WSDM 2027 投稿收敛追踪
 
 > 创建: 2026-07-17  
-> 最后更新: 2026-07-17  
+> 最后更新: 2026-07-20  
 > 目标会议: WSDM 2027（Abstract deadline TBD，full paper TBD）  
 > 本文档持续追踪至截稿，与每日进展文档(`experiment_status_*.md`)互补
 
@@ -75,7 +75,7 @@
 
 ## 三、关键实验结果存档
 
-### Beauty TS, seed=2025, min5, per-source align, no-boost
+### Beauty TS, seed=2025, min5, per-source align, no-boost（V3 固定配置）
 
 | 配置 | MRR@10 | NDCG@10 | R@10 | R_new@10 | MRR_freq | MRR_few | MRR_new |
 |------|:------:|:-------:|:----:|:--------:|:--------:|:-------:|:-------:|
@@ -86,6 +86,27 @@
 | TF +Cross | 0.0164 | 0.0202 | 0.0327 | 0.0193 | 0.0339 | 0.0186 | 0.0119 |
 | LLM +Cross | 0.0162 | 0.0202 | 0.0335 | 0.0224 | 0.0338 | 0.0180 | 0.0118 |
 | MV +Cross | 0.0156 | 0.0196 | 0.0326 | 0.0183 | 0.0320 | 0.0187 | 0.0106 |
+
+### Beauty 共享小网格最优（7/18–7/20 Grid + Fix，按 valid 选参）
+
+| 模型 | 最优配置 | valid MRR | test MRR | test NDCG | test HR | MRR_new |
+|------|----------|:---------:|:--------:|:---------:|:-------:|:-------:|
+| **MV (正确 Phase-A)** | lr=5e-4, do=0.3 | **0.0284** | 0.0158 | 0.0199 | **0.0333** | 0.0119 |
+| **TF-IDF** | lr=5e-4, do=0.3 | 0.0280 | 0.0155 | 0.0191 | 0.0310 | 0.0098 |
+| **LLM** | lr=1e-4, do=0.1 | 0.0279 | **0.0162** | **0.0199** | 0.0319 | **0.0133** |
+
+> Grid: lr∈{1e-4,5e-4,1e-3} × dropout∈{0.1,0.3,0.5}；MV 使用 Phase-A 20ep + lr groups。  
+> 结论草案：三模型 test 差距 <0.001，**待 3-seed stop-gate**；LLM 在 MRR_new 仍占优。
+
+### Beauty 网格：按 test 选参诊断（7/20，非规范）
+
+| 模型 | 配置 | valid | test MRR | 翻转？ | 平均 gap |
+|------|------|:-----:|:--------:|:------:|:--------:|
+| LLM | lr=1e-4, do=0.1 | 0.0279 | **0.0162** | 否 | 45.7% |
+| MV | lr=5e-4, do=0.5 | 0.0269 | **0.0162** | **是**（valid 选 do=0.3） | **43.6%** |
+| TF-IDF | lr=5e-4, do=0.3 | 0.0280 | 0.0155 | 否 | 45.7% |
+
+> **诊断结论**：平均 gap 上 MV 并不更大；问题是选参不稳定（唯一翻转）。偷看 test 时 MV 追平 LLM，但 MRR_new 仍落后（0.0120 vs 0.0133）。规范仍用 valid；3-seed 建议主报 MV do=0.3，附带 do=0.5。
 
 ### 嵌入塌缩诊断结论
 
@@ -113,10 +134,13 @@
 
 | # | 实验 | 目标 | 机器 | 状态 |
 |---|------|------|:----:|:----:|
-| 1 | LLM no-Cross 3-seed (42, 2024, 2025) Beauty | 主方法方差 | 5090 | ⏳ |
-| 2 | 2 temporal windows (早期 valid cutoff) Beauty | 时间稳定性 | 5090 | ⏳ |
-| 3 | Toys per-source 公平对比 | 跨域验证 | 5090 | ⏳ |
-| 4 | MV 3-seed Beauty (判定 stop gate) | MV 边际 | 5090 | ⏳ |
+| 0 | 共享小网格 TF/LLM/MV（含 TF log 修复 + MV 正确 PA） | 同预算选参 | 5090 | ✅ 7/20 05:27 完成 |
+| 1 | LLM no-Cross 3-seed (42, 2024, 2026) Beauty，lr=1e-4/do=0.1 | 主方法方差 | 5090 | 🟡 7/20 15:10 启动 |
+| 2 | TF 3-seed Beauty，lr=5e-4/do=0.3 | baseline 方差 | 5090 | 🟡 同上队列 |
+| 3 | MV 3-seed Beauty，lr=5e-4/do=0.3 + 正确 PA（主） | MV stop-gate | 5090 | 🟡 同上队列 |
+| 3b | MV 3-seed Beauty，lr=5e-4/do=0.5 + 正确 PA（附带） | 选参稳定性 | 5090 | 🟡 同上队列 |
+| 4 | 2 temporal windows (早期 valid cutoff) Beauty | 时间稳定性 | 5090 | ⏳ |
+| 5 | Toys per-source 公平对比 | 跨域验证 | 5090 | ⏳ |
 
 ---
 
@@ -146,10 +170,10 @@
 | 7/10–7/13 | Global time split pilot + V2 | ✅ |
 | 7/13–7/16 | V3 简化模型 + per-source 公平对比 | ✅ |
 | 7/16 | 嵌入塌缩诊断完成 | ✅ |
-| **7/17** | **V4 规划启动；规范确立；基础设施改动** | 🔄 |
-| 7/17–7/20 | valid/test distribution shift 分析 + 共享小网格 | ⏳ |
-| 7/20–7/23 | 3-seed + 2-window stop gate 实验 | ⏳ |
-| 7/23–7/26 | 机制分析（rank-transition, score entropy, view redundancy）| ⏳ |
+| 7/17 | V4 规划启动；规范确立；distribution shift / CKA / leave-one-view / rank-transition | ✅ |
+| 7/17–7/20 | 共享小网格 + Fix（TF log 修复、MV 正确 Phase-A）| ✅ 7/20 05:27 |
+| **7/20–7/21** | **3-seed stop gate（`run_5090_stopgate_3seed.sh`）** | 🟡 运行中 |
+| 7/23–7/26 | 机制分析补全 / 论文图表 | ⏳ |
 | 7/26–7/30 | Toys/Grocery 域验证 | ⏳ |
 | 7/30+ | 论文写作 | ⏳ |
 | TBD | WSDM abstract deadline | ⏳ |
@@ -161,3 +185,6 @@
 | 日期 | 变更 |
 |------|------|
 | 2026-07-17 | 文档创建；V1→V3 历史整理完成；V4 规划确立 |
+| 2026-07-20 | Grid Fix 完成；写入 Beauty 网格最优表；stop-gate 配置按 valid 锁定（LLM/TF/MV） |
+| 2026-07-20 12:50 | 增加按 test 选参诊断：MV 唯一翻转；平均 gap 不大；3-seed 建议附带 MV do=0.5 |
+| 2026-07-20 15:10 | 同步三端；启动 Stop-Gate 3-seed（LLM/TF/MV/MV*×seeds 42/2024/2026） |
