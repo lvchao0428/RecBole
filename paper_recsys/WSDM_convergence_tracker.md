@@ -1,7 +1,7 @@
 # WSDM 2027 投稿收敛追踪
 
 > 创建: 2026-07-17  
-> 最后更新: 2026-07-20  
+> 最后更新: 2026-07-21  
 > 目标会议: WSDM 2027（Abstract deadline TBD，full paper TBD）  
 > 本文档持续追踪至截稿，与每日进展文档(`experiment_status_*.md`)互补
 
@@ -108,6 +108,17 @@
 
 > **诊断结论**：平均 gap 上 MV 并不更大；问题是选参不稳定（唯一翻转）。偷看 test 时 MV 追平 LLM，但 MRR_new 仍落后（0.0120 vs 0.0133）。规范仍用 valid；3-seed 建议主报 MV do=0.3，附带 do=0.5。
 
+### Beauty Stop-Gate 3-seed（7/20–7/21，权威：`logs/stopgate_3seed_beauty_metrics.csv`）
+
+| 配置 | seed42 | seed2024 | seed2026 | **test MRR mean±std** |
+|------|:------:|:--------:|:--------:|:---------------------:|
+| **TF** lr=5e-4/do=0.3 | 0.0160 | 0.0161 | 0.0174 | **0.0165±0.0008** |
+| **LLM** lr=1e-4/do=0.1 | 0.0156 | 0.0161 | 0.0165 | **0.0161±0.0005** |
+| **MV** lr=5e-4/do=0.3 | 0.0159 | 0.0153 | 0.0169 | **0.0160±0.0008** |
+| MV* lr=5e-4/do=0.5 | 0.0154 | 0.0156 | 0.0154 | 0.0155±0.0001 |
+
+**Stop-gate 结论**：MV 未超过 LLM/TF 一个 std → **MV 不进主方法，作 view-redundancy / negative-result 分析**；主方法在 TF-IDF 与 LLM 之间（均值 TF 略高，方差 LLM 更小）。
+
 ### 嵌入塌缩诊断结论
 
 | 诊断项 | 结果 | 解释 |
@@ -135,10 +146,10 @@
 | # | 实验 | 目标 | 机器 | 状态 |
 |---|------|------|:----:|:----:|
 | 0 | 共享小网格 TF/LLM/MV（含 TF log 修复 + MV 正确 PA） | 同预算选参 | 5090 | ✅ 7/20 05:27 完成 |
-| 1 | LLM no-Cross 3-seed (42, 2024, 2026) Beauty，lr=1e-4/do=0.1 | 主方法方差 | 5090 | 🟡 7/20 15:10 启动 |
-| 2 | TF 3-seed Beauty，lr=5e-4/do=0.3 | baseline 方差 | 5090 | 🟡 同上队列 |
-| 3 | MV 3-seed Beauty，lr=5e-4/do=0.3 + 正确 PA（主） | MV stop-gate | 5090 | 🟡 同上队列 |
-| 3b | MV 3-seed Beauty，lr=5e-4/do=0.5 + 正确 PA（附带） | 选参稳定性 | 5090 | 🟡 同上队列 |
+| 1 | LLM no-Cross 3-seed (42, 2024, 2026) Beauty，lr=1e-4/do=0.1 | 主方法方差 | 5090 | ✅ test **0.0161±0.0005** |
+| 2 | TF 3-seed Beauty，lr=5e-4/do=0.3 | baseline 方差 | 5090 | ✅ test **0.0165±0.0008** |
+| 3 | MV 3-seed Beauty，lr=5e-4/do=0.3 + 正确 PA（主） | MV stop-gate | 5090 | ✅ test **0.0160±0.0008**；**未超 LLM 1std → 降为分析对象** |
+| 3b | MV 3-seed Beauty，lr=5e-4/do=0.5 + 正确 PA（附带） | 选参稳定性 | 5090 | ✅ test 0.0155±0.0001（更稳但更低） |
 | 4 | 2 temporal windows (早期 valid cutoff) Beauty | 时间稳定性 | 5090 | ⏳ |
 | 5 | Toys per-source 公平对比 | 跨域验证 | 5090 | ⏳ |
 
@@ -172,7 +183,7 @@
 | 7/16 | 嵌入塌缩诊断完成 | ✅ |
 | 7/17 | V4 规划启动；规范确立；distribution shift / CKA / leave-one-view / rank-transition | ✅ |
 | 7/17–7/20 | 共享小网格 + Fix（TF log 修复、MV 正确 Phase-A）| ✅ 7/20 05:27 |
-| **7/20–7/21** | **3-seed stop gate（`run_5090_stopgate_3seed.sh`）** | 🟡 运行中 |
+| **7/20–7/21** | **3-seed stop gate（`run_5090_stopgate_3seed.sh`）** | ✅ 04:49 完成；MV 未过 gate |
 | 7/23–7/26 | 机制分析补全 / 论文图表 | ⏳ |
 | 7/26–7/30 | Toys/Grocery 域验证 | ⏳ |
 | 7/30+ | 论文写作 | ⏳ |
@@ -188,3 +199,4 @@
 | 2026-07-20 | Grid Fix 完成；写入 Beauty 网格最优表；stop-gate 配置按 valid 锁定（LLM/TF/MV） |
 | 2026-07-20 12:50 | 增加按 test 选参诊断：MV 唯一翻转；平均 gap 不大；3-seed 建议附带 MV do=0.5 |
 | 2026-07-20 15:10 | 同步三端；启动 Stop-Gate 3-seed（LLM/TF/MV/MV*×seeds 42/2024/2026） |
+| 2026-07-21 11:25 | 3-seed 完成；真实 test：TF 0.0165±0.0008 ≥ LLM 0.0161±0.0005 ≈ MV 0.0160±0.0008；MV stop-gate 未通过 |
