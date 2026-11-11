@@ -1,5 +1,5 @@
 ---
-# Early temporal window (TS [0.6,0.1,0.3]) — frozen Main hparams; train-only TF-IDF @ early cutoff
+# Early temporal window (TS [0.6,0.1,0.1] equal-horizon) — frozen Main hparams; train-only TF-IDF @ early cutoff
 # SASRecAlignV3 with TF-IDF baseline + Stratified Evaluation
 # Global Time-based Split (TS) — 验证 GTS 下结论是否与 LOO 一致
 
@@ -42,7 +42,7 @@ clip_grad_norm: { max_norm: 5 }
 eval_args:
   group_by: user
   order: TO
-  split: {'TS': [0.6, 0.1, 0.3]}
+  split: {'TS': [0.6, 0.1, 0.1]}
   mode:  {'valid': 'full','test':'full'}
 eval_neg_sample_args: {'distribution': 'uniform', 'sample_num': 100}
 topk: [5, 10, 20]

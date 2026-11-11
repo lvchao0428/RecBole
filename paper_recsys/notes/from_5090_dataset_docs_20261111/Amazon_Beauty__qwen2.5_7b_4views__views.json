@@ -1,0 +1,31 @@
+{
+  "num_items": 259205,
+  "num_prompts": 4,
+  "dtype": "float16",
+  "prompts": [
+    {
+      "index": 0,
+      "prompt": "Identify the item: [TITLE] {text}",
+      "file": "view_0.npy",
+      "vector_dim": 64
+    },
+    {
+      "index": 1,
+      "prompt": "What are the main functions and features of [TITLE] {text}?",
+      "file": "view_1.npy",
+      "vector_dim": 64
+    },
+    {
+      "index": 2,
+      "prompt": "Who is the target audience or user group for [TITLE] {text}?",
+      "file": "view_2.npy",
+      "vector_dim": 64
+    },
+    {
+      "index": 3,
+      "prompt": "Categorize the item [TITLE] {text} and describe its context.",
+      "file": "view_3.npy",
+      "vector_dim": 64
+    }
+  ]
+}

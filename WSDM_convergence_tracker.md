@@ -143,18 +143,16 @@
 
 **Toys 结论**：TF 最优；LLM ≈ MV，与 Beauty 方向完全一致。Valid→test drop ~55%。
 
-### Beauty Clean LOO（7/26，进行中：`logs/beauty_loo_results.csv`）
+### Beauty Clean LOO 3-seed（✅ 定稿：`logs/beauty_loo_results.csv`）
 
-已完成 seed42 + seed2024 前三组（7/12）：
+| 模型 | seed42 | seed2024 | seed2026 | **mean ± std** | vs GTS |
+|------|:------:|:--------:|:--------:|:--------------:|:------:|
+| ID-only | 0.0179 | 0.0171 | 0.0174 | **0.0175±0.0004** | 1.65× |
+| TF | 0.0250 | 0.0253 | 0.0249 | **0.0251±0.0002** | 1.52× |
+| LLM | 0.0251 | 0.0252 | 0.0258 | **0.0254±0.0004** | 1.58× |
+| MV | 0.0258 | 0.0251 | 0.0250 | **0.0253±0.0004** | 1.58× |
 
-| 模型 | seed42 test | seed2024 test | LOO/GTS 比 |
-|------|:----------:|:------------:|:----------:|
-| ID-only | 0.0179 | 0.0171 | 1.65× |
-| TF | 0.0250 | 0.0253 | 1.53× |
-| LLM | 0.0251 | 0.0252 | 1.57× |
-| MV | 0.0258 | (训练中) | 1.61× |
-
-**关键发现**：LOO 下 MV 不再最差（seed42 最高 0.0258）→ **LOO 改变模型排序**。
+**关键发现**：LOO 下 LLM≈MV≥TF（GTS 下 TF 最优）→ **协议改变模型排序**。
 
 ### Cross 效应摘要
 
@@ -179,7 +177,10 @@
 | 5 | Toys GTS Main 3-seed（wrap-up 队列） | 跨域验证 | 5090 | ✅ TF **0.0113±0.0003** > LLM 0.0107 ≈ MV 0.0109；与 Beauty 一致 |
 | 6 | Beauty ID-only 3-seed + UniSRec（log10） | 主表 ID baseline / portability | log10 | ✅ ID GTS **0.0106±0.0005** |
 | 7 | Warm-target audit（G1） | 主表口径 | CPU | ✅ Beauty unseen 27.8%；Toys 34.5% |
-| 8 | **Beauty Clean LOO 3-seed** | LOO vs GTS protocol 对照 | 5090 | 🟡 7/12 完成；LOO MRR ~1.5-1.7× GTS；MV 排序翻转 |
+| 8 | **Beauty Clean LOO 3-seed** | LOO vs GTS protocol 对照 | 5090 | ✅ 12/12；ID 0.0175 / TF 0.0251 / LLM 0.0254 / MV 0.0253；LOO≈1.5×GTS，排序翻转 |
+| 9 | **Toys Clean LOO 3-seed** | LOO vs GTS 跨域 | 5090 | ✅ 12/12；见 `logs/toys_loo_results.csv` |
+| 10 | **UniSRec GTS** Beauty+Toys 3-seed | portability | 5090 | 🟡 Beauty✅；Toys seed2024+2026 恢复中 |
+| 11 | **Warm-only 重评估** | 主表口径 | 5090 | ⏳ 挂接 UniSRec 后自动跑（`run_5090_post_unisrec_queue.sh`） |
 
 ---
 
@@ -214,9 +215,11 @@
 | **7/20–7/21** | **3-seed stop gate（`run_5090_stopgate_3seed.sh`）** | ✅ 04:49 完成；MV 未过 gate |
 | 7/21–7/22 | Early60 第二窗口 3-seed + Cross Top-K | ✅ TF≥MV≥LLM |
 | **7/23** | **0723 止损；wrap-up 串行队列启动（5090 Toys + log10 ID/UniSRec）** | ✅ |
-| **7/26** | **Toys GTS 定稿；Beauty LOO 7/12 完成；LOO 改变模型排序初步确认** | 🟡 |
-| 7/27 | Beauty LOO 收束 + Toys LOO 启动 + warm-only 重评估 | ⏳ |
-| 7/28–8/05 | 机制定稿 + 论文骨架 | ⏳ |
+| **7/26** | Toys GTS 定稿；Beauty LOO 启动 | ✅ |
+| **7/27–7/28** | Beauty/Toys Clean LOO 12/12；机制分析（CKA/LOVO/shift） | ✅ |
+| **7/28–7/29** | UniSRec GTS（Beauty✅；Toys 恢复中）+ warm-only 重评估排队 | 🟡 |
+| 7/30 | 白天：论文数据分析（查收 UniSRec + warm-only + paper_tables） | ⏳ |
+| 7/30–8/05 | 论文骨架撰写 | ⏳ |
 | TBD | WSDM abstract deadline | ⏳ |
 
 ---
@@ -232,4 +235,30 @@
 | 2026-07-21 11:25 | 3-seed 完成；真实 test：TF 0.0165±0.0008 ≥ LLM 0.0161±0.0005 ≈ MV 0.0160±0.0008；MV stop-gate 未通过 |
 | 2026-07-22 | Early60 完成：TF 0.0053±0.0002 ≥ MV 0.0052 ≥ LLM 0.0049；两窗口 stop-gate 正式触发 |
 | 2026-07-23 | 0723 止损叙事锁定；启动 `run_5090_wsdm_wrapup_serial.sh` + `run_log10_wsdm_wrapup_serial.sh`；warm-audit 完成 |
+| 2026-07-26 | Toys GTS 3-seed 定稿（TF>LLM≈MV，跨域验证）；Beauty Clean LOO 启动 |
+| 2026-07-28 | Beauty/Toys Clean LOO 均 12/12 定稿；机制分析完成；UniSRec GTS 启动 |
+
+## 附：本地工作区里被后一版替换掉的原段
+
+下面是本地文件同一位置的原文。5090 上这些位置已经改成 3-seed 定稿。原文整段留在这里。
+
+### Beauty Clean LOO（7/26，进行中：`logs/beauty_loo_results.csv`）
+
+已完成 seed42 + seed2024 前三组（7/12）：
+
+| 模型 | seed42 test | seed2024 test | LOO/GTS 比 |
+|------|:----------:|:------------:|:----------:|
+| ID-only | 0.0179 | 0.0171 | 1.65× |
+| TF | 0.0250 | 0.0253 | 1.53× |
+| LLM | 0.0251 | 0.0252 | 1.57× |
+| MV | 0.0258 | (训练中) | 1.61× |
+
+**关键发现**：LOO 下 MV 不再最差（seed42 最高 0.0258）→ **LOO 改变模型排序**。
+
+| 8 | **Beauty Clean LOO 3-seed** | LOO vs GTS protocol 对照 | 5090 | 🟡 7/12 完成；LOO MRR ~1.5-1.7× GTS；MV 排序翻转 |
+
+| **7/26** | **Toys GTS 定稿；Beauty LOO 7/12 完成；LOO 改变模型排序初步确认** | 🟡 |
+| 7/27 | Beauty LOO 收束 + Toys LOO 启动 + warm-only 重评估 | ⏳ |
+| 7/28–8/05 | 机制定稿 + 论文骨架 | ⏳ |
+
 | 2026-07-26 | Toys GTS 3-seed 定稿（TF>LLM≈MV，跨域验证）；Beauty Clean LOO 7/12；LOO vs GTS 改变排序初步确认 |

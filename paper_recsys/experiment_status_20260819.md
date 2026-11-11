@@ -4,6 +4,22 @@
 
 **时间锚点：北京 23:35。** 正文 `tab:loov` 已换 GTS-Last。附录 `tab:gts-all` Beauty 文本列仍是 `sg_*`，caption 已标明。
 
+5090 工作区同步前的 20:56 开头（原文，未改写）：
+
+**时间锚点：北京 20:56。** Early60 v2 Last 已齐，论文 `tab:early` Early 行已换成匹配协议数字。
+
+---
+
+## 现在（20:56）
+
+| 块 | 状态 |
+|---|---|
+| 主表 Beauty/Toys/Grocery Last/Rand、UniSRec | 单位 18:13 稿已写入；Toys UniSRec Last **.0040±.0008** / Random **.0085** |
+| **RQ2 Early60-EQ v2 GTS-Last warm** | **20:46 齐** `early60eq_gts_last_eval_ts_v2.csv` |
+| GPU | **空闲**。Hybrid toys seed42 上午已停，未 resume |
+| 论文 | `main_wsdm2027_v3.tex` 已换 Early 行 + 去掉 stress-test hedge |
+
+
 ---
 
 ## 现在（23:35）
