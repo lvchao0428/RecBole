@@ -91,13 +91,13 @@ def _center_whiten(emb: np.ndarray, train_ids: np.ndarray,
 
 # ── main logic ────────────────────────────────────────────────────────────────
 
-def rebuild_single_view(dataset_dir: str, train_ids: np.ndarray):
+def rebuild_single_view(dataset_dir: str, train_ids: np.ndarray, suffix: str = ".ts"):
     """
-    Re-process item_text_emb.qwen2.5_7b.base.npy → .ts.npy
+    Re-process item_text_emb.qwen2.5_7b.base.npy → .ts.npy (or custom suffix).
     Original has no whitening → apply center+whiten with TS train_ids.
     """
     src = os.path.join(dataset_dir, "item_text_emb.qwen2.5_7b.base.npy")
-    dst = os.path.join(dataset_dir, "item_text_emb.qwen2.5_7b.base.ts.npy")
+    dst = os.path.join(dataset_dir, f"item_text_emb.qwen2.5_7b.base{suffix}.npy")
     stats_dst = dst.replace(".npy", "_whiten_stats.npz")
 
     print(f"\n[Single-view] Loading {src} ...")
@@ -110,15 +110,17 @@ def rebuild_single_view(dataset_dir: str, train_ids: np.ndarray):
 
     np.save(dst, emb_ts.astype(np.float16))
     print(f"  saved → {dst}  shape={emb_ts.shape}  ({os.path.getsize(dst)/1024/1024:.1f} MB)")
+    return dst
 
 
-def rebuild_multi_view(dataset_dir: str, train_ids: np.ndarray):
+def rebuild_multi_view(dataset_dir: str, train_ids: np.ndarray,
+                       views_out_dir: str = "qwen2.5_7b_4views_ts"):
     """
-    Re-process qwen2.5_7b_4views/view_*.npy → qwen2.5_7b_4views_ts/view_*.npy
+    Re-process qwen2.5_7b_4views/view_*.npy → <views_out_dir>/view_*.npy
     Each view: invert old whitening, then re-apply with TS train_ids.
     """
     src_dir = os.path.join(dataset_dir, "qwen2.5_7b_4views")
-    dst_dir = os.path.join(dataset_dir, "qwen2.5_7b_4views_ts")
+    dst_dir = os.path.join(dataset_dir, views_out_dir)
     os.makedirs(dst_dir, exist_ok=True)
 
     with open(os.path.join(src_dir, "views.json")) as f:
@@ -166,6 +168,10 @@ def main():
     p.add_argument("--config", nargs="+", default=[])
     p.add_argument("--dataset_dir", default=None,
                    help="Override dataset root dir (default: dataset/<dataset>)")
+    p.add_argument("--suffix", default=".ts",
+                   help="Output suffix for single-view npy (default: .ts → *.base.ts.npy)")
+    p.add_argument("--views_out_dir", default="qwen2.5_7b_4views_ts",
+                   help="Output dir name under dataset_dir for multi-view embeddings")
     args = p.parse_args()
 
     dataset_dir = args.dataset_dir or os.path.join("dataset", args.dataset)
@@ -176,20 +182,22 @@ def main():
     print(f"Rebuilding Qwen embeddings with TS train_ids")
     print(f"  dataset  : {args.dataset}")
     print(f"  data dir : {dataset_dir}")
+    print(f"  suffix   : {args.suffix}")
+    print(f"  views dir: {args.views_out_dir}")
     print("=" * 60)
 
     print("\n[Step 1/3] Getting TS train item IDs ...")
     train_ids = _get_ts_train_ids(args.dataset, args.config)
 
     print("\n[Step 2/3] Rebuilding single-view embedding ...")
-    rebuild_single_view(dataset_dir, train_ids)
+    out_sv = rebuild_single_view(dataset_dir, train_ids, suffix=args.suffix)
 
     print("\n[Step 3/3] Rebuilding multi-view embeddings ...")
-    rebuild_multi_view(dataset_dir, train_ids)
+    rebuild_multi_view(dataset_dir, train_ids, views_out_dir=args.views_out_dir)
 
     print("\n✅ Done. New files:")
-    print(f"  {dataset_dir}/item_text_emb.qwen2.5_7b.base.ts.npy")
-    print(f"  {dataset_dir}/qwen2.5_7b_4views_ts/view_{{0..3}}.npy")
+    print(f"  {out_sv}")
+    print(f"  {dataset_dir}/{args.views_out_dir}/view_{{0..3}}.npy")
 
 
 if __name__ == "__main__":

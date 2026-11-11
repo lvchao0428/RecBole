@@ -1,0 +1,54 @@
+{
+  "split_sizes": {
+    "train": 1802216,
+    "valid": 225277,
+    "test": 225278
+  },
+  "catalog": {
+    "train_items": 283111,
+    "valid_items": 82095,
+    "test_items": 83201,
+    "valid_new_items": 22223,
+    "valid_new_ratio": 0.27069858091235766,
+    "test_new_items": 27304,
+    "test_new_ratio": 0.3281691325825411,
+    "test_exclusive_new": 22364
+  },
+  "target_item_age": {
+    "valid_median": 50630400.0,
+    "valid_mean": 78430465.23463216,
+    "test_median": 52617600.0,
+    "test_mean": 79705785.90110132
+  },
+  "target_popularity": {
+    "valid_mean": 144.66043138003437,
+    "valid_median": 18.0,
+    "test_mean": 119.11749926757162,
+    "test_median": 11.0,
+    "valid_zero_count": 29332,
+    "test_zero_count": 47945
+  },
+  "user_history": {
+    "eligible_users": 44010,
+    "valid_users": 7286,
+    "test_users": 6711,
+    "valid_hist_median": 8.0,
+    "valid_hist_mean": 13.146170738402416,
+    "test_hist_median": 8.0,
+    "test_hist_mean": 13.589479958277455
+  },
+  "target_bucket_dist": {
+    "valid": {
+      "head": 0.6010067605658811,
+      "low": 0.10553230023482202,
+      "mid": 0.1632567905289932,
+      "unseen": 0.13020414867030367
+    },
+    "test": {
+      "head": 0.5228695212137892,
+      "low": 0.10974440469109278,
+      "mid": 0.15456014346718278,
+      "unseen": 0.21282593062793526
+    }
+  }
+}

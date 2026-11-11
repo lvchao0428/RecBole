@@ -1,0 +1,40 @@
+{
+  "dataset": "Amazon_Toys_and_Games",
+  "protocol": "Main TS[0.8,0.1,0.1], per-user last target, min5, warm=target in train catalog",
+  "valid": {
+    "eligible_users_with_target": 7286,
+    "warm_users": 5748,
+    "warm_share": 0.7889102388141641,
+    "warm_pop_mean": 87.49791231732776,
+    "warm_pop_median": 17.0,
+    "alltarget_bucket": {
+      "head": 0.48641229755695853,
+      "mid": 0.1784243755146857,
+      "low": 0.1240735657425199,
+      "unseen": 0.21108976118583586
+    },
+    "warm_bucket": {
+      "head": 0.616562282533055,
+      "mid": 0.22616562282533054,
+      "low": 0.15727209464161448
+    }
+  },
+  "test": {
+    "eligible_users_with_target": 6711,
+    "warm_users": 4386,
+    "warm_share": 0.6535538667858739,
+    "warm_pop_mean": 72.0763793889649,
+    "warm_pop_median": 15.0,
+    "alltarget_bucket": {
+      "head": 0.3790791238265534,
+      "mid": 0.15184026225599762,
+      "low": 0.1226344807033229,
+      "unseen": 0.34644613321412604
+    },
+    "warm_bucket": {
+      "head": 0.5800273597811217,
+      "mid": 0.23233014135886912,
+      "low": 0.1876424988600091
+    }
+  }
+}

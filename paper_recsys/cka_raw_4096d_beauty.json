@@ -1,0 +1,56 @@
+{
+  "dataset": "Amazon_Beauty",
+  "dim": 3584,
+  "n_items": 259205,
+  "stage": "raw_4096d_pre-SVD",
+  "n_trials": 3,
+  "subsample_size": 3000,
+  "pairwise_cka": {
+    "Description vs Function": {
+      "mean": 0.9572952191034952,
+      "std": 0.0011235867483490789
+    },
+    "Description vs Audience": {
+      "mean": 0.9649444023768107,
+      "std": 0.00044194497856595206
+    },
+    "Description vs Style": {
+      "mean": 0.9729916850725809,
+      "std": 0.0002464079244151762
+    },
+    "Function vs Audience": {
+      "mean": 0.9877915978431702,
+      "std": 0.0001746082097665772
+    },
+    "Function vs Style": {
+      "mean": 0.9380752841631571,
+      "std": 0.0011971138302955845
+    },
+    "Audience vs Style": {
+      "mean": 0.947573184967041,
+      "std": 0.00047281258890524415
+    }
+  },
+  "effective_rank_single": {
+    "Description": {
+      "mean": 1404.519287109375,
+      "ratio": 0.3918859618050711
+    },
+    "Function": {
+      "mean": 1395.4549560546875,
+      "ratio": 0.3893568515777588
+    },
+    "Audience": {
+      "mean": 1384.3529866536458,
+      "ratio": 0.38625920386541457
+    },
+    "Style": {
+      "mean": 1401.9715983072917,
+      "ratio": 0.39117511113484704
+    }
+  },
+  "effective_rank_concat_4views": {
+    "mean": 1566.5001627604167,
+    "ratio": 0.1092703796568371
+  }
+}

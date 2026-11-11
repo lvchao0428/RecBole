@@ -1,0 +1,14 @@
+我觉得现有结果已经可以触发止损了，同学不要再扩MV、调boost、加Cross或者追求漂亮的层级了。现在公平口径下，TF、single-view LLM、MV的差异都落在方差附近，两个时间窗口里也都是TF \approx LLM >= MV。四个view的CKA很高，effective rank只有136.9/256，leave-one-view-out≈0。Cross的rank improved/degraded也接近各半。这些证据放在一起说明，原来"MV-Align新模型"的故事确实不宜再继续，但其实已经形成了另一篇更可信的论文：严格时间评测下，文本特征仍然明显优于ID-only，但复杂LLM/multi-view/cross的额外收益并不robust，而且会受到temporal shift和view redundancy的限制。
+
+这个方向不是退而求其次。WSDM其实也喜欢sound methodology、useful insights、negative results和narrower-scope的工作。同学现在手上的结果，其实比继续修模型更适合这个落点。总体来说，本质上还是global temporal split会改变指标和模型排序，而且匹配test的global temporal validation更可靠，所以现在看到的"旧层级消失"本身就是有研究意义的，不是实验做坏了。
+
+论文的话，我建议直接改成类似"When More Text Is Not Better: A Leakage-Aware Study of Text Representations for Sequential Recommendation"这种。三个核心问题就够了：第一，LOO和leakage-free的temporal split会不会改变text-enhanced SR的结论。第二，TF-IDF、single-view LLM、prompt multi-view谁在temporal shift下更鲁棒。第三，multi-view为什么没有增益，是容量不足还是view redundancy。Cross不再作为核心问题，因为现在的证据显示它基本是dataset/window-dependent的，放一小段negative analysis就可以。
+
+实验上，我倾向于接下来只做三组收尾。
+第一组，先audit unseen target。Test里有17.8%的target在train里没出现过，这一点比继续调模型更关键。主表建议限制为train catalog内的warm targets。真正unseen的item单独报告，但只有在模型支持content-only scoring的时候才比较，否则ID-only、TF、LLM的候选能力不对等。论文里必须写清楚GTS cutoff、target选择方式、candidate catalog、cold-item filtering和valid/test构造，这些正是global temporal evaluation需要完整报告的部分。
+第二组，重跑一个干净的protocol对照。旧LOO结果有freeze、融合容量和align实现的问题，不能直接拿来对比。用修正后的统一代码，在Beauty和另一个数据集上跑ID/TF/LLM/MV，比较clean LOO和GTS，各3个seed。GTS再保留Main/Early两个窗口。UniSRec在一个代表性数据集上重跑，用作external baseline/portability。
+第三组，只保留一组mechanism evidence。main paper放view redundancy，包括pairwise CKA、effective rank、leave-one-view-out。再放temporal shift，包括popularity、unseen share、catalog turnover和valid->test的drop。Cross的entropy、margin、rank transition如果没有稳定趋势，放Appendix就行，不要硬解释。
+
+hyper的话，可以重新做一个很小的shared valid grid，但它的目的只是排除underfitting，不是让MV追回TF。比如learning rate、dropout、weight decay各2个值，同等预算、只看valid，锁定之后再跑test。现在从valid到test三路都掉了约44%，更像系统性的时间漂移，不像某一路单独过拟合，所以我不建议为MV单独设计更宽的网格。
+
+总体来说，我更推荐同学后面20天不要再救MV-Align，而是把"为什么严格评测下复杂文本增强没有稳定超过简单TF-IDF"这件事讲透。这个故事有事实、有机制、有负结果，也正好回应RecSys的核心批评。WSDM Main同学正常投也可以，Findings作为兜底，当然这样的风险就在于如果结果还是不好，那么可能论文的发表时间又要往后了，同学求稳的话考虑C类的会议/期刊也是可以，主要是看同学自己权衡风险和收益的结果。

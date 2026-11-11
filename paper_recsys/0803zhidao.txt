@@ -1,0 +1,13 @@
+这批数据已经足够开始写，而且我感觉或许现在最不应该做的，是只挑部分有效数据去维护原来的MV-Align论点。Beauty/Toys在不同split、不同时间窗口下出现乱序，本身就是最重要的发现。文本整体仍然显著优于ID-only，但TF-IDF、single-view LLM、prompt multi-view的相对优劣对评测协议和时间窗口并不robust。这不是故事没了，而是故事从提出一个稳定更强的新模型，转成了严格时间评测会改变text-enhanced sequential recommendation的结论，以及为什么更多语义视角未必带来更多有效信息。
+
+现有数据大致能支持三个问题。一个是protocol effect。Beauty上GTS是TF0.0165、LLM0.0161、MV0.0160，但clean LOO变成LLM约等于MV大于等于TF。Toys也有类似排序变化，而且LOO相比GTS的绝对值被明显抬高。这个结论和已有研究是一致的，LOO允许训练与测试时间重叠，GTS不但降低绝对指标，也可能改变模型排序。但写论文之前同学必须最后确认，现在的GTS target到底是Last、Random、Successive还是All。已有工作指出GTS-All与标准next-item prediction存在task mismatch，而Last/Random与更真实但昂贵的Successive更一致。如果目前是All，这四个核心模型仍需按Last或Random重跑，否则新reviewer还会继续质疑协议。
+
+第二个是temporal robustness。Main和Early两个窗口里，TF都最稳，LLM/MV没有稳定超过一个std。valid到test的43%到55%下跌，又同时伴随unseen share增大、head share和target popularity下降、catalog turnover上升。这里可以说这些变化与性能下降同时出现或associated with，同学不要直接写成因果。时间切分研究也说明，不同validation/test时间窗口如果分布不一致，会直接影响模型选择和最终排序。
+
+第三个是为什么multi-view没有增益。同学的证据已经比较完整，四个LLM view的CKA大约0.81到0.94，concat后effective rank只有约137/256，leave-one-view-out的相对下降只有0.4%到3.1%。与此同时，TF-IDF与各LLM view的CKA只有约0.25到0.33。更稳的表述是，这些结果共同支持prompt views存在较高结构冗余，而lexical TF-IDF与semantic LLM view反而更互补。这里不要说CKA单独证明冗余，因为相似结构未必意味着完全无用，但CKA、effective rank和LOOV三项证据放在一起已经很有说服力。多视角理论本身也强调，多view的价值取决于它们是否提供有用且互补的信息，并不是view越多越好。
+
+所以论文不适合继续叫MV-Align，也不宜把Cross放在题目里。我会建议同学改成类似When More Text Is Not Better: A Leakage-Aware Study of Text Representations for Sequential Recommendation，或者Do LLM Text Views Survive Temporal Evaluation? A Controlled Study of Sequential Recommendation。论文的三个RQ就对应评测协议是否改变结论、哪种文本表征在temporal shift下更robust、为什么prompt-based multi-view没有稳定优于single-view。需要注意的是，单纯讨论LOO vs GTS已经不够新，因为已有工作系统研究过split。同学自己的切入点必须是protocol changes conclusions specifically about TF-IDF、LLM与multi-view text representations，并进一步用表示冗余解释结果。
+
+接下来建议同学只做三件事。一个是锁定protocol。主表只用GTS-Last或GTS-Random、warm targets、train-cutoff前可用catalog。TF-IDF vocabulary/IDF、SVD、center/whiten全部只用训练期拟合。All-target/unseen结果单独放Appendix，因为当前模型没有content-only zero-shot fallback。Clean LOO只作为protocol contrast，不再承担主结论。还一个是锁定主文数据。主文放LOO vs GTS聚合表、GTS Main/Early3-seed表、UniSRec external baseline、temporal-shift表，以及一张CKA heatmap加effective rank加LOOV的组合图。Warm-only、全部per-seed、Cross rank transition和unseen audit放附录。Cross目前improved/degraded近乎各半，entropy/margin方向也不稳定，不能再作为核心机制，只能作为negative appendix。最后一个是只补轻量而关键的分析。CKA用3次独立item子样本报告均值和方差，把所有四个view的LOOV全量展示，不要只选有利view。如果还有时间，再补一个TF-IDF加single-view与四view的参数推理成本表。现阶段我反而建议不要再扩4x256、调boost或救Cross。
+
+现在完整实验不应该追求每张表都形成漂亮层级，而应当让同一套预注册式比较完整呈现。相反结果可以移到Appendix，但不能隐藏。以同学现在的数据，我建议正常投Main，让Findings自动兜底。接下来重点是重写叙事和统一实验协议，而不是继续修模型。

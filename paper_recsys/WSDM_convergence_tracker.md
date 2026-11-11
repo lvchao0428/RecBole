@@ -1,25 +1,26 @@
 # WSDM 2027 投稿收敛追踪
 
 > 创建: 2026-07-17  
-> 最后更新: 2026-07-21  
+> 最后更新: 2026-07-26  
 > 目标会议: WSDM 2027（Abstract deadline TBD，full paper TBD）  
-> 本文档持续追踪至截稿，与每日进展文档(`experiment_status_*.md`)互补
+> 本文档持续追踪至截稿，与每日进展文档(`experiment_status_*.md`)互补  
+> **0723 止损**：不再救 MV-Align；论文改为 leakage-aware controlled study
 
 ---
 
 ## 一、论文定位
 
-### 当前主线叙事（0717 老师确认）
+### 当前主线叙事（0723 锁定）
 
-> 严格 global temporal evaluation 下，静态文本仍显著改善 ID-only；TF-IDF 与 single-view LLM 已解释大部分收益；prompt-based multi-view 的边际价值受视角冗余、时间漂移和 item frequency 限制；Cross 对 score distribution 的作用依赖数据与窗口，并非稳定增益。
+> When More Text Is Not Better：严格 GTS 下文本仍明显优于 ID-only，但复杂 LLM/MV/Cross 额外收益不 robust，受 temporal shift 与 view redundancy 限制。
 
-**核心贡献方向**：Leakage-aware controlled study + 机制分析
+**核心贡献方向**：Leakage-aware controlled study + negative results + 机制分析  
+**停止**：扩 MV / 调 boost / 加 Cross / 追求漂亮层级。
 
-### Stop Gate（0717 老师设定）
+### Stop Gate（0717 设定 → 0723 已触发）
 
-修正 train-only TF-IDF/SVD/whitening 后，Beauty 3 seeds + ≥2 temporal windows：
-- 若 MV 在大部分窗口和主指标上不能超过 single-view 一个 std → MV 降为分析对象，不做主方法
-- 若 Cross 不能稳定改善 NDCG/MRR → Cross 从默认模型删除，仅作负结果+机制分析
+- MV 在 Main + Early 两窗口均未超过 single-view 一个 std → **MV = 分析对象**
+- Cross 无稳定增益 → **Appendix negative analysis only**
 
 ---
 
@@ -131,6 +132,28 @@
 | view_1 vs view_2 cosine | 0.4177 | Function vs Audience 高冗余 |
 | MV gate α | 0.685 (< LLM 0.717) | 模型学会降低文本权重 |
 
+### Toys GTS 3-seed（7/24–7/26，定稿：`logs/wsdm_wrapup_toys_gts.csv`）
+
+| 模型 | seed42 | seed2024 | seed2026 | **test MRR mean±std** |
+|------|:------:|:--------:|:--------:|:---------------------:|
+| ID-only | 0.0070 | 0.0070 | 0.0069 | **0.0070±0.0001** |
+| **TF** lr=5e-4/do=0.3 | **0.0116** | **0.0112** | **0.0110** | **0.0113±0.0003** |
+| LLM lr=1e-4/do=0.1 | 0.0111 | 0.0105 | 0.0104 | 0.0107±0.0004 |
+| MV lr=5e-4/do=0.3 | 0.0102 | 0.0112 | 0.0113 | 0.0109±0.0006 |
+
+**Toys 结论**：TF 最优；LLM ≈ MV，与 Beauty 方向完全一致。Valid→test drop ~55%。
+
+### Beauty Clean LOO 3-seed（✅ 定稿：`logs/beauty_loo_results.csv`）
+
+| 模型 | seed42 | seed2024 | seed2026 | **mean ± std** | vs GTS |
+|------|:------:|:--------:|:--------:|:--------------:|:------:|
+| ID-only | 0.0179 | 0.0171 | 0.0174 | **0.0175±0.0004** | 1.65× |
+| TF | 0.0250 | 0.0253 | 0.0249 | **0.0251±0.0002** | 1.52× |
+| LLM | 0.0251 | 0.0252 | 0.0258 | **0.0254±0.0004** | 1.58× |
+| MV | 0.0258 | 0.0251 | 0.0250 | **0.0253±0.0004** | 1.58× |
+
+**关键发现**：LOO 下 LLM≈MV≥TF（GTS 下 TF 最优）→ **协议改变模型排序**。
+
 ### Cross 效应摘要
 
 | 模型 | Δ MRR@10 | Δ R@10 | Δ R_new@10 | 判定 |
@@ -150,8 +173,24 @@
 | 2 | TF 3-seed Beauty，lr=5e-4/do=0.3 | baseline 方差 | 5090 | ✅ test **0.0165±0.0008** |
 | 3 | MV 3-seed Beauty，lr=5e-4/do=0.3 + 正确 PA（主） | MV stop-gate | 5090 | ✅ test **0.0160±0.0008**；**未超 LLM 1std → 降为分析对象** |
 | 3b | MV 3-seed Beauty，lr=5e-4/do=0.5 + 正确 PA（附带） | 选参稳定性 | 5090 | ✅ test 0.0155±0.0001（更稳但更低） |
-| 4 | 2 temporal windows (早期 valid cutoff) Beauty | 时间稳定性 | 5090 | ⏳ |
-| 5 | Toys per-source 公平对比 | 跨域验证 | 5090 | ⏳ |
+| 4 | 2 temporal windows (Early60) Beauty | 时间稳定性 | 5090 | ✅ TF≥MV≥LLM；两窗口 stop-gate 正式触发 |
+| 5 | Toys GTS Main 3-seed（wrap-up 队列） | 跨域验证 | 5090 | ✅ TF **0.0113±0.0003** > LLM 0.0107 ≈ MV 0.0109；与 Beauty 一致 |
+| 6 | Beauty ID-only 3-seed + UniSRec（log10） | 主表 ID baseline / portability | log10 | ✅ ID GTS **0.0106±0.0005** |
+| 7 | Warm-target audit（G1） | 主表口径 | CPU | ✅ Beauty unseen 27.8%；Toys 34.5% |
+| 8 | **Beauty Clean LOO 3-seed** | LOO vs GTS protocol 对照 | 5090 | ✅ 12/12；ID 0.0175 / TF 0.0251 / LLM 0.0254 / MV 0.0253；LOO≈1.5×GTS，排序翻转 |
+| 9 | **Toys Clean LOO 3-seed** | LOO vs GTS 跨域 | 5090 | ✅ 12/12；见 `logs/toys_loo_results.csv` |
+| 10 | **UniSRec GTS** Beauty+Toys 3-seed | portability | 5090 | 🔄 **P0 队列中**：`run_5090_remaining_p0.sh` 对 6 ckpt 做真 test(+valid) → `logs/unisrec_gts_test_eval.csv` |
+| 11 | **Warm-only 重评估** | 主表口径 | 5090 | ✅ 21 ckpt；warm≈1.37×(Beauty)/1.48×(Toys)，**排序不变** |
+| 12 | **LOVO 修复重跑** | view redundancy | 5090 | 🔄 接在 UniSRec 后：zero-mask → `leave_one_view_out_{beauty,toys}.md` |
+
+### 数据有效性问题（2026-08-02 核查）
+
+| # | 项目 | 问题 | 处理 |
+|:-:|------|------|------|
+| B1 | Leave-one-view-out | 脚本改 `model.text_view_indices`，前向实际读 `active_buffer_positions`（`__init__` 固定）→ 属性赋值是 no-op，故 4 view 的 Δ 全为 `0.000000` | 需改为对 concat 向量的对应切片做零掩码，或用 config 重建模型。**effective rank 的 `drop_view_*` 证据不受影响，仍可用** |
+| B2 | UniSRec | `--only_phase_a` 路径下 UniSRec 日志只有 `valid result`，无 `test_result`；提取正则抓到末次 valid | 用已存 6 个 ckpt 补 test-only eval（~20 min），勿重训 |
+
+> 详见 [`0723_results_summary.md`](0723_results_summary.md)
 
 ---
 
@@ -184,9 +223,13 @@
 | 7/17 | V4 规划启动；规范确立；distribution shift / CKA / leave-one-view / rank-transition | ✅ |
 | 7/17–7/20 | 共享小网格 + Fix（TF log 修复、MV 正确 Phase-A）| ✅ 7/20 05:27 |
 | **7/20–7/21** | **3-seed stop gate（`run_5090_stopgate_3seed.sh`）** | ✅ 04:49 完成；MV 未过 gate |
-| 7/23–7/26 | 机制分析补全 / 论文图表 | ⏳ |
-| 7/26–7/30 | Toys/Grocery 域验证 | ⏳ |
-| 7/30+ | 论文写作 | ⏳ |
+| 7/21–7/22 | Early60 第二窗口 3-seed + Cross Top-K | ✅ TF≥MV≥LLM |
+| **7/23** | **0723 止损；wrap-up 串行队列启动（5090 Toys + log10 ID/UniSRec）** | ✅ |
+| **7/26** | Toys GTS 定稿；Beauty LOO 启动 | ✅ |
+| **7/27–7/28** | Beauty/Toys Clean LOO 12/12；机制分析（CKA/LOVO/shift） | ✅ |
+| **7/28–7/29** | UniSRec GTS（Beauty✅；Toys 恢复中）+ warm-only 重评估排队 | 🟡 |
+| 7/30 | 白天：论文数据分析（查收 UniSRec + warm-only + paper_tables） | ⏳ |
+| 7/30–8/05 | 论文骨架撰写 | ⏳ |
 | TBD | WSDM abstract deadline | ⏳ |
 
 ---
@@ -200,3 +243,7 @@
 | 2026-07-20 12:50 | 增加按 test 选参诊断：MV 唯一翻转；平均 gap 不大；3-seed 建议附带 MV do=0.5 |
 | 2026-07-20 15:10 | 同步三端；启动 Stop-Gate 3-seed（LLM/TF/MV/MV*×seeds 42/2024/2026） |
 | 2026-07-21 11:25 | 3-seed 完成；真实 test：TF 0.0165±0.0008 ≥ LLM 0.0161±0.0005 ≈ MV 0.0160±0.0008；MV stop-gate 未通过 |
+| 2026-07-22 | Early60 完成：TF 0.0053±0.0002 ≥ MV 0.0052 ≥ LLM 0.0049；两窗口 stop-gate 正式触发 |
+| 2026-07-23 | 0723 止损叙事锁定；启动 `run_5090_wsdm_wrapup_serial.sh` + `run_log10_wsdm_wrapup_serial.sh`；warm-audit 完成 |
+| 2026-07-26 | Toys GTS 3-seed 定稿（TF>LLM≈MV，跨域验证）；Beauty Clean LOO 启动 |
+| 2026-07-28 | Beauty/Toys Clean LOO 均 12/12 定稿；机制分析完成；UniSRec GTS 启动 |

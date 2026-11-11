@@ -1,0 +1,40 @@
+{
+  "dataset": "Amazon_Beauty",
+  "protocol": "Main TS[0.8,0.1,0.1], per-user last target, min5, warm=target in train catalog",
+  "valid": {
+    "eligible_users_with_target": 7860,
+    "warm_users": 6663,
+    "warm_share": 0.8477099236641221,
+    "warm_pop_mean": 77.4955725649107,
+    "warm_pop_median": 19.0,
+    "alltarget_bucket": {
+      "head": 0.5258269720101781,
+      "mid": 0.19300254452926208,
+      "low": 0.12888040712468193,
+      "unseen": 0.15229007633587785
+    },
+    "warm_bucket": {
+      "head": 0.620291160138076,
+      "mid": 0.22767522137175447,
+      "low": 0.15203361849016958
+    }
+  },
+  "test": {
+    "eligible_users_with_target": 6356,
+    "warm_users": 4585,
+    "warm_share": 0.7213656387665198,
+    "warm_pop_mean": 74.06346782988004,
+    "warm_pop_median": 17.0,
+    "alltarget_bucket": {
+      "head": 0.4370673379483952,
+      "mid": 0.158118313404657,
+      "low": 0.1261799874134676,
+      "unseen": 0.2786343612334802
+    },
+    "warm_bucket": {
+      "head": 0.6058887677208288,
+      "mid": 0.21919302071973829,
+      "low": 0.17491821155943293
+    }
+  }
+}

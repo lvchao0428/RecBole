@@ -1,0 +1,3 @@
+我看了一下，基本已经没问题了。Abstract格式上我建议最后改成一个段落。
+这个或许是因为我昨天给同学例子的时候，为了结构清晰，写成了三段式。我写这个三段式主要是希望同学可以和我在十三周课程讲的Abstract的主要逻辑结构对应起来。
+我建议改成一段不是因为三段违反格式，三段完全可以编译，也不是WSDM的硬性违规，而是ACM/WSDM这种conference paper的abstract通常就是一个compact paragraph，官方acmart sample也是这种呈现。现在三段实际上是setup、three findings、takeaway，逻辑很好，只需要把段间空行去掉不需要改句子，视觉上会更像最终投稿的paper，而且之后复制到CMT的abstract metadata里也更自然。

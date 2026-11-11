@@ -1,0 +1,40 @@
+{
+  "dataset": "Amazon_Grocery_and_Gourmet_Food",
+  "protocol": "Main TS[0.8,0.1,0.1], per-user last target, min5, warm=target in train catalog",
+  "valid": {
+    "eligible_users_with_target": 5904,
+    "warm_users": 4880,
+    "warm_share": 0.8265582655826558,
+    "warm_pop_mean": 110.9764344262295,
+    "warm_pop_median": 20.0,
+    "alltarget_bucket": {
+      "head": 0.5257452574525745,
+      "mid": 0.19342818428184283,
+      "low": 0.10738482384823848,
+      "unseen": 0.17344173441734417
+    },
+    "warm_bucket": {
+      "head": 0.6360655737704918,
+      "mid": 0.23401639344262296,
+      "low": 0.12991803278688524
+    }
+  },
+  "test": {
+    "eligible_users_with_target": 5534,
+    "warm_users": 3840,
+    "warm_share": 0.6938923021322733,
+    "warm_pop_mean": 98.60546875,
+    "warm_pop_median": 16.0,
+    "alltarget_bucket": {
+      "head": 0.42302132273220094,
+      "mid": 0.14781351644380195,
+      "low": 0.12305746295627033,
+      "unseen": 0.3061076978677268
+    },
+    "warm_bucket": {
+      "head": 0.6096354166666667,
+      "mid": 0.21302083333333333,
+      "low": 0.17734375
+    }
+  }
+}

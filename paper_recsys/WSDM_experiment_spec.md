@@ -1,9 +1,10 @@
 # WSDM 实验规范文档
 
 > 创建: 2026-07-17  
-> 最后更新: 2026-07-17  
+> 最后更新: 2026-07-23  
 > 适用范围: WSDM 2027 投稿 + RecSys 历史实验对照  
-> 目的: 换新上下文后快速获取实验规范，避免重复沟通
+> 目的: 换新上下文后快速获取实验规范，避免重复沟通  
+> **0723**：主表 warm-target only；不为 MV 单独加宽网格；Cross/MV 不作主方法
 
 ---
 
@@ -17,8 +18,9 @@
 | 时间分位 | 80% / 10% / 10%（train / valid / test） | 论文中报告真实日期 |
 | 用户准入 | train cutoff 前 ≥5 条历史 | 保证序列有意义 |
 | Candidate 限制 | cutoff 前已出现的 warm items | 不推荐"未来商品" |
-| Target 限制 | cutoff 前已出现的 item | warm-item evaluation |
-| 排名方式 | **Full ranking** over all candidates | 非 sampled evaluation |
+| Target 限制 | **主表：train catalog 内 warm targets** | unseen 单独报告；非 content-only 时不对齐比较 ID vs text |
+| 排名方式 | **Full ranking** over warm catalog | 非 sampled evaluation |
+| 论文必写 | GTS cutoff、target 选择、candidate catalog、cold filtering、valid/test 构造 | 0723 强调 |
 
 ### 1.2 特征处理（Leakage-free）
 
@@ -419,3 +421,4 @@ paper_recsys/
 | 2026-07-17 15:50 | 新增§六运维操作规范：启动流程、脚本编写、故障排查、三端同步、分析工具 |
 | 2026-07-18 11:48 | 新增§七 Preflight Checklist (21 条)：日志命名、两阶段参数、配置公平性、环境、数据指标、脚本编写 |
 | 2026-07-18 23:30 | 新增§八训练执行规范：后台脚本执行、跨对话上下文传递 |
+| 2026-07-23 | 0723：主表 warm-target only；停止为 MV 加宽网格；Cross/MV 不作主方法 |
