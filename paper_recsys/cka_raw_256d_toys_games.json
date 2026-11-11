@@ -1,0 +1,27 @@
+{
+  "dataset": "Amazon_Toys_and_Games",
+  "n_items": 336073,
+  "dim": 256,
+  "stage": "post-SVD_256d_pre-whitening",
+  "n_trials": 3,
+  "subsample_size": 3000,
+  "cka_base_vs_multiview": {
+    "mean": 0.973151167233785,
+    "std": 0.0005269972149505532,
+    "values": [
+      0.9728924036026001,
+      0.9738858342170715,
+      0.9726752638816833
+    ]
+  },
+  "effective_rank_base_256d": {
+    "mean": 171.59601847330728,
+    "std": 0.23094532116771857,
+    "ratio": 0.6702969471613566
+  },
+  "effective_rank_multiview_256d": {
+    "mean": 104.40382130940755,
+    "std": 0.2276799206428632,
+    "ratio": 0.40782742698987323
+  }
+}

@@ -1,0 +1,382 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{26}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{} and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showURL}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showURL #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Bao et~al\mbox{.}(2023)]%
+        {bao2023tallrec}
+\bibfield{author}{\bibinfo{person}{Keqin Bao}, \bibinfo{person}{Jizhi Zhang},
+  \bibinfo{person}{Yang Zhang}, \bibinfo{person}{Wenjie Wang},
+  \bibinfo{person}{Fuli Feng}, {and} \bibinfo{person}{Xiangnan He}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{TALLRec}: An Effective and Efficient Tuning
+  Framework to Align Large Language Model with Recommendation}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 17th {ACM} Conference on
+  Recommender Systems ({RecSys})}}. \bibinfo{address}{Singapore},
+  \bibinfo{pages}{1007--1014}.
+\newblock
+\href{https://doi.org/10.1145/3604915.3608857}{doi:\nolinkurl{10.1145/3604915.3608857}}
+
+
+\bibitem[Ethayarajh(2019)]%
+        {ethayarajh2019contextual}
+\bibfield{author}{\bibinfo{person}{Kawin Ethayarajh}.}
+  \bibinfo{year}{2019}\natexlab{}.
+\newblock \showarticletitle{How Contextual are Contextualized Word
+  Representations? Comparing the Geometry of {BERT}, {ELMo}, and {GPT-2}
+  Embeddings}. In \bibinfo{booktitle}{\emph{Proceedings of the 2019 Conference
+  on Empirical Methods in Natural Language Processing and the 9th International
+  Joint Conference on Natural Language Processing ({EMNLP-IJCNLP})}}.
+  \bibinfo{pages}{55--65}.
+\newblock
+\href{https://doi.org/10.18653/v1/D19-1006}{doi:\nolinkurl{10.18653/v1/D19-1006}}
+
+
+\bibitem[Geng et~al\mbox{.}(2022)]%
+        {geng2022p5}
+\bibfield{author}{\bibinfo{person}{Shijie Geng}, \bibinfo{person}{Shuchang
+  Liu}, \bibinfo{person}{Zuohui Fu}, \bibinfo{person}{Yingqiang Ge}, {and}
+  \bibinfo{person}{Yongfeng Zhang}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Recommendation as Language Processing ({RLP}): A
+  Unified Pretrain, Personalized Prompt \& Predict Paradigm ({P5})}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 16th {ACM} Conference on
+  Recommender Systems ({RecSys})}}. \bibinfo{address}{Seattle, WA, USA},
+  \bibinfo{pages}{299--315}.
+\newblock
+\href{https://doi.org/10.1145/3523227.3546767}{doi:\nolinkurl{10.1145/3523227.3546767}}
+
+
+\bibitem[Gusak et~al\mbox{.}(2025)]%
+        {gusak2025time}
+\bibfield{author}{\bibinfo{person}{Danil Gusak}, \bibinfo{person}{Anna
+  Volodkevich}, \bibinfo{person}{Anton Klenitskiy}, \bibinfo{person}{Alexey
+  Vasilev}, {and} \bibinfo{person}{Evgeny Frolov}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Time to Split: Exploring Data Splitting Strategies
+  for Offline Evaluation of Sequential Recommenders}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the Nineteenth {ACM} Conference on
+  Recommender Systems}}. \bibinfo{pages}{874--883}.
+\newblock
+\href{https://doi.org/10.1145/3705328.3748164}{doi:\nolinkurl{10.1145/3705328.3748164}}
+
+
+\bibitem[Hidasi and Karatzoglou(2018)]%
+        {hidasi2018recurrent}
+\bibfield{author}{\bibinfo{person}{Bal{\'a}zs Hidasi} {and}
+  \bibinfo{person}{Alexandros Karatzoglou}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Recurrent Neural Networks with Top-k Gains for
+  Session-based Recommendations}. In \bibinfo{booktitle}{\emph{Proceedings of
+  the 27th {ACM} International Conference on Information and Knowledge
+  Management ({CIKM})}}. \bibinfo{pages}{843--852}.
+\newblock
+\href{https://doi.org/10.1145/3269206.3271761}{doi:\nolinkurl{10.1145/3269206.3271761}}
+
+
+\bibitem[Hidasi et~al\mbox{.}(2016)]%
+        {hidasi2016gru4rec}
+\bibfield{author}{\bibinfo{person}{Bal{\'a}zs Hidasi},
+  \bibinfo{person}{Alexandros Karatzoglou}, \bibinfo{person}{Linas Baltrunas},
+  {and} \bibinfo{person}{Domonkos Tikk}.} \bibinfo{year}{2016}\natexlab{}.
+\newblock \showarticletitle{Session-based Recommendations with Recurrent Neural
+  Networks}. In \bibinfo{booktitle}{\emph{Proceedings of the 4th International
+  Conference on Learning Representations ({ICLR})}}.
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/1511.06939}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Hou et~al\mbox{.}(2023)]%
+        {hou2023vqrec}
+\bibfield{author}{\bibinfo{person}{Yupeng Hou}, \bibinfo{person}{Zhankui He},
+  \bibinfo{person}{Julian McAuley}, {and} \bibinfo{person}{Wayne~Xin Zhao}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Learning Vector-Quantized Item Representation for
+  Transferable Sequential Recommenders}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the {ACM} Web Conference 2023
+  ({WWW})}}. \bibinfo{address}{Austin, TX, USA}, \bibinfo{pages}{1162--1171}.
+\newblock
+\href{https://doi.org/10.1145/3543507.3583434}{doi:\nolinkurl{10.1145/3543507.3583434}}
+
+
+\bibitem[Hou et~al\mbox{.}(2022)]%
+        {hou2022unisrec}
+\bibfield{author}{\bibinfo{person}{Yupeng Hou}, \bibinfo{person}{Shanlei Mu},
+  \bibinfo{person}{Wayne~Xin Zhao}, \bibinfo{person}{Yaliang Li},
+  \bibinfo{person}{Bolin Ding}, {and} \bibinfo{person}{Ji-Rong Wen}.}
+  \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Towards Universal Sequence Representation Learning
+  for Recommender Systems}. In \bibinfo{booktitle}{\emph{Proceedings of the
+  28th {ACM} {SIGKDD} Conference on Knowledge Discovery and Data Mining
+  ({KDD})}}. \bibinfo{address}{Washington, DC, USA}, \bibinfo{pages}{585--593}.
+\newblock
+\href{https://doi.org/10.1145/3534678.3539381}{doi:\nolinkurl{10.1145/3534678.3539381}}
+
+
+\bibitem[Ji et~al\mbox{.}(2023)]%
+        {ji2023evaluation}
+\bibfield{author}{\bibinfo{person}{Yitong Ji}, \bibinfo{person}{Aixin Sun},
+  \bibinfo{person}{Jie Zhang}, {and} \bibinfo{person}{Chenliang Li}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{A Critical Study on Data Leakage in Recommender
+  System Offline Evaluation}.
+\newblock \bibinfo{journal}{\emph{{ACM} Transactions on Information Systems}}
+  \bibinfo{volume}{41}, \bibinfo{number}{3} (\bibinfo{year}{2023}),
+  \bibinfo{pages}{75:1--75:27}.
+\newblock
+\href{https://doi.org/10.1145/3569930}{doi:\nolinkurl{10.1145/3569930}}
+
+
+\bibitem[Kang and McAuley(2018)]%
+        {kang2018sasrec}
+\bibfield{author}{\bibinfo{person}{Wang-Cheng Kang} {and}
+  \bibinfo{person}{Julian McAuley}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Self-Attentive Sequential Recommendation}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 2018 {IEEE} International
+  Conference on Data Mining ({ICDM})}}. \bibinfo{pages}{197--206}.
+\newblock
+\href{https://doi.org/10.1109/ICDM.2018.00035}{doi:\nolinkurl{10.1109/ICDM.2018.00035}}
+
+
+\bibitem[Kornblith et~al\mbox{.}(2019)]%
+        {kornblith2019cka}
+\bibfield{author}{\bibinfo{person}{Simon Kornblith}, \bibinfo{person}{Mohammad
+  Norouzi}, \bibinfo{person}{Honglak Lee}, {and} \bibinfo{person}{Geoffrey
+  Hinton}.} \bibinfo{year}{2019}\natexlab{}.
+\newblock \showarticletitle{Similarity of Neural Network Representations
+  Revisited}. In \bibinfo{booktitle}{\emph{Proceedings of the 36th
+  International Conference on Machine Learning}}
+  \emph{(\bibinfo{series}{Proceedings of Machine Learning Research},
+  Vol.~\bibinfo{volume}{97})}. \bibinfo{pages}{3519--3529}.
+\newblock
+
+
+\bibitem[Krichene and Rendle(2020)]%
+        {krichene2020sampledmetrics}
+\bibfield{author}{\bibinfo{person}{Walid Krichene} {and}
+  \bibinfo{person}{Steffen Rendle}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{On Sampled Metrics for Item Recommendation}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 26th {ACM} {SIGKDD} Conference
+  on Knowledge Discovery and Data Mining ({KDD})}}.
+  \bibinfo{pages}{1748--1757}.
+\newblock
+\href{https://doi.org/10.1145/3394486.3403226}{doi:\nolinkurl{10.1145/3394486.3403226}}
+
+
+\bibitem[Li et~al\mbox{.}(2023)]%
+        {li2023recformer}
+\bibfield{author}{\bibinfo{person}{Jiacheng Li}, \bibinfo{person}{Ming Wang},
+  \bibinfo{person}{Jin Li}, \bibinfo{person}{Jinmiao Fu}, \bibinfo{person}{Xin
+  Shen}, \bibinfo{person}{Jingbo Shang}, {and} \bibinfo{person}{Julian
+  McAuley}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Text Is All You Need: Learning Language
+  Representations for Sequential Recommendation}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 29th {ACM} {SIGKDD} Conference
+  on Knowledge Discovery and Data Mining ({KDD})}}.
+  \bibinfo{pages}{1258--1267}.
+\newblock
+\href{https://doi.org/10.1145/3580305.3599519}{doi:\nolinkurl{10.1145/3580305.3599519}}
+
+
+\bibitem[McAuley et~al\mbox{.}(2015)]%
+        {mcauley2015amazon}
+\bibfield{author}{\bibinfo{person}{Julian McAuley},
+  \bibinfo{person}{Christopher Targett}, \bibinfo{person}{Qinfeng Shi}, {and}
+  \bibinfo{person}{Anton van~den Hengel}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Image-based Recommendations on Styles and
+  Substitutes}. In \bibinfo{booktitle}{\emph{Proceedings of the 38th
+  International {ACM} {SIGIR} Conference on Research and Development in
+  Information Retrieval ({SIGIR})}}. \bibinfo{pages}{43--52}.
+\newblock
+\href{https://doi.org/10.1145/2766462.2767755}{doi:\nolinkurl{10.1145/2766462.2767755}}
+
+
+\bibitem[Meng et~al\mbox{.}(2020)]%
+        {meng2020temporal}
+\bibfield{author}{\bibinfo{person}{Zaiqiao Meng}, \bibinfo{person}{Richard
+  McCreadie}, \bibinfo{person}{Craig Macdonald}, {and} \bibinfo{person}{Iadh
+  Ounis}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Exploring Data Splitting Strategies for the
+  Evaluation of Recommendation Models}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 14th {ACM} Conference on
+  Recommender Systems ({RecSys})}}. \bibinfo{pages}{681--686}.
+\newblock
+\href{https://doi.org/10.1145/3383313.3418479}{doi:\nolinkurl{10.1145/3383313.3418479}}
+
+
+\bibitem[Ni et~al\mbox{.}(2019)]%
+        {ni2019amazon}
+\bibfield{author}{\bibinfo{person}{Jianmo Ni}, \bibinfo{person}{Jiacheng Li},
+  {and} \bibinfo{person}{Julian McAuley}.} \bibinfo{year}{2019}\natexlab{}.
+\newblock \showarticletitle{Justifying Recommendations using Distantly-Labeled
+  Reviews and Fine-Grained Aspects}. In \bibinfo{booktitle}{\emph{Proceedings
+  of the 2019 Conference on Empirical Methods in Natural Language Processing
+  ({EMNLP})}}. \bibinfo{pages}{188--197}.
+\newblock
+\href{https://doi.org/10.18653/v1/D19-1018}{doi:\nolinkurl{10.18653/v1/D19-1018}}
+
+
+\bibitem[{Qwen Team}(2024)]%
+        {qwen2024qwen25}
+\bibfield{author}{\bibinfo{person}{{Qwen Team}}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{Qwen2.5} Technical Report}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2412.15115}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\bibitem[Rendle et~al\mbox{.}(2009)]%
+        {rendle2009bpr}
+\bibfield{author}{\bibinfo{person}{Steffen Rendle}, \bibinfo{person}{Christoph
+  Freudenthaler}, \bibinfo{person}{Zeno Gantner}, {and} \bibinfo{person}{Lars
+  Schmidt-Thieme}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \showarticletitle{{BPR}: Bayesian Personalized Ranking from Implicit
+  Feedback}. In \bibinfo{booktitle}{\emph{Proceedings of the 25th Conference on
+  Uncertainty in Artificial Intelligence ({UAI})}}. \bibinfo{pages}{452--461}.
+\newblock
+
+
+\bibitem[Roy and Vetterli(2007)]%
+        {roy2007effective}
+\bibfield{author}{\bibinfo{person}{Olivier Roy} {and} \bibinfo{person}{Martin
+  Vetterli}.} \bibinfo{year}{2007}\natexlab{}.
+\newblock \showarticletitle{The effective rank: A measure of effective
+  dimensionality}. In \bibinfo{booktitle}{\emph{2007 15th European signal
+  processing conference}}. IEEE, \bibinfo{pages}{606--610}.
+\newblock
+
+
+\bibitem[Sun(2023)]%
+        {sun2023reevaluation}
+\bibfield{author}{\bibinfo{person}{Aixin Sun}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Take a Fresh Look at Recommender Systems from an
+  Evaluation Standpoint}. In \bibinfo{booktitle}{\emph{Proceedings of the 46th
+  International {ACM} {SIGIR} Conference on Research and Development in
+  Information Retrieval ({SIGIR})}}. \bibinfo{pages}{2629--2638}.
+\newblock
+\href{https://doi.org/10.1145/3539618.3591931}{doi:\nolinkurl{10.1145/3539618.3591931}}
+
+
+\bibitem[Sun et~al\mbox{.}(2019)]%
+        {sun2019bert4rec}
+\bibfield{author}{\bibinfo{person}{Fei Sun}, \bibinfo{person}{Jun Liu},
+  \bibinfo{person}{Jian Wu}, \bibinfo{person}{Changhua Pei},
+  \bibinfo{person}{Xiao Lin}, \bibinfo{person}{Wenwu Ou}, {and}
+  \bibinfo{person}{Peng Jiang}.} \bibinfo{year}{2019}\natexlab{}.
+\newblock \showarticletitle{{BERT4Rec}: Sequential Recommendation with
+  Bidirectional Encoder Representations from Transformer}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 28th {ACM} International
+  Conference on Information and Knowledge Management ({CIKM})}}.
+  \bibinfo{pages}{1441--1450}.
+\newblock
+\href{https://doi.org/10.1145/3357384.3357895}{doi:\nolinkurl{10.1145/3357384.3357895}}
+
+
+\bibitem[van~den Oord et~al\mbox{.}(2018)]%
+        {oord2018cpc}
+\bibfield{author}{\bibinfo{person}{Aaron van~den Oord}, \bibinfo{person}{Yazhe
+  Li}, {and} \bibinfo{person}{Oriol Vinyals}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Representation Learning with Contrastive Predictive
+  Coding}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:1807.03748}}
+  (\bibinfo{year}{2018}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.1807.03748}{doi:\nolinkurl{10.48550/arXiv.1807.03748}}
+
+
+\bibitem[Wang et~al\mbox{.}(2015)]%
+        {wang2015cdl}
+\bibfield{author}{\bibinfo{person}{Hao Wang}, \bibinfo{person}{Naiyan Wang},
+  {and} \bibinfo{person}{Dit-Yan Yeung}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{Collaborative Deep Learning for Recommender
+  Systems}. In \bibinfo{booktitle}{\emph{Proceedings of the 21st {ACM} {SIGKDD}
+  International Conference on Knowledge Discovery and Data Mining ({KDD})}}.
+  \bibinfo{pages}{1235--1244}.
+\newblock
+\href{https://doi.org/10.1145/2783258.2783273}{doi:\nolinkurl{10.1145/2783258.2783273}}
+
+
+\bibitem[Xu et~al\mbox{.}(2013)]%
+        {xu2013multiview}
+\bibfield{author}{\bibinfo{person}{Chang Xu}, \bibinfo{person}{Dacheng Tao},
+  {and} \bibinfo{person}{Chao Xu}.} \bibinfo{year}{2013}\natexlab{}.
+\newblock \showarticletitle{A Survey on Multi-view Learning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:1304.5634}}
+  (\bibinfo{year}{2013}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.1304.5634}{doi:\nolinkurl{10.48550/arXiv.1304.5634}}
+
+
+\bibitem[Zhang et~al\mbox{.}(2019)]%
+        {zhang2019fdsa}
+\bibfield{author}{\bibinfo{person}{Tingting Zhang}, \bibinfo{person}{Pengpeng
+  Zhao}, \bibinfo{person}{Yanchi Liu}, \bibinfo{person}{Victor~S. Sheng},
+  \bibinfo{person}{Jiajie Xu}, \bibinfo{person}{Deqing Wang},
+  \bibinfo{person}{Guanfeng Liu}, {and} \bibinfo{person}{Xiaofang Zhou}.}
+  \bibinfo{year}{2019}\natexlab{}.
+\newblock \showarticletitle{Feature-level Deeper Self-Attention Network for
+  Sequential Recommendation}. In \bibinfo{booktitle}{\emph{Proceedings of the
+  28th International Joint Conference on Artificial Intelligence ({IJCAI})}}.
+  \bibinfo{pages}{4320--4326}.
+\newblock
+\href{https://doi.org/10.24963/ijcai.2019/600}{doi:\nolinkurl{10.24963/ijcai.2019/600}}
+
+
+\bibitem[Zhao et~al\mbox{.}(2021)]%
+        {zhao2021recbole}
+\bibfield{author}{\bibinfo{person}{Wayne~Xin Zhao}, \bibinfo{person}{Shanlei
+  Mu}, \bibinfo{person}{Yupeng Hou}, \bibinfo{person}{Zihan Lin},
+  \bibinfo{person}{Yushuo Chen}, \bibinfo{person}{Xingyu Pan},
+  \bibinfo{person}{Kaiyuan Li}, \bibinfo{person}{Yujie Lu},
+  \bibinfo{person}{Hui Wang}, \bibinfo{person}{Changxin Tian},
+  \bibinfo{person}{Yingqian Min}, \bibinfo{person}{Zhichao Feng},
+  \bibinfo{person}{Xinyan Fan}, \bibinfo{person}{Xu Chen},
+  \bibinfo{person}{Pengfei Wang}, \bibinfo{person}{Wendi Ji},
+  \bibinfo{person}{Yaliang Li}, \bibinfo{person}{Xiaoling Wang}, {and}
+  \bibinfo{person}{Ji-Rong Wen}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{{RecBole}: Towards a Unified, Comprehensive and
+  Efficient Framework for Recommendation Algorithms}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the 30th {ACM} International
+  Conference on Information and Knowledge Management ({CIKM})}}.
+  \bibinfo{pages}{4653--4664}.
+\newblock
+\href{https://doi.org/10.1145/3459637.3482016}{doi:\nolinkurl{10.1145/3459637.3482016}}
+
+
+\end{thebibliography}

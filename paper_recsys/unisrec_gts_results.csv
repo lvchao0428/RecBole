@@ -1,0 +1,7 @@
+tag,model,dataset,seed,valid_mrr,test_mrr
+unisrec_beauty_gts_seed42,UniSRec,Amazon_Beauty,42,0,0.0204
+unisrec_beauty_gts_seed2024,UniSRec,Amazon_Beauty,2024,0,0.0206
+unisrec_beauty_gts_seed2026,UniSRec,Amazon_Beauty,2026,0,0.0208
+unisrec_toys_gts_seed42,UniSRec,Amazon_Toys_and_Games,42,0,0.0162
+unisrec_toys_gts_seed2024,UniSRec,Amazon_Toys_and_Games,2024,0,0.0163
+unisrec_toys_gts_seed2026,UniSRec,Amazon_Toys_and_Games,2026,0,0.0164

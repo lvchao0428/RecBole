@@ -1,0 +1,17 @@
+Abstract我看下来整体已经达到可以提交的程度了，而且现在的定位比前面清楚很多，不是再证明MV-Align是一个更强的新模型，而是回答严格时间协议下，不同文本表征的结论是否稳定，以及multi-view为什么没有稳定增益。这个方向和正文三个RQ是一致的，也比较符合WSDM对sound empirical analysis的接受范围。
+
+有几个是可以改进的地方。一个是第一句的almost universally rely on leave-one-out有点太绝对，reviewer很容易抓universally的证据范围，我建议改成often rely on leave-one-out or related user-wise protocols，后面再说这些协议can permit global temporal overlap。这样论证更稳，Time to Split的正式结论确实支持GTS-Last、Random、Successive作为合理的sequential evaluation target，而Last/Random是Successive的低成本替代。
+
+还一个也是我认为目前最需要确认的地方，摘要的第(2)点写Under an equal-horizon Early window xxxx all text methods drop~25%，但正文Table4现在仍然写的是GTS-All。而整篇又已经把All定义成存在task mismatch、只放appendix的协议。这个会形成一个比较明显的自我矛盾，摘要第二大结论反而建立在自己认为不够合适的协议上。我建议要么尽快把Main/Early都按GTS-Last warm重算，要么摘要暂时不要写~25%这个具体结果，只写得更弱一点，例如Across an earlier temporal window, no text variant consistently dominates。如果后面Last重跑出来仍然成立，再把数字补回正文。官方Time to Split也明确区分了All与Last/Random的任务定义，所以这里最好别留下口子。
+
+最后一个是RQ3数字本身挺漂亮，但摘要说leave-one-view-out changes MRR by <0.04 percentage points，这个说法本身没问题。但正文Table9 caption、Beauty/Toys的最大\Delta、后面解释段里出现了不同的最大值和relative drop。我会建议全部重新从表里生成一次，避免摘要虽然正确、正文却被reviewer找到数字不一致。
+
+另外我会建议Text always beats ID-only改成Across the evaluated settings, text features consistently outperform ID-only。把最后一句a potential complementarity axis that multi-prompt stacking does not exploit改成suggesting a potentially complementary lexical-semantic axis that is not captured by adding more prompt views。这样少一点“已经证明为什么没exploit”的因果意味。
+
+最最后我记得第十三周课上说过，RQ的模式在Section 4是一个很好的写法，但是在Abstract里面或者Introduction里面写需要注意措辞。现在只是简单罗列RQ的话看上去有点生硬，如果我写的话，我会像下面这样写：
+
+Text features are widely used to enrich sequential recommenders, but comparisons among lexical, single-view LLM, and prompt-based multi-view representations are often conducted under evaluation protocols that permit temporal overlap. We conduct a leakage-aware controlled study of ID-only, cutoff-fit TF-IDF, single-view Qwen2.5-7B, and four-view LLM representations under full-ranking global temporal splitting (GTS) on three Amazon datasets, using GTS-Last as the primary protocol, GTS-Random as a robustness check, and clean leave-one-out (LOO) as a contrast.
+
+Three findings emerge. First, evaluation protocol changes conclusions: text consistently improves over ID-only on warm targets, but the relative ordering of TF-IDF, single-view LLM, and multi-view LLM changes across Last, Random, and LOO, even when Last and Random evaluate the same trained checkpoints. Second, no text representation is robustly dominant across temporal windows; temporal shift reduces absolute performance while preserving near-ties among text variants. Third, additional prompt views provide limited marginal value because they are highly redundant: inter-view CKA reaches xxx-xx, the concatenated representation uses only xx-xx% of its nominal effective rank, and leave-one-view-out has little downstream effect. In contrast, TF-IDF is geometrically distinct from LLM views (CKA \approx xxxx).
+
+These results suggest that evaluation protocol and representation redundancy should be diagnosed before attributing gains to increasingly complex LLM text pipelines.

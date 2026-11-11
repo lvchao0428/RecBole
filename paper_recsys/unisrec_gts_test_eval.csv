@@ -1,0 +1,7 @@
+dataset,model,pth,seed,tag,test_hit@10,test_mrr@10,test_ndcg@10,valid_mrr@10
+Amazon_Beauty,UniSRec,UniSRec-Jul-28-2026_17-30-34.pth,42,unisrec_beauty_gts_seed42,0.044900,0.016100,0.022900,0.023000
+Amazon_Beauty,UniSRec,UniSRec-Jul-28-2026_18-38-30.pth,2024,unisrec_beauty_gts_seed2024,0.045300,0.016700,0.023400,0.023200
+Amazon_Beauty,UniSRec,UniSRec-Jul-28-2026_19-46-31.pth,2026,unisrec_beauty_gts_seed2026,0.044800,0.016700,0.023300,0.023500
+Amazon_Toys_and_Games,UniSRec,UniSRec-Jul-28-2026_20-54-29.pth,42,unisrec_toys_gts_seed42,0.048700,0.019400,0.026400,0.025800
+Amazon_Toys_and_Games,UniSRec,UniSRec-Jul-29-2026_20-59-58.pth,2024,unisrec_toys_gts_seed2024,0.050200,0.019400,0.026700,0.025500
+Amazon_Toys_and_Games,UniSRec,UniSRec-Jul-29-2026_23-35-52.pth,2026,unisrec_toys_gts_seed2026,0.049000,0.019600,0.026600,0.026100

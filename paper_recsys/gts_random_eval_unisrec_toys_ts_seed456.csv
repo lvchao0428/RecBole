@@ -1,0 +1,4 @@
+tag,pth,dataset,model,min_train_interactions,eval_mode,sample_seed,n_users,n_warm,mean_cands_per_user,test_mrr@10_all,test_mrr@10_warm,test_ndcg@10_all,test_ndcg@10_warm,test_hit@10_all,test_hit@10_warm,elapsed_seconds,warm_candidate_scope
+unisrec_toys_gts_ts_seed42,UniSRec-Aug-19-2026_04-58-00.pth,Amazon_Toys_and_Games,UniSRec,5,GTS-Random,456,4873,2932,2.7059,0.004620,0.007678,0.006983,0.011606,0.014775,0.024557,64.7,train_catalog
+unisrec_toys_gts_ts_seed2024,UniSRec-Aug-19-2026_06-31-55.pth,Amazon_Toys_and_Games,UniSRec,5,GTS-Random,456,4873,2932,2.7059,0.004453,0.007571,0.007079,0.011892,0.015801,0.026262,63.6,train_catalog
+unisrec_toys_gts_ts_seed2026,UniSRec-Aug-19-2026_08-05-53.pth,Amazon_Toys_and_Games,UniSRec,5,GTS-Random,456,4873,2932,2.7059,0.004232,0.007204,0.006226,0.010473,0.012723,0.021146,63.2,train_catalog

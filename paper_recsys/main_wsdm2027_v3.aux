@@ -1,0 +1,193 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{kang2018sasrec,sun2019bert4rec,hidasi2016gru4rec}
+\citation{hou2022unisrec,bao2023tallrec}
+\citation{hou2022unisrec,li2023recformer,bao2023tallrec}
+\citation{zhang2019fdsa}
+\citation{ji2023evaluation}
+\citation{sun2023reevaluation}
+\citation{gusak2025time}
+\citation{meng2020temporal,ji2023evaluation}
+\citation{hou2022unisrec}
+\citation{kornblith2019cka}
+\citation{roy2007effective}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\citation{wang2015cdl,salton1988termweighting}
+\citation{hou2022unisrec,hou2023vqrec,geng2022p5,bao2023tallrec}
+\citation{hou2022unisrec}
+\citation{hou2023vqrec}
+\citation{geng2022p5}
+\citation{bao2023tallrec}
+\citation{krichene2020sampledmetrics}
+\citation{ji2023evaluation,sun2023reevaluation,meng2020temporal}
+\citation{hidasi2018recurrent}
+\citation{gusak2025time}
+\citation{hidasi2018recurrent}
+\citation{meng2020temporal}
+\citation{gusak2025time}
+\citation{xu2013multiview}
+\citation{kornblith2019cka}
+\citation{ethayarajh2019contextual}
+\citation{roy2007effective}
+\citation{kornblith2019cka}
+\citation{ethayarajh2019contextual}
+\citation{ethayarajh2019contextual}
+\citation{zhao2021recbole}
+\citation{gusak2025time}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Text-enhanced sequential recommendation.}{2}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{LLM-based item representations.}{2}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evaluation protocols and temporal leakage.}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multi-view learning and representation redundancy.}{2}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Information geometry of embeddings.}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Controlled Study Setup}{2}{section.3}\protected@file@percent }
+\newlabel{sec:setup}{{3}{2}{Controlled Study Setup}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Temporal Protocols}{2}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:protocol}{{3.1}{2}{Temporal Protocols}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{GTS-Last (primary).}{2}{section*.10}\protected@file@percent }
+\citation{gusak2025time}
+\citation{gusak2025time}
+\citation{kang2018sasrec}
+\citation{oord2018cpc}
+\citation{qwen2024qwen25}
+\citation{hou2022unisrec}
+\citation{rendle2009bpr}
+\citation{mcauley2015amazon,ni2019amazon}
+\citation{krichene2020sampledmetrics}
+\@writefile{toc}{\contentsline {paragraph}{GTS-Random (robustness check).}{3}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Clean LOO (contrast).}{3}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{GTS-All (appendix).}{3}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Leakage controls.}{3}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Text Representations and Models}{3}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:models}{{3.2}{3}{Text Representations and Models}{subsection.3.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Protocol contrast --- warm-target MRR@10 (3 training-seed mean$\pm $std, min5 filter; GTS-Random additionally averaged over 3 target-sampling seeds). \textbf  {Bold}: best among the \textsc  {SASRec}\xspace  -based variants (ID / TF / TF+LLM / TF+MV) per row. UniSRec is an adapted external baseline and is strongest on Grocery. Winners change with protocol: Last favors \textsc  {TF+MV}\xspace  ; Random brings TF level with \textsc  {TF+MV}\xspace  (all gaps within one std); LOO favors \textsc  {TF+LLM}\xspace  $\approx $\textsc  {TF+MV}\xspace  .}}{3}{table.caption.15}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:protocol}{{1}{3}{Protocol contrast --- warm-target MRR@10 (3 training-seed mean$\pm $std, min5 filter; GTS-Random additionally averaged over 3 target-sampling seeds). \textbf {Bold}: best among the \base -based variants (ID / TF / TF+LLM / TF+MV) per row. UniSRec is an adapted external baseline and is strongest on Grocery. Winners change with protocol: Last favors \tfmv ; Random brings TF level with \tfmv (all gaps within one std); LOO favors \tfllm $\approx $\tfmv }{table.caption.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Datasets}{3}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Evaluation Details}{3}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}RQ1: Protocol Changes Rankings}{3}{section.4}\protected@file@percent }
+\newlabel{sec:rq1}{{4}{3}{RQ1: Protocol Changes Rankings}{section.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Protocol contrast on Beauty and Toys. GTS-Last/Random: warm MRR@10 (3 training seeds; Random further averaged over 3 target-sampling seeds). LOO: clean leave-one-out (contrast only). Clean LOO yields higher absolutes and favors \textsc  {TF+LLM}\xspace  /\textsc  {TF+MV}\xspace  ; Last vs.\ Random also changes the winner among the \textsc  {SASRec}\xspace  -based text variants.}}{4}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:protocol}{{1}{4}{Protocol contrast on Beauty and Toys. GTS-Last/Random: warm MRR@10 (3 training seeds; Random further averaged over 3 target-sampling seeds). LOO: clean leave-one-out (contrast only). Clean LOO yields higher absolutes and favors \tfllm /\tfmv ; Last vs.\ Random also changes the winner among the \base -based text variants}{figure.caption.16}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces GTS-Last warm NDCG@10 and Hit@10 (3-seed mean$\pm $std). Among the \textsc  {SASRec}\xspace  -based variants, NDCG agrees with MRR. UniSRec is strongest on Hit@10 (all three datasets) and on Grocery NDCG. }}{4}{table.caption.17}\protected@file@percent }
+\newlabel{tab:ndcg_hit}{{2}{4}{GTS-Last warm NDCG@10 and Hit@10 (3-seed mean$\pm $std). Among the \base -based variants, NDCG agrees with MRR. UniSRec is strongest on Hit@10 (all three datasets) and on Grocery NDCG}{table.caption.17}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Per-seed GTS-Last warm MRR@10 (seeds 42 / 2024 / 2026). Variance is visible; \textsc  {TF+MV}\xspace  's lead is small and seed-dependent.}}{4}{table.caption.18}\protected@file@percent }
+\newlabel{tab:perseed}{{3}{4}{Per-seed GTS-Last warm MRR@10 (seeds 42 / 2024 / 2026). Variance is visible; \tfmv 's lead is small and seed-dependent}{table.caption.18}{}}
+\@writefile{toc}{\contentsline {paragraph}{A plausible account of the LOO gap.}{4}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why do Last and Random disagree?}{4}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implications.}{4}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{UniSRec as external baseline.}{4}{section*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}RQ2: Temporal Robustness}{4}{section.5}\protected@file@percent }
+\newlabel{sec:rq2}{{5}{4}{RQ2: Temporal Robustness}{section.5}{}}
+\citation{kornblith2019cka}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Main ($80\%$ cutoff) vs.\ Early ($60\%$ cutoff) on Beauty --- GTS-Last warm MRR@10 (3-seed mean$\pm $std). Equal-horizon TS $[0.6,0.1,0.1]$; fusion and cutoff-fit embeddings matched to Main; hyperparameters frozen. The Main row matches Table\nonbreakingspace \ref {tab:protocol}. \textsc  {TF+MV}\xspace  leads on Main; \textsc  {TF-IDF}\xspace  leads narrowly on Early (within one std of \textsc  {TF+MV}\xspace  ).}}{5}{table.caption.23}\protected@file@percent }
+\newlabel{tab:early}{{4}{5}{Main ($80\%$ cutoff) vs.\ Early ($60\%$ cutoff) on Beauty --- GTS-Last warm MRR@10 (3-seed mean$\pm $std). Equal-horizon TS $[0.6,0.1,0.1]$; fusion and cutoff-fit embeddings matched to Main; hyperparameters frozen. The Main row matches Table~\ref {tab:protocol}. \tfmv leads on Main; \tfidf leads narrowly on Early (within one std of \tfmv )}{table.caption.23}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces All-target catalog-level context (valid$\to $test, Main GTS), \emph  {not} a direct explanation of warm-target MRR. Unseen targets are absent from the train catalog and never enter the warm scores of Tables\nonbreakingspace \ref {tab:protocol} and\nonbreakingspace \ref {tab:early}. Reported as associations with catalog shift, not causal claims.}}{5}{table.caption.24}\protected@file@percent }
+\newlabel{tab:shift}{{5}{5}{All-target catalog-level context (valid$\to $test, Main GTS), \emph {not} a direct explanation of warm-target MRR. Unseen targets are absent from the train catalog and never enter the warm scores of Tables~\ref {tab:protocol} and~\ref {tab:early}. Reported as associations with catalog shift, not causal claims}{table.caption.24}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces All-target popularity-bucket composition (valid$\to $test, Main GTS; head $\ge $10, mid 3--9, low 1--2 train interactions). Catalog-level context only: unseen items are excluded by the warm filter and do not enter warm MRR.}}{5}{table.caption.25}\protected@file@percent }
+\newlabel{tab:bucket}{{6}{5}{All-target popularity-bucket composition (valid$\to $test, Main GTS; head $\ge $10, mid 3--9, low 1--2 train interactions). Catalog-level context only: unseen items are excluded by the warm filter and do not enter warm MRR}{table.caption.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{Connecting shift to representation type.}{5}{section*.26}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Representation analysis on Beauty (3 random item subsamples of 3{,}000 each, mean$\pm $std). \textbf  {(a)}\nonbreakingspace Pairwise CKA: LLM views show high mutual similarity (0.84--0.94); TF--LLM CKA is low ($\approx $0.20). \textbf  {(b)}\nonbreakingspace Effective rank: 4-view concat 136/256 (53\%) vs.\ TF-IDF 250/256 (98\%).}}{5}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:cka}{{2}{5}{Representation analysis on Beauty (3 random item subsamples of 3{,}000 each, mean$\pm $std). \textbf {(a)}~Pairwise CKA: LLM views show high mutual similarity (0.84--0.94); TF--LLM CKA is low ($\approx $0.20). \textbf {(b)}~Effective rank: 4-view concat 136/256 (53\%) vs.\ TF-IDF 250/256 (98\%)}{figure.caption.27}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Inter-view CKA (3 subsamples of 3K items, mean$\pm $std). All LLM view pairs exceed 0.82; TF-IDF vs.\ any LLM view stays within 0.18--0.20.}}{5}{table.caption.28}\protected@file@percent }
+\newlabel{tab:cka}{{7}{5}{Inter-view CKA (3 subsamples of 3K items, mean$\pm $std). All LLM view pairs exceed 0.82; TF-IDF vs.\ any LLM view stays within 0.18--0.20}{table.caption.28}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}RQ3: Why Limited Multi-View Gain}{5}{section.6}\protected@file@percent }
+\newlabel{sec:rq3}{{6}{5}{RQ3: Why Limited Multi-View Gain}{section.6}{}}
+\citation{kornblith2019cka}
+\citation{xu2013multiview}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Effective rank (Beauty/Toys, 3 subsamples). 4-view concat occupies only 53--55\% of its nominal dimensionality.}}{6}{table.caption.29}\protected@file@percent }
+\newlabel{tab:effrank}{{8}{6}{Effective rank (Beauty/Toys, 3 subsamples). 4-view concat occupies only 53--55\% of its nominal dimensionality}{table.caption.29}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Leave-one-view-out (zero-mask, 3-seed mean) under GTS-Last warm, matching Table\nonbreakingspace \ref {tab:protocol}. $\Delta $: warm MRR@10 change vs.\ the full 4-view model. Maximum $|\Delta |$ is 0.00032 (Style on Beauty).}}{6}{table.caption.30}\protected@file@percent }
+\newlabel{tab:loov}{{9}{6}{Leave-one-view-out (zero-mask, 3-seed mean) under GTS-Last warm, matching Table~\ref {tab:protocol}. $\Delta $: warm MRR@10 change vs.\ the full 4-view model. Maximum $|\Delta |$ is 0.00032 (Style on Beauty)}{table.caption.30}{}}
+\@writefile{toc}{\contentsline {paragraph}{(1) High inter-view CKA.}{6}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(2) Pairwise cosine vs.\ CKA.}{6}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(3) Low effective rank of concatenated views.}{6}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{(4) Negligible LOOV impact.}{6}{section*.34}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Pre- vs.\ post-whitening audit (3 item-subsamples, mean). CKA is already $\ge $0.94 before whitening; whitening lowers CKA and raises concat effective rank, so redundancy is not a whitening artifact. Subsamples are drawn independently of Table\nonbreakingspace \ref {tab:effrank}, hence the $\pm 1$ difference in the Toys post-whitening rank.}}{6}{table.caption.36}\protected@file@percent }
+\newlabel{tab:cka-prepost}{{10}{6}{Pre- vs.\ post-whitening audit (3 item-subsamples, mean). CKA is already $\ge $0.94 before whitening; whitening lowers CKA and raises concat effective rank, so redundancy is not a whitening artifact. Subsamples are drawn independently of Table~\ref {tab:effrank}, hence the $\pm 1$ difference in the Toys post-whitening rank}{table.caption.36}{}}
+\@writefile{toc}{\contentsline {paragraph}{Where does redundancy originate?}{6}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Synthesis.}{6}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion and Limitations}{6}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{7}{6}{Discussion and Limitations}{section.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Why does TF-IDF alone match \textsc  {TF+MV}\xspace  ?}{6}{section*.38}\protected@file@percent }
+\citation{gusak2025time}
+\@writefile{toc}{\contentsline {paragraph}{LLM-only (no \textsc  {TF-IDF}\xspace  base) ablation.}{7}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Single-view hybrid: dropping three of the four views.}{7}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Practitioner implications.}{7}{section*.41}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Recommendation-stage parameter count and online scoring cost (seed\nonbreakingspace 42; \emph  {offline text encoding excluded}). \textsc  {TF+MV}\xspace  adds $<$1\% parameters.}}{7}{table.caption.44}\protected@file@percent }
+\newlabel{tab:cost}{{11}{7}{Recommendation-stage parameter count and online scoring cost (seed~42; \emph {offline text encoding excluded}). \tfmv adds $<$1\% parameters}{table.caption.44}{}}
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{7}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cost analysis.}{7}{table.caption.44}\protected@file@percent }
+\citation{gusak2025time}
+\citation{gusak2025time}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Conclusion}{8}{section.8}\protected@file@percent }
+\newlabel{sec:conclusion}{{8}{8}{Conclusion}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Future directions.}{8}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}GTS-All Results}{8}{appendix.A}\protected@file@percent }
+\newlabel{app:gts-all}{{A}{8}{GTS-All Results}{appendix.A}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces GTS-All warm MRR@10 (3-seed mean; cutoff-fit checkpoints for all columns). TF leads or ties \textsc  {TF+MV}\xspace  under All, unlike GTS-Last.}}{8}{table.caption.47}\protected@file@percent }
+\newlabel{tab:gts-all}{{12}{8}{GTS-All warm MRR@10 (3-seed mean; cutoff-fit checkpoints for all columns). TF leads or ties \tfmv under All, unlike GTS-Last}{table.caption.47}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}Grocery Per-Seed Breakdown}{8}{appendix.B}\protected@file@percent }
+\newlabel{app:grocery}{{B}{8}{Grocery Per-Seed Breakdown}{appendix.B}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}GTS-Random Target-Sampling Seeds}{8}{appendix.C}\protected@file@percent }
+\newlabel{app:random-seeds}{{C}{8}{GTS-Random Target-Sampling Seeds}{appendix.C}{}}
+\citation{hou2022unisrec}
+\bibstyle{ACM-Reference-Format}
+\bibdata{refs}
+\bibcite{bao2023tallrec}{{1}{2023}{{Bao et~al\mbox  {.}}}{{}}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Grocery warm MRR@10 per training seed under GTS-Last and GTS-Random (Random averaged over target-sampling seeds $\{42,123,456\}$).}}{9}{table.caption.48}\protected@file@percent }
+\newlabel{tab:grocery-perseed}{{13}{9}{Grocery warm MRR@10 per training seed under GTS-Last and GTS-Random (Random averaged over target-sampling seeds $\{42,123,456\}$)}{table.caption.48}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces GTS-Random warm MRR@10 by target-sampling seed (mean over training seeds 42/2024/2026).}}{9}{table.caption.49}\protected@file@percent }
+\newlabel{tab:random-seeds}{{14}{9}{GTS-Random warm MRR@10 by target-sampling seed (mean over training seeds 42/2024/2026)}{table.caption.49}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {D}Last vs.\ Random on Intersecting Users}{9}{appendix.D}\protected@file@percent }
+\newlabel{app:intersection}{{D}{9}{Last vs.\ Random on Intersecting Users}{appendix.D}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {E}All-Target and Cross-Attention}{9}{appendix.E}\protected@file@percent }
+\newlabel{app:alltarget}{{E}{9}{All-Target and Cross-Attention}{appendix.E}{}}
+\@writefile{toc}{\contentsline {paragraph}{All-target evaluation.}{9}{section*.51}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Warm MRR@10 on intersecting users (warm under both Last and Random) vs.\ the full warm cohorts used in the main tables. Mean$\pm $std over 3 training seeds; Random additionally averages target-sampling seeds $\{42,123,456\}$.}}{9}{table.caption.50}\protected@file@percent }
+\newlabel{tab:intersection}{{15}{9}{Warm MRR@10 on intersecting users (warm under both Last and Random) vs.\ the full warm cohorts used in the main tables. Mean$\pm $std over 3 training seeds; Random additionally averages target-sampling seeds $\{42,123,456\}$}{table.caption.50}{}}
+\newlabel{app:cross}{{E}{9}{Cross-attention (negative result)}{section*.52}{}}
+\@writefile{toc}{\contentsline {paragraph}{Cross-attention (negative result).}{9}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {F}UniSRec Detailed Results}{9}{appendix.F}\protected@file@percent }
+\newlabel{app:unisrec}{{F}{9}{UniSRec Detailed Results}{appendix.F}{}}
+\bibcite{ethayarajh2019contextual}{{2}{2019}{{Ethayarajh}}{{}}}
+\bibcite{geng2022p5}{{3}{2022}{{Geng et~al\mbox  {.}}}{{}}}
+\bibcite{gusak2025time}{{4}{2025}{{Gusak et~al\mbox  {.}}}{{}}}
+\bibcite{hidasi2018recurrent}{{5}{2018}{{Hidasi and Karatzoglou}}{{}}}
+\bibcite{hidasi2016gru4rec}{{6}{2016}{{Hidasi et~al\mbox  {.}}}{{}}}
+\bibcite{hou2023vqrec}{{7}{2023}{{Hou et~al\mbox  {.}}}{{}}}
+\bibcite{hou2022unisrec}{{8}{2022}{{Hou et~al\mbox  {.}}}{{}}}
+\bibcite{ji2023evaluation}{{9}{2023}{{Ji et~al\mbox  {.}}}{{}}}
+\bibcite{kang2018sasrec}{{10}{2018}{{Kang and McAuley}}{{}}}
+\bibcite{kornblith2019cka}{{11}{2019}{{Kornblith et~al\mbox  {.}}}{{}}}
+\bibcite{krichene2020sampledmetrics}{{12}{2020}{{Krichene and Rendle}}{{}}}
+\bibcite{li2023recformer}{{13}{2023}{{Li et~al\mbox  {.}}}{{}}}
+\bibcite{mcauley2015amazon}{{14}{2015}{{McAuley et~al\mbox  {.}}}{{}}}
+\bibcite{meng2020temporal}{{15}{2020}{{Meng et~al\mbox  {.}}}{{}}}
+\bibcite{ni2019amazon}{{16}{2019}{{Ni et~al\mbox  {.}}}{{}}}
+\bibcite{qwen2024qwen25}{{17}{2024}{{Qwen Team}}{{}}}
+\bibcite{rendle2009bpr}{{18}{2009}{{Rendle et~al\mbox  {.}}}{{}}}
+\bibcite{roy2007effective}{{19}{2007}{{Roy and Vetterli}}{{}}}
+\bibcite{salton1988termweighting}{{20}{1988}{{Salton and Buckley}}{{}}}
+\bibcite{sun2023reevaluation}{{21}{2023}{{Sun}}{{}}}
+\bibcite{sun2019bert4rec}{{22}{2019}{{Sun et~al\mbox  {.}}}{{}}}
+\bibcite{oord2018cpc}{{23}{2018}{{van~den Oord et~al\mbox  {.}}}{{}}}
+\bibcite{wang2015cdl}{{24}{2015}{{Wang et~al\mbox  {.}}}{{}}}
+\bibcite{xu2013multiview}{{25}{2013}{{Xu et~al\mbox  {.}}}{{}}}
+\bibcite{zhang2019fdsa}{{26}{2019}{{Zhang et~al\mbox  {.}}}{{}}}
+\bibcite{zhao2021recbole}{{27}{2021}{{Zhao et~al\mbox  {.}}}{{}}}
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{6.30899pt}
+\newlabel{tocindent2}{10.34999pt}
+\newlabel{tocindent3}{0pt}
+\newlabel{tocindent4}{0pt}
+\newlabel{tocindent5}{0pt}
+\@writefile{toc}{\contentsline {section}{References}{10}{section*.55}\protected@file@percent }
+\newlabel{TotPages}{{10}{10}{}{page.10}{}}
+\gdef \@abspage@last{10}

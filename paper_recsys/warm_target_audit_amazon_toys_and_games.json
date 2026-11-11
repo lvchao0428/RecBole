@@ -1,0 +1,27 @@
+{
+  "n_inter": 2252771,
+  "train_cutoff_ts": 1389916800.0,
+  "valid_cutoff_ts": 1396915200.0,
+  "train_cutoff_date": "2014-01-17",
+  "valid_cutoff_date": "2014-04-08",
+  "n_train_items": 283233,
+  "n_eligible_users": 44024,
+  "valid_unseen_share": 0.21116737375119748,
+  "valid_unseen_n": 1543,
+  "valid_targets_n": 7307,
+  "test_unseen_share": 0.34508627156789196,
+  "test_unseen_n": 2300,
+  "test_targets_n": 6665,
+  "test_catalog_turnover": 0.3108769288671434,
+  "valid_pop_mean": 69.30340769125496,
+  "test_pop_mean": 47.21230307576894,
+  "valid_pop_p50": 9.0,
+  "test_pop_p50": 3.0,
+  "protocol": {
+    "split": "TS [0.8, 0.1, 0.1]",
+    "main_table": "warm targets only (item in train catalog)",
+    "unseen": "report separately; compare only if content-only scoring supported",
+    "candidates": "full ranking over train warm catalog (recommended)",
+    "min_train_interactions": 5
+  }
+}

@@ -1,0 +1,19 @@
+这一轮其实已经可以把论文方向定下来了。以GTS-Last+warm targets是比较适合作为主协议，GTS-Random作为robustness check，GTS-All只放附录说明task mismatch。按照《Time to Split》这篇论文对这些target的定义和结论来看，Successive最贴近连续在线next-item使用，但计算最贵。Last是确定性、成本较低的替代。Random对Successive的模型排序相关性通常更高，但需要固定并公开sampled targets，或者对多个target-sampling seeds求平均。All把一个窗口内多个商品打包成一个ground-truth set，与标准next-item prediction不完全匹配，模型排序相关性也最差。
+
+不过主表的话，必须全部重新对齐到这个协议。同学现在结果里GTS-Last warm的Beauty是MV 0.0061、LLM 0.0059、TF 0.0051，Toys是MV 0.0042、UniSRec 0.0041、TF 0.0040、LLM 0.0035。这说明Last下MV有小幅领先，但差距很小，在多seed完成前不能写成稳定优势。Random又显示TF高于MV和LLM，所以最稳的结论不是TF永远第一，也不是MV一定更强，而是文本表示相对ID-only的收益较稳，但TF-IDF、single-view LLM和prompt multi-view之间的排序对target protocol和temporal window敏感。这个表述既符合当前全部数据，也比When More Text Is Not Better更准确。
+
+所以我建议三个RQ的话，就按同学现在的方向定，但稍微写得更具体一些。RQ1是Protocol effect，主要看Clean LOO、GTS-Last和GTS-Randon是否改变文本方法的绝对收益及相对排序。主证据应该是同代码、同候选空间、同warm-target定义、3个seeds的对照。旧的GTS-All柱状图要换成GTS-Last，All只能作为task-mismatch附录证据。Random不需要重新训练模型，可以用同一批checkpoint对3个固定target-sampling seeds重复eval，成本不会很大。
+
+RQ2是Temporal robustness，看TF、LLM和MV的结论能否跨Main和Early两个global windows保持。这里同学现有Main和Early数据还是GTS-All，需要按GT-Last validation+GTS-Last test重算，否则eval protocol前后mismatch。《Time to Split》离还有一个建议，validation和test使用匹配的global temporal target通常更可靠。
+
+RQ3是Why limited MV gain，看prompt views的边际信息是否被表示冗余限制。同学现有的CKA 0.82–0.94、4-view concat effective-rank ratio约0.53–0.55、LOVO最大下降约3%，这三类证据已经比较完整。但CKA衡量的是表示关系结构的相似度，不能单独等同于任务信息完全重复，所以必须和effective rank、leave-one-view-out以及下游结果联合解释。
+
+第三个数据集的话我感觉Grocery可以做，但不要让它拖住主线。如果能在同一GTS-Last warm、同一搜索预算下快速完成3个seeds，可以在主结果表里增加一个紧凑区块，作为同平台replication。但要明确它不能完全解决domain diversity，因为仍然是Amazon。Book-Crossing如果缺可靠timestamp，就不适合支撑leakage-aware叙事。相比再加一个同族数据集，UniSRec作为external text-enhanced baseline更重要，建议放正文。同学现在UniSRec的GTS-Last warm结果正好能回应外部baseline和不同backbone的问题。
+
+题目的选择上，按照最新的结果来看，我不太建议继续用When More Text Is Not Better，因为GTS-Last下MV目前确实略高。更稳的题目是Protocol Matters: A Leakage-Aware Study of TF-IDF, LLM, and Multi-View Text for Sequential Recommendation，或者Do More Text Views Help? A Leakage-Aware Evaluation of Text Representations for Sequential Recommendation。这两个标题都把核心放在protocol changes conclusions，不会承诺一个所有协议下都成立的负结论。
+
+multi-view这里不建议再做4x256扩维。当前证据更支持冗余而不是容量不足，扩维只会增加参数和新的公平性问题。真正值得补的是一个便宜的offline control，在原始Qwen 4096-d embedding和SVD或whiten后64-d embedding两个阶段分别计算CKA和effective rank。如果高相关性在投影前就存在，就能证明冗余来自prompt semantic paraphrasing，而不是SVD把空间压塌。如果只在投影后出现，才说明预处理是原因。这个分析不需要重新训练模型，但会显著增强RQ3。
+
+论文结构方面因为现有的结果和之前有不同，我会建议彻底从新模型论文改成study。第一部分Introduction讲协议问题、文本增强结论为何可能不稳以及三个RQ。第二部分Related Work讲sequential evaluation protocol、text-enhanced SR和multi-view representation。第三部分Controlled Study Setup讲四类表示、UniSRec、Clean LOO、GTS-Last、GTS-Random、warm targets、full ranking以及两个时间窗口。第四部分RQ1讲protocol如何改变绝对指标和模型排序。第五部分RQ2讲temporal shift与跨窗口robustness。第六部分RQ3讲CKA、effective rank和LOVO对prompt-view redundancy的解释。第七部分Discussion和Limitations讲warm-only、静态metadata、Amazon-domain scope和Random reproducibility。第八部分Conclusion。
+
+现阶段的话，还缺的关键数据只有四项。第一项是GTS-Last warm主表3个seeds。第二项是GTS-Random多个固定target seeds。第三项是Main和Early在Last协议下的重算。第四项是raw-vs-projected两阶段redundancy audit。Successive可以不全跑，但如果算力允许，在Beauty上对已保存checkpoint做一次sampled-user Successive sanity，会让为什么选Last和Random更加完整。除此之外我建议同学不要再扩模型、Cross或boost，现有证据已经足以开始写论文。

@@ -1,0 +1,110 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{kang2018sasrec,sun2019bert4rec,hidasi2016gru4rec}
+\citation{hou2022unisrec,hou2023vqrec,bao2023tallrec}
+\citation{ji2023evaluation,sun2023reevaluation}
+\citation{meng2020temporal,krichene2020sampledmetrics}
+\citation{hou2022unisrec}
+\citation{kornblith2019cka}
+\citation{wang2015cdl,salton1988termweighting}
+\citation{hou2022unisrec,hou2023vqrec,geng2022p5,bao2023tallrec}
+\citation{krichene2020sampledmetrics}
+\citation{ji2023evaluation,sun2023reevaluation,meng2020temporal}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{1}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Text-enhanced sequential recommendation.}{1}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Evaluation protocols and temporal leakage.}{1}{section*.6}\protected@file@percent }
+\citation{xu2013multiview}
+\citation{kornblith2019cka}
+\citation{zhao2021recbole}
+\citation{kang2018sasrec}
+\citation{oord2018cpc}
+\citation{qwen2024qwen25}
+\citation{hou2022unisrec}
+\citation{mcauley2015amazon,ni2019amazon}
+\citation{krichene2020sampledmetrics}
+\citation{zhao2021recbole}
+\citation{ji2023evaluation,sun2023reevaluation}
+\@writefile{toc}{\contentsline {paragraph}{Multi-view learning.}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Leakage-Aware Protocol and Models}{2}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Temporal Protocols}{2}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:protocol}{{3.1}{2}{Temporal Protocols}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Global Temporal Split (GTS).}{2}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Clean LOO.}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Leakage controls.}{2}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Model Variants}{2}{subsection.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Primary main table: \textbf  {GTS-Last} MRR@10 (3-seed mean$\pm $std, \texttt  {min\_train}=5). Warm = target in train catalog (recommended for main claims). \textbf  {Bold}: best among ID/TF/LLM/MV.}}{2}{table.caption.14}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:main}{{1}{2}{Primary main table: \textbf {GTS-Last} MRR@10 (3-seed mean$\pm $std, \texttt {min\_train}=5). Warm = target in train catalog (recommended for main claims). \textbf {Bold}: best among ID/TF/LLM/MV}{table.caption.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Protocol contrast (MRR@10, 3-seed mean$\pm $std). LOO vs.\ primary GTS-Last (all-user) vs.\ GTS-All reference. LOO inflates absolutes and favors LLM/MV; GTS-Last reorders close text variants.}}{2}{table.caption.15}\protected@file@percent }
+\newlabel{tab:protocol}{{2}{2}{Protocol contrast (MRR@10, 3-seed mean$\pm $std). LOO vs.\ primary GTS-Last (all-user) vs.\ GTS-All reference. LOO inflates absolutes and favors LLM/MV; GTS-Last reorders close text variants}{table.caption.15}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental Setup}{2}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Datasets.}{2}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Metrics.}{2}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Compute.}{2}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results}{2}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}RQ1: Protocol Changes Rankings}{2}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:rq1}{{5.1}{2}{RQ1: Protocol Changes Rankings}{subsection.5.1}{}}
+\citation{kornblith2019cka}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces LOO vs.\ GTS-All contrast (reference view). Primary claims use GTS-Last/Random in Table\nonbreakingspace \ref {tab:main}; All is shown here because it matches RecBole successive evaluation and makes the LOO inflation visually clear.}}{3}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:protocol}{{1}{3}{LOO vs.\ GTS-All contrast (reference view). Primary claims use GTS-Last/Random in Table~\ref {tab:main}; All is shown here because it matches RecBole successive evaluation and makes the LOO inflation visually clear}{figure.caption.16}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Main vs.\ Early temporal window on Beauty (MRR@10 test, 3 seeds, GTS-All). Hyperparameters frozen from Main. Early: \texttt  {TS}$[0.6,0.1,0.3]$.}}{3}{table.caption.18}\protected@file@percent }
+\newlabel{tab:early}{{3}{3}{Main vs.\ Early temporal window on Beauty (MRR@10 test, 3 seeds, GTS-All). Hyperparameters frozen from Main. Early: \texttt {TS}$[0.6,0.1,0.3]$}{table.caption.18}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Temporal distribution shift (valid$\rightarrow $test under Main GTS). We report \emph  {associations}, not causal claims.}}{3}{table.caption.19}\protected@file@percent }
+\newlabel{tab:shift}{{4}{3}{Temporal distribution shift (valid$\rightarrow $test under Main GTS). We report \emph {associations}, not causal claims}{table.caption.19}{}}
+\@writefile{toc}{\contentsline {paragraph}{External baseline.}{3}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}RQ2: Temporal Robustness}{3}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:rq2}{{5.2}{3}{RQ2: Temporal Robustness}{subsection.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}RQ3: Why Multi-View Does Not Help}{3}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:rq3}{{5.3}{3}{RQ3: Why Multi-View Does Not Help}{subsection.5.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Representation analysis on Beauty (3 item subsamples of 3{,}000; mean CKA). (a)\nonbreakingspace Inter-view CKA is high ($0.84$--$0.94$); TF--LLM CKA is low ($\approx 0.20$). (b)\nonbreakingspace Concatenating four 64-d views yields effective rank $136/256$ (ratio $0.53$), vs.\ TF-IDF $250/256$ ($0.98$).}}{3}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:cka}{{2}{3}{Representation analysis on Beauty (3 item subsamples of 3{,}000; mean CKA). (a)~Inter-view CKA is high ($0.84$--$0.94$); TF--LLM CKA is low ($\approx 0.20$). (b)~Concatenating four 64-d views yields effective rank $136/256$ (ratio $0.53$), vs.\ TF-IDF $250/256$ ($0.98$)}{figure.caption.20}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Leave-one-view-out (zero-mask) on GTS MV checkpoints (seed\nonbreakingspace 42). $\Delta $ is MRR@10 change vs.\ full 4-view model.}}{3}{table.caption.21}\protected@file@percent }
+\newlabel{tab:loov}{{5}{3}{Leave-one-view-out (zero-mask) on GTS MV checkpoints (seed~42). $\Delta $ is MRR@10 change vs.\ full 4-view model}{table.caption.21}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Parameter count and inference cost (seed\nonbreakingspace 42, Beauty/Toys). MV adds $<$1\% parameters vs.\ ID; latency is negligible.}}{3}{table.caption.22}\protected@file@percent }
+\newlabel{tab:cost}{{6}{3}{Parameter count and inference cost (seed~42, Beauty/Toys). MV adds $<$1\% parameters vs.\ ID; latency is negligible}{table.caption.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Takeaways for Practitioners}{3}{subsection.5.4}\protected@file@percent }
+\bibstyle{ACM-Reference-Format}
+\bibdata{refs}
+\bibcite{bao2023tallrec}{{1}{2023}{{Bao et~al\mbox  {.}}}{{}}}
+\bibcite{geng2022p5}{{2}{2022}{{Geng et~al\mbox  {.}}}{{}}}
+\bibcite{hidasi2016gru4rec}{{3}{2016}{{Hidasi et~al\mbox  {.}}}{{}}}
+\bibcite{hou2023vqrec}{{4}{2023}{{Hou et~al\mbox  {.}}}{{}}}
+\bibcite{hou2022unisrec}{{5}{2022}{{Hou et~al\mbox  {.}}}{{}}}
+\bibcite{ji2023evaluation}{{6}{2023}{{Ji et~al\mbox  {.}}}{{}}}
+\bibcite{kang2018sasrec}{{7}{2018}{{Kang and McAuley}}{{}}}
+\bibcite{kornblith2019cka}{{8}{2019}{{Kornblith et~al\mbox  {.}}}{{}}}
+\bibcite{krichene2020sampledmetrics}{{9}{2020}{{Krichene and Rendle}}{{}}}
+\bibcite{mcauley2015amazon}{{10}{2015}{{McAuley et~al\mbox  {.}}}{{}}}
+\bibcite{meng2020temporal}{{11}{2020}{{Meng et~al\mbox  {.}}}{{}}}
+\bibcite{ni2019amazon}{{12}{2019}{{Ni et~al\mbox  {.}}}{{}}}
+\bibcite{qwen2024qwen25}{{13}{2024}{{Qwen Team}}{{}}}
+\bibcite{salton1988termweighting}{{14}{1988}{{Salton and Buckley}}{{}}}
+\bibcite{sun2023reevaluation}{{15}{2023}{{Sun and Ji}}{{}}}
+\bibcite{sun2019bert4rec}{{16}{2019}{{Sun et~al\mbox  {.}}}{{}}}
+\bibcite{oord2018cpc}{{17}{2018}{{van~den Oord et~al\mbox  {.}}}{{}}}
+\bibcite{wang2015cdl}{{18}{2015}{{Wang et~al\mbox  {.}}}{{}}}
+\bibcite{xu2013multiview}{{19}{2013}{{Xu et~al\mbox  {.}}}{{}}}
+\bibcite{zhao2021recbole}{{20}{2021}{{Zhao et~al\mbox  {.}}}{{}}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{4}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{References}{4}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}GTS-All Reference (Successive-All)}{4}{appendix.A}\protected@file@percent }
+\newlabel{app:gts-all}{{A}{4}{GTS-All Reference (Successive-All)}{appendix.A}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}GTS-Random}{4}{appendix.B}\protected@file@percent }
+\newlabel{app:gts-random}{{B}{4}{GTS-Random}{appendix.B}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Warm / Unseen Notes}{4}{appendix.C}\protected@file@percent }
+\newlabel{app:warm}{{C}{4}{Warm / Unseen Notes}{appendix.C}{}}
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{6.30899pt}
+\newlabel{tocindent2}{10.34999pt}
+\newlabel{tocindent3}{0pt}
+\newlabel{tocindent4}{0pt}
+\newlabel{tocindent5}{0pt}
+\@writefile{toc}{\contentsline {section}{\numberline {D}Cross-Attention (Negative Result)}{5}{appendix.D}\protected@file@percent }
+\newlabel{app:cross}{{D}{5}{Cross-Attention (Negative Result)}{appendix.D}{}}
+\newlabel{TotPages}{{5}{5}{}{page.5}{}}
+\gdef \@abspage@last{5}

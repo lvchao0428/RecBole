@@ -1,0 +1,10 @@
+tag,pth,dataset,model,min_train_interactions,eval_mode,sample_seed,n_users,n_warm,mean_cands_per_user,test_mrr@10_all,test_mrr@10_warm,test_ndcg@10_all,test_ndcg@10_warm,test_hit@10_all,test_hit@10_warm,elapsed_seconds,warm_candidate_scope
+ew_beauty_tf_lr5e4_do0.3_seed2025,SASRecAlignV3-Jul-21-2026_16-51-27.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003890,0.006464,0.005011,0.008325,0.008835,0.014680,90.4,train_catalog
+ew_beauty_tf_lr5e4_do0.3_seed42,SASRecAlignV3-Jul-21-2026_19-08-45.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003650,0.006064,0.004804,0.007982,0.008701,0.014457,92.1,train_catalog
+ew_beauty_tf_lr5e4_do0.3_seed2024,SASRecAlignV3-Jul-21-2026_21-26-10.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003398,0.005646,0.004330,0.007195,0.007497,0.012456,89.5,train_catalog
+ew_beauty_llm_lr1e4_do0.1_seed2025,SASRecAlignV3-Jul-21-2026_16-11-16.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003834,0.006369,0.004648,0.007722,0.007363,0.012233,92.3,train_catalog
+ew_beauty_llm_lr1e4_do0.1_seed42,SASRecAlignV3-Jul-21-2026_18-28-33.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003653,0.006069,0.004662,0.007745,0.008032,0.013345,88.1,train_catalog
+ew_beauty_llm_lr1e4_do0.1_seed2024,SASRecAlignV3-Jul-21-2026_20-45-54.pth,Amazon_Beauty,SASRecAlignV3,5,GTS-Random,42,7470,4496,4.0855,0.003440,0.005715,0.004165,0.006921,0.006560,0.010899,88.2,train_catalog
+ew_beauty_mv_lr5e4_do0.3_seed2025,SASRecAlignMultiViewV3-Jul-21-2026_17-32-41.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,42,7470,4496,4.0855,0.003231,0.005369,0.004162,0.006915,0.007229,0.012011,88.9,train_catalog
+ew_beauty_mv_lr5e4_do0.3_seed42,SASRecAlignMultiViewV3-Jul-21-2026_19-49-59.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,42,7470,4496,4.0855,0.003470,0.005765,0.004560,0.007576,0.008166,0.013568,92.2,train_catalog
+ew_beauty_mv_lr5e4_do0.3_seed2024,SASRecAlignMultiViewV3-Jul-21-2026_22-07-26.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,42,7470,4496,4.0855,0.003429,0.005697,0.004356,0.007238,0.007497,0.012456,89.3,train_catalog

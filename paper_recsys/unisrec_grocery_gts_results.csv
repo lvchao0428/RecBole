@@ -1,0 +1,4 @@
+tag,model,dataset,seed,valid_mrr,test_mrr,test_ndcg,test_hit
+unisrec_grocery_gts_seed42,UniSRec,Amazon_Grocery_and_Gourmet_Food,42,0,0.0228,0.0339,0.0703
+unisrec_grocery_gts_seed2024,UniSRec,Amazon_Grocery_and_Gourmet_Food,2024,0,0.0228,0.0342,0.0716
+unisrec_grocery_gts_seed2026,UniSRec,Amazon_Grocery_and_Gourmet_Food,2026,0,0.0233,0.0345,0.0711

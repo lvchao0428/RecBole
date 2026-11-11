@@ -1,0 +1,10 @@
+dataset,elapsed_seconds,min_train_interactions,model,pth,tag,test_hit@10_all,test_hit@10_warm,test_mrr@10_all,test_mrr@10_warm,test_n_all,test_n_warm,test_ndcg@10_all,test_ndcg@10_warm,test_unseen_share,valid_mrr@10_all,valid_mrr@10_warm,warm_candidate_scope
+Amazon_Beauty,66.2,5,SASRecAlignV3,SASRecAlignV3-Aug-18-2026_18-56-04.pth,wrap_beauty_tf_lr5e4_do0.3_seed42,0.033831,0.049694,0.016287,0.023924,12001,8170,0.020415,0.029988,0.3192,,,train_catalog
+Amazon_Beauty,64.7,5,SASRecAlignV3,SASRecAlignV3-Aug-18-2026_22-00-30.pth,wrap_beauty_tf_lr5e4_do0.3_seed2024,0.034997,0.051408,0.016436,0.024143,12001,8170,0.020809,0.030567,0.3192,,,train_catalog
+Amazon_Beauty,63.6,5,SASRecAlignV3,SASRecAlignV3-Aug-19-2026_01-04-52.pth,wrap_beauty_tf_lr5e4_do0.3_seed2026,0.034164,0.050184,0.016511,0.024254,12001,8170,0.020638,0.030316,0.3192,,,train_catalog
+Amazon_Beauty,64.8,5,SASRecAlignV3,SASRecAlignV3-Aug-18-2026_19-48-59.pth,wrap_beauty_llm_lr1e4_do0.1_seed42,0.031831,0.046756,0.015560,0.022857,12001,8170,0.019373,0.028457,0.3192,,,train_catalog
+Amazon_Beauty,64.1,5,SASRecAlignV3,SASRecAlignV3-Aug-18-2026_22-53-19.pth,wrap_beauty_llm_lr1e4_do0.1_seed2024,0.031747,0.046634,0.016205,0.023803,12001,8170,0.019856,0.029166,0.3192,,,train_catalog
+Amazon_Beauty,64.3,5,SASRecAlignV3,SASRecAlignV3-Aug-19-2026_01-57-42.pth,wrap_beauty_llm_lr1e4_do0.1_seed2026,0.034080,0.050061,0.016604,0.024390,12001,8170,0.020693,0.030396,0.3192,,,train_catalog
+Amazon_Beauty,64.5,5,SASRecAlignMultiViewV3,SASRecAlignMultiViewV3-Aug-18-2026_20-46-18.pth,wrap_beauty_mv_lr5e4_do0.3_seed42,0.034330,0.050428,0.016404,0.024096,12001,8170,0.020558,0.030197,0.3192,,,train_catalog
+Amazon_Beauty,64.0,5,SASRecAlignMultiViewV3,SASRecAlignMultiViewV3-Aug-18-2026_23-50-35.pth,wrap_beauty_mv_lr5e4_do0.3_seed2024,0.034330,0.050428,0.016058,0.023588,12001,8170,0.020343,0.029883,0.3192,,,train_catalog
+Amazon_Beauty,64.5,5,SASRecAlignMultiViewV3,SASRecAlignMultiViewV3-Aug-19-2026_02-55-06.pth,wrap_beauty_mv_lr5e4_do0.3_seed2026,0.037080,0.054468,0.016811,0.024695,12001,8170,0.021556,0.031664,0.3192,,,train_catalog

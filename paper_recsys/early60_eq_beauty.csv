@@ -1,0 +1,5 @@
+tag,model,dataset,lr,dropout,seed,valid_mrr,test_mrr
+early60eq_beauty_tf_lr5e4_do0.3_seed42,SASRecAlignV3,Amazon_Beauty,5e-4,0.3,42,0.0237,0.006
+early60eq_beauty_llm_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Beauty,1e-4,0.1,42,0.0228,0.0058
+early60eq_beauty_mv_lr5e4_do0.3_seed42,SASRecAlignV3,Amazon_Beauty,5e-4,0.3,42,0.0237,0.006
+early60eq_beauty_tf_lr5e4_do0.3_seed2024,SASRecAlignV3,Amazon_Beauty,5e-4,0.3,2024,0.024,0.0064

@@ -1,0 +1,4 @@
+tag,pth,dataset,model,min_train_interactions,eval_mode,sample_seed,n_users,n_warm,mean_cands_per_user,test_mrr@10_all,test_mrr@10_warm,test_ndcg@10_all,test_ndcg@10_warm,test_hit@10_all,test_hit@10_warm,elapsed_seconds,warm_candidate_scope
+unisrec_grocery_gts_ts_seed42,UniSRec-Aug-22-2026_22-04-46.pth,Amazon_Grocery_and_Gourmet_Food,UniSRec,5,GTS-Random,456,4152,2936,2.5759,0.009183,0.012680,0.013746,0.018887,0.028902,0.039510,29.9,train_catalog
+unisrec_grocery_gts_ts_seed2024,UniSRec-Aug-22-2026_22-41-16.pth,Amazon_Grocery_and_Gourmet_Food,UniSRec,5,GTS-Random,456,4152,2936,2.5759,0.008793,0.012312,0.013013,0.018152,0.026975,0.037466,29.8,train_catalog
+unisrec_grocery_gts_ts_seed2026,UniSRec-Aug-22-2026_23-17-49.pth,Amazon_Grocery_and_Gourmet_Food,UniSRec,5,GTS-Random,456,4152,2936,2.5759,0.009041,0.012072,0.013763,0.018438,0.029624,0.039850,29.4,train_catalog

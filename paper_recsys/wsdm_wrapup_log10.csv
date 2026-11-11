@@ -1,0 +1,4 @@
+tag,model,dataset,lr,dropout,seed,valid_mrr,test_mrr
+wrap_beauty_id_lr1e4_do0.1_seed42,SASRecAlign,Amazon_Beauty,0.0001,0.1,42,0,0.0112
+wrap_beauty_id_lr1e4_do0.1_seed2024,SASRecAlign,Amazon_Beauty,0.0001,0.1,2024,0,0.0104
+wrap_beauty_id_lr1e4_do0.1_seed2026,SASRecAlign,Amazon_Beauty,0.0001,0.1,2026,0,0.0103

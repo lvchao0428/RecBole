@@ -1,0 +1,25 @@
+我看了一下，感觉大的转向已经是成立的。现在已经不再像RecSys那版说要证明MV-Align是一个更强的新模型，而是比较明确地变成了leakage-aware controlled empirical study。三个RQ也基本能串起来，RQ1讲protocol会不会改变TF/LLM/MV的结论，RQ2讲temporal robustness，RQ3再解释为什么prompt multi-view没有稳定增益。
+
+目前初稿里我认为最强的是RQ1和RQ3。Table1已经把一个很清楚的现象讲出来了，Beauty/Toys上Clean LOO更偏向LLM/MV，而GTS-Last和GTS-Random连文本方法之间的winner都会变化，而且Random用的是同一checkpoint，只换target selection，这部分尤其干净。Time to Split的正式工作也确实支持Last/Random作为更便宜的Successive proxy，同时指出All存在next-item task mismatch，所以同学现在把Last放主协议、Random做robustness、All放附录，这个选择是对的。RQ3现在也比之前有说服力很多，CKA0.82到0.94、concat effective rank只有53%到55%、LOOV的变化又很小，这三条证据联合起来，比单独画一个t-SNE强很多。CKA本身衡量的是representation similarity，而不是这个view对任务有没有用，所以同学现在用CKA+effective rank+LOOV三角验证的思路是合理的。
+
+但是提交前还有几个我觉得必须fix的地方。一个是RQ1的措辞，Introduction contribution现在写the same checkpoints...Last vs Random vs LOO，这个不准确。Last/Random确实是same checkpoints，但Clean LOO已经重新改变了训练数据和模型，所以应该拆成GTS Last vs Random是同checkpoint的target-selection effect，LOO vs GTS是split/training-protocol effect。同理，正文里LOO inflates 3-6x我建议改成yields 3-6x higher absolute scores。后面那段LOO的overlap disproportionately benefits LLM/MV because semantic co-occurrence目前其实是推测，不是同学直接测出来的机制，最好改成a plausible explanation is...，否则reviewer很容易追问证据。已有数据泄漏研究能支持global timeline缺失会影响准确率和模型排序，但并不能直接替同学证明特别偏爱LLM/MV。
+
+还一个是RQ2，我感觉是目前最大的methodology风险。同学现在Main是[0.8,0.1,0.1]，Early是[0.6,0.1,0.3]，所以不只是training window从80%缩到60%，test horizon也从10%变成了30%。这样Main/Early的差异同时包含训练量、预测跨度、target composition三种变化，Table5/6再去解释50%到60%的下降，会有一点confounded。我更建议趁现在还有时间，把Early做成同长度的rolling temporal window，保持valid/test horizon和Main一致，只把整个cutoff往前移动。这个只需要重跑TF/LLM/MV三路乘3seeds，不需要整个实验matrix重新来。如果实在来不及，那就把RQ2从第二个核心contribution降成temporal stress test，不要再写成对distribution shift机制的强结论。
+
+另一个是RQ3有两处表述要降温。同学现在根据TF-IDF和LLM的CKA约等于0.19写genuine complementarity，这个有点过头，低CKA只能说明representation geometry不相似，不能自动推出二者在推荐任务里有additive complementarity。更稳的说法是representational dissimilarity或potential complementarity。如果时间允许，我反而很建议补一个代驾不那么高但是价值很高的TF+single-view LLM hybrid，在同样GTS-Last/Random下跑Beauty/Toys的3seeds。如果hybrid真超过两边，complementarity就言之成理，如果没有，也能进一步支撑不同表示不一定互补的主题。
+
+还有一个小但重要的问题，Table9的LOOV现在还是seed42+GTS-All，而整篇已经明确说GTS-All有task mismatch、主协议是GTS-Last。这会被细心reviewer一眼抓出来。我建议把LOOV直接用主协议的GTS-Last warm checkpoint重算，最好3seeds，zero-mask不需要重新训练，成本很低。类似地，Table10的所谓pre-whiten实际还是SVD+center后的64-d，所以现在那句This confirms redundancy originates from...shared Qwen encoder还不能完全成立。如果能在raw 4096-d Qwen embedding上做一次CKA/effective-rank audit，这个分析应该也不贵，而且会把RQ3真正闭环，不做的话，就把confirms改成indicates redundancy is already present before whitening。
+
+最后提醒同学一个小的点，我不确定同学现在这个初稿里面是否用了AI进行写作（如果有，我也不确定AI的参与度多少）。但是今年我审NeurIPS的时候，PC特别提醒了AI写作的文章一个明显的问题是引用文献会出错误。我就扫了一眼同学现在的draft，[12]Time to Split的题目、年份和会议写错了。后面跟的那句话也意义不明。剩下的其它条目也有问题，我就不细说了。我记得第十四周课程讲过，一般来说都推荐同学Google Scholar直接复制一下BibTex，这个大部分情况下不会有问题，比如说[12]的我刚刚去看了一下，应该是：
+@inproceedings{gusak2025time,
+  title={Time to split: Exploring data splitting strategies for offline evaluation of sequential recommenders},
+  author={Gusak, Danil and Volodkevich, Anna and Klenitskiy, Anton and Vasilev, Alexey and Frolov, Evgeny},
+  booktitle={Proceedings of the Nineteenth ACM Conference on Recommender Systems},
+  pages={874--883},
+  year={2025}
+}
+无论同学有没有用AI，我都建议同学仔细检查一下，不要因为一点小的问题而导致被desk reject。除了引用文献，正文里一旦用了AI，也很可能会留下各种痕迹，同学最好可以仔细检查一下。
+
+我建议最后十天左右就收敛成三件事，不再扩模型。一个是优先修协议，把RQ1的split effect/target effect分清，如果算力允许，把Early改成等horizon rolling window，明确warm主表的candidate catalog到底是不是train catalog，这句话现在正文还不够清楚。还一个是补两项低成本关键证据，GTS-Last下重算LOOV，raw 4096-d Qwen上做pre-SVD CKA/effective-rank，TF+LLM hybrid如果还有余量再跑，它的价值高于继续跑Cross/SE/boost。最后一个是收紧措辞与引用，inflated改成higher，genuine complementarity改成potential complementarity，删掉automated diagnosis flags REDUNDANT/collapse=True这种像工程日志的句子，同时把[8]/[12]/[19]这些文献重新核实。
+
+Grocery我觉得现在已有GTS-Last/Random就够了，如果实在来不及，不一定还要把LOO、UniSRec全补齐，正文里明确它只是same-platform replication就行。WSDM允许9页正文（appendix也算在内），现在这版PDF总共9页但references占了后面两页左右，实际上还有一点整理空间。

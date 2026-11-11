@@ -1,0 +1,33 @@
+我看了一下，Abstract、三个RQ、GTS-Last/Random/LOO、Early window、CKA/effective-rank/LOOV这几块的雏形已经出来了。全文里我觉得还有几个提交前必须修的问题。
+
+一个是TF/LLM/MV三个模型的定义现在还有潜在歧义，而且这是最容易被reviewer抓到的一处。3.2里看起来像是TF、LLM、MV三种独立text representations，但第7节同学又写Pure LLM-only ablation，并说它低于TF-anchored LLM column in Table1。如果我没理解错，本质上Table1的LLM实际不是pure LLM，而是带TF-IDF base的single-view LLM。MV很可能同样是TF base+four-view LLM。如果是这样，我建议全文直接改名，不要再叫TF/LLM/MV，而叫TF、TF+LLM、TF+Multi-view LLM。否则现在摘要和正文给人的第一印象是“比较TF-IDF、single-view LLM、multi-view LLM三种表示”，但实际上后两者可能都依赖TF-IDF。这个不是文字小问题，而是会影响整篇paper的claim：同学到底是在比较representation family，还是比较incremental augmentation。现在第7节的Pure LLM-only反而暴露了这个ambiguity。我会建议同学统一Table1、Figure1、Abstract、RQ1的命名。
+
+还一个是RQ2的temporal-shift证据目前和warm-target主协议没有完全对齐。主表明确只评估warm targets，target必须在train-time catalog中。但是Table5/6解释performance drop时又使用了31.9%/40.8%unseen targets、unseen share上升等统计。由于这些unseen targets根本没有进入warm-target MRR，严格来说不能用它们直接解释主表的MRR下降。这里最好二选一：要么把Table5/6明确写成all-target catalog-level context,not direct explanation of warm-target degradation；要么更好，重新统计warm evaluation subset内部的popularity median、item age、head/mid/low比例，再解释warm-MRR shift。现在caption虽然写了association not causation，但逻辑上仍然容易被问：既然unseen被过滤掉，为什么unseen比例用于解释warm-only performance？
+
+再一个是Last vs Random的“same checkpoints->pure target-selection effect”最好再补一个cohort说明。现在warm filter是target必须属于train catalog，但没有明确写Last和Random最终评价的是不是同一批users。如果先抽target、再做warm filtering，Last和Random可能不仅target不同，连eligible user set都不同。这样它仍然是protocol effect，但不完全是“只改变target interaction”。我建议正文至少补一行各protocol的eligible user数。如果成本很低，我会坚毅同学再做一个intersection-user sanity check，会非常干净。Time to Split的核心也是target selection和validation/test alignment会显著影响model ranking，同学这一点一定要把protocol写得无歧义。
+
+初次之外，我看的过程中还注意到一些可以微调的地方。
+
+Introduction里面这句Recent work routinely reports that LLM-generated item descriptions improve accuracy over TF-IDF or Word2Vec features[1,8]我建议改掉。同学现在的[1]TALLRec是把LLM通过recommendation data tuning对齐到推荐任务，重点不是LLM-generated description vs TF-IDF；[8]UniSRec用item description text学transferable representation，也不是这个直接比较。这两篇我课上都讲过，同学应该是有比较好的了解，这里不确定又是AI的幻觉，还是同学记错了。我会建议写Recent work has shown that pretrained/large language representations can improve text-enhanced recommendation and transferability[1,8,...]。如果想明确说text representation baseline，可以补Recformer、FDSA/S3-Rec这一类更直接的related work。FDSA明确研究item feature sequences，Recformer是直接用language representation做sequential recommendation。
+
+另外Related Work里effective rank目前定义了entropy of normalized singular values，但没有原始引用。我建议补Roy&Vetterli的effective rank来源，否则reviewer如果关心这个指标，会问它是不是同学自己定义的。
+
+这个文章的bib是这个：
+@inproceedings{roy2007effective,
+  title={The effective rank: A measure of effective dimensionality},
+  author={Roy, Olivier and Vetterli, Martin},
+  booktitle={2007 15th European signal processing conference},
+  pages={606--610},
+  year={2007},
+  organization={IEEE}
+}
+
+还有Clean LOO的这句Leave-one-out(last-3 interactions per user as train/valid/test...)表达很魔壶，像是“只取最后三条”。我会建议直接写清楚all but the final two interactions for training,the penultimate for validation,and the final for test（如果同学实际就是这样）。这篇文章的contribution之一就是protocol，所以protocol描述一定要比一般推荐论文更严格。
+
+UniSRec我也建议再说清楚。现在它写成external text-enhanced sequential baseline with the same TS-whitened LLM embeddings，这其实已经不是完全原版UniSRec，因为UniSRec原方法本身使用item text、parametric whitening、MoE adaptor和contrastive pretraining。所以建议叫UniSRec backbone adapted to the same cutoff-fit Qwen features，或者明确指出哪些模块保持原实现、哪些输入为公平性替换掉了。否则reviewer很可能说同学这个不是original UniSRec baseline。
+
+第4节和Conclusion里还有一句要统一。GTS-Last:MV leads on all three datasets这句话如果把UniSRec也看进表里是不成立的，Grocery上UniSRec的MRR/NDCG/Hit明显更高。所以要改成Among the controlled SASRec-based ID/TF/LLM/MV variants,MV leads narrowly under GTS-Last...。Conclusion同样要加这个限定。现在Table2已经明确UniSRec在Grocery更强，所以文字不能省略限定。
+
+Section 7还有两个小问题。一个是A matched-protocol hybrid retrain was paused to finish...，这种“实验暂停了”的开发过程不要留在论文里。一般要么deadline前跑完，要么整段删掉，只在Future Work写TF+LLM additive gains remain open。另一个是Appendix E里还写了initially evaluated without...、earlier catalog-fit run这种debug/history口吻，也建议全部去掉。论文只呈现最终公平协议，不需要告诉reviewer中间怎么踩坑。
+
+最后一个是cost analysis。Table11现在说all variants have effectively the same parameter budget and inference cost，这个对下游recommender inference可能成立，但对于这篇paper的现实问题“是否值得使用LLM/multi-prompt text features”其实不完整，因为Qwen2.5-7B单view和四view的离线feature extraction成本显然不等于TF-IDF。建议把标题改成recommendation-stage parameter count and online scoring cost(offline text encoding excluded)。如果童靴手头已有数据，最好再加一行offline feature-generation cost。否则practitioner implication里说TF-IDF preprocessing cost negligible、LLM expensive，但Table11又显示全部0.02ms，会让人误解。

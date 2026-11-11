@@ -1,0 +1,7 @@
+tag,pth,dataset,model,min_train_interactions,eval_mode,sample_seed,n_users,n_warm,mean_cands_per_user,test_mrr@10_all,test_mrr@10_warm,test_ndcg@10_all,test_ndcg@10_warm,test_hit@10_all,test_hit@10_warm,elapsed_seconds,warm_candidate_scope
+hybrid_ts_beauty_seed42,SASRecAlignMultiViewV3-Aug-19-2026_10-18-18.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,456,4520,3056,2.6551,0.007338,0.010853,0.009660,0.014287,0.017257,0.025524,49.1,train_catalog
+hybrid_ts_toys_seed42,SASRecAlignMultiViewV3-Aug-20-2026_03-17-39.pth,Amazon_Toys_and_Games,SASRecAlignMultiViewV3,5,GTS-Random,456,4873,2932,2.7059,0.005547,0.009219,0.006788,0.011282,0.010876,0.018076,59.8,train_catalog
+hybrid_ts_beauty_seed2024,SASRecAlignMultiViewV3-Aug-20-2026_00-39-30.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,456,4520,3056,2.6551,0.006563,0.009707,0.008815,0.013038,0.016150,0.023887,48.6,train_catalog
+hybrid_ts_toys_seed2024,SASRecAlignMultiViewV3-Aug-20-2026_05-07-13.pth,Amazon_Toys_and_Games,SASRecAlignMultiViewV3,5,GTS-Random,456,4873,2932,2.7059,0.006434,0.010694,0.008251,0.013713,0.014160,0.023533,59.7,train_catalog
+hybrid_ts_beauty_seed2026,SASRecAlignMultiViewV3-Aug-20-2026_01-55-44.pth,Amazon_Beauty,SASRecAlignMultiViewV3,5,GTS-Random,456,4520,3056,2.6551,0.007207,0.010659,0.009610,0.014214,0.017478,0.025851,48.6,train_catalog
+hybrid_ts_toys_seed2026,SASRecAlignMultiViewV3-Aug-20-2026_06-56-46.pth,Amazon_Toys_and_Games,SASRecAlignMultiViewV3,5,GTS-Random,456,4873,2932,2.7059,0.006522,0.010839,0.008043,0.013368,0.013134,0.021828,59.1,train_catalog

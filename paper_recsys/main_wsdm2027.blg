@@ -1,0 +1,93 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main_wsdm2027.aux
+The style file: ACM-Reference-Format.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Database file #1: refs.bib
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 9000 items from 6000.
+Warning--empty publisher in bao2023tallrec
+Warning--empty publisher in geng2022p5
+Warning--empty publisher in hidasi2016gru4rec
+Warning--empty address in hidasi2016gru4rec
+Warning--page numbers missing in both pages and numpages fields in hidasi2016gru4rec
+Warning--empty publisher in hou2023vqrec
+Warning--empty publisher in hou2022unisrec
+Warning--empty publisher in ji2023evaluation
+Warning--empty address in ji2023evaluation
+Warning--page numbers missing in both pages and numpages fields in ji2023evaluation
+Warning--empty publisher in kang2018sasrec
+Warning--empty address in kang2018sasrec
+Warning--empty publisher in kornblith2019cka
+Warning--empty address in kornblith2019cka
+Warning--empty publisher in krichene2020sampledmetrics
+Warning--empty address in krichene2020sampledmetrics
+Warning--empty publisher in mcauley2015amazon
+Warning--empty address in mcauley2015amazon
+Warning--empty publisher in meng2020temporal
+Warning--empty address in meng2020temporal
+Warning--empty publisher in ni2019amazon
+Warning--empty address in ni2019amazon
+Warning--no number and no volume in qwen2024qwen25
+Warning--page numbers missing in both pages and numpages fields in qwen2024qwen25
+Warning--empty publisher in sun2023reevaluation
+Warning--empty address in sun2023reevaluation
+Warning--page numbers missing in both pages and numpages fields in sun2023reevaluation
+Warning--empty publisher in sun2019bert4rec
+Warning--empty address in sun2019bert4rec
+Warning--no number and no volume in oord2018cpc
+Warning--page numbers missing in both pages and numpages fields in oord2018cpc
+Warning--empty publisher in wang2015cdl
+Warning--empty address in wang2015cdl
+Warning--no number and no volume in xu2013multiview
+Warning--page numbers missing in both pages and numpages fields in xu2013multiview
+Warning--empty publisher in zhao2021recbole
+Warning--empty address in zhao2021recbole
+You've used 20 entries,
+            6056 wiz_defined-function locations,
+            1611 strings with 23420 characters,
+and the built_in function-call counts, 25145 in all, are:
+= -- 2885
+> -- 870
+< -- 0
++ -- 299
+- -- 297
+* -- 1840
+:= -- 2384
+add.period$ -- 101
+call.type$ -- 20
+change.case$ -- 167
+chr.to.int$ -- 20
+cite$ -- 57
+duplicate$ -- 2323
+empty$ -- 1615
+format.name$ -- 373
+if$ -- 6030
+int.to.chr$ -- 2
+int.to.str$ -- 1
+missing$ -- 96
+newline$ -- 210
+num.names$ -- 140
+pop$ -- 1018
+preamble$ -- 1
+purify$ -- 327
+quote$ -- 0
+skip$ -- 863
+stack$ -- 0
+substring$ -- 1852
+swap$ -- 224
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 544
+warning$ -- 37
+while$ -- 122
+width$ -- 0
+write$ -- 427
+(There were 37 warnings)

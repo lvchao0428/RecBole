@@ -1,0 +1,11 @@
+tag,model,dataset,params_total,params_trainable,params_M,text_feature_dim,ms_per_sample,samples_measured
+wrap_beauty_id_lr1e4_do0.1_seed42,SASRecAlign,Amazon_Beauty,67161345,67161345,67.16,0,0.02,5120
+sg_beauty_tf_lr5e4_do0.3_seed42,SASRecAlignV3,Amazon_Beauty,67425793,67425793,67.43,0,0.02,5120
+sg_beauty_llm_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Beauty,67557121,67557121,67.56,0,0.02,5120
+sg_beauty_mv_lr5e4_do0.3_seed42,SASRecAlignMultiViewV3,Amazon_Beauty,67705089,67705089,67.71,0,0.02,5120
+unisrec_beauty_gts_seed42,UniSRec,Amazon_Beauty,67691776,67691776,67.69,0,0.04,5120
+wrap_toys_id_lr1e4_do0.1_seed42,SASRecAlign,Amazon_Toys_and_Games,86839553,86839553,86.84,0,0.01,5120
+wrap_toys_tf_lr5e4_do0.3_seed42,SASRecAlignV3,Amazon_Toys_and_Games,87104001,87104001,87.10,0,0.02,5120
+wrap_toys_llm_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Toys_and_Games,87235329,87235329,87.24,0,0.02,5120
+wrap_toys_mv_lr5e4_do0.3_seed42,SASRecAlignMultiViewV3,Amazon_Toys_and_Games,87383297,87383297,87.38,0,0.03,5120
+unisrec_toys_gts_seed42,UniSRec,Amazon_Toys_and_Games,87369984,87369984,87.37,0,0.05,5120

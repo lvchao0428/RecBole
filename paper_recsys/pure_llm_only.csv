@@ -1,0 +1,7 @@
+tag,model,dataset,lr,dropout,seed,valid_mrr,test_mrr
+purellm_beauty_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Beauty,1e-4,0.1,42,0.0255,0.0116
+purellm_toys_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Toys_and_Games,1e-4,0.1,42,0.0179,0.006
+purellm_beauty_lr1e4_do0.1_seed2024,SASRecAlignV3,Amazon_Beauty,1e-4,0.1,2024,0.0242,0.0112
+purellm_toys_lr1e4_do0.1_seed2024,SASRecAlignV3,Amazon_Toys_and_Games,1e-4,0.1,2024,0.0181,0.0057
+purellm_beauty_lr1e4_do0.1_seed2026,SASRecAlignV3,Amazon_Beauty,1e-4,0.1,2026,0.0251,0.011
+purellm_toys_lr1e4_do0.1_seed2026,SASRecAlignV3,Amazon_Toys_and_Games,1e-4,0.1,2026,0.0182,0.0058

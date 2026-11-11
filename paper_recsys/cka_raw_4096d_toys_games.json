@@ -1,0 +1,56 @@
+{
+  "dataset": "Amazon_Toys_and_Games",
+  "dim": 3584,
+  "n_items": 336073,
+  "stage": "raw_4096d_pre-SVD",
+  "n_trials": 3,
+  "subsample_size": 3000,
+  "pairwise_cka": {
+    "Description vs Function": {
+      "mean": 0.9591773152351379,
+      "std": 0.000722421853131823
+    },
+    "Description vs Audience": {
+      "mean": 0.9660742084185282,
+      "std": 0.000982849077807797
+    },
+    "Description vs Style": {
+      "mean": 0.9706972042719523,
+      "std": 0.00035081678474036763
+    },
+    "Function vs Audience": {
+      "mean": 0.9840150078137716,
+      "std": 5.482325652795349e-05
+    },
+    "Function vs Style": {
+      "mean": 0.9444790085156759,
+      "std": 0.0002949843056644062
+    },
+    "Audience vs Style": {
+      "mean": 0.9535999496777853,
+      "std": 0.00040358939908262555
+    }
+  },
+  "effective_rank_single": {
+    "Description": {
+      "mean": 1451.6929117838542,
+      "ratio": 0.40504824547540574
+    },
+    "Function": {
+      "mean": 1445.4691569010417,
+      "ratio": 0.403311706724621
+    },
+    "Audience": {
+      "mean": 1431.0875244140625,
+      "ratio": 0.39929897444588797
+    },
+    "Style": {
+      "mean": 1438.4967447916667,
+      "ratio": 0.4013662792387463
+    }
+  },
+  "effective_rank_concat_4views": {
+    "mean": 1622.0501302083333,
+    "ratio": 0.11314523787725539
+  }
+}

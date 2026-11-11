@@ -1,0 +1,6 @@
+hmm还是有hallucination，比如说Hidasi and Karatzoglou[5]好像并没有showed that seemingly minor protocol choices can
+cause large shifts in relative rankings of sequential model?
+Figure 2说TF-IDF is complementary，但是图里的结果似乎只能看出geometrically distinct，不是complementarity？
+然后我没看漏的话，Qwen embedding到底怎么生成的似乎没有写清楚。这个对于偏实证研究的论文还是比较重要的。如果我是审稿人会希望看到exact checkpoint（Base/Instruct）、四个prompt的实际模板或简写、取哪一层hidden states、mean/EOS pooling、L2/center/SVD/whiten的先后顺序。这些当然可以放supplementary，但是一般我会希望submission的PDF本身是self-contained的。
+Clean LOO的说法似乎会有点歧义，感觉上user-wise LOO可能更precise一些。clean看起来像是没有leakage，但是我们需要解释：GTS的TF-IDF/SVD/whitening在global train cutoff前拟合。LOO的文本统计只从该协议的training portion拟合，因此它仍继承LOO的global temporal overlap。这样protocol comparison才真正没有歧义。
+主要的问题还是hallucination，[5]这个是比较明显的，但是同学最好还是自检一下，因为审稿人对于这种幻觉很敏感。

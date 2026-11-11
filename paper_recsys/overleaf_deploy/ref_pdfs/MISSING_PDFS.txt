@@ -1,0 +1,11 @@
+NOTE: roy2007effective (IEEE) 和 salton1988termweighting (Elsevier) 需从学校VPN/图书馆下载
+
+已修复 (2026-08-23):
+- krichene2020sampledmetrics: 已替换为正确PDF (来自作者主页 walid.krichene.net)
+- ludewig2018evaluation: 已替换为正确PDF (来自 arxiv 1803.09587v2)
+- ni2019amazon: 已替换为正确PDF (来自 ACL Anthology D19-1018)
+- sun2023reevaluation: 已替换为正确PDF (来自 arxiv 2210.04149v2)
+- oord2018cpc: 验证正确 (Representation Learning with Contrastive Predictive Coding, van den Oord et al.)
+- ji2023evaluation: 已替换为正确PDF (来自 arxiv 2010.11060v4) — 原下载为数学论文 "COMPARING THE NON-UNITAL AND UNITAL SETTINGS FOR DIRECTED HOMOTOPY"
+
+PDF命名规则: bibkey_论文标题缩写.pdf (标题中含论文真实名称便于肉眼核对)

@@ -3,7 +3,7 @@
 # P2 (Beauty 3-seed text) → P3 (Toys+Grocery text) → P4 (UniSRec) → P5 (Ablation)
 #
 # ID-only runs on log10 should be started separately via:
-#   ssh charlie@192.168.0.107 "cd ~/project/RecBole && nohup bash run_log10_ts_id_only.sh > logs/ts_id_only_nohup.log 2>&1 &"
+#   ssh charlie@192.168.0.185 "cd ~/project/RecBole && nohup bash run_log10_ts_id_only.sh > logs/ts_id_only_nohup.log 2>&1 &"
 #
 # Usage (on 5090):
 #   nohup bash run_5090_ts_all_phases.sh \

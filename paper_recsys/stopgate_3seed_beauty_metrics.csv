@@ -1,0 +1,13 @@
+tag,model,lr,dropout,seed,valid_mrr,test_mrr,ndcg@10,hit@10,mrr_new
+sg_beauty_llm_lr1e4_do0.1_seed2024,llm,1e4,0.1,2024,0.029,0.0161,0.0203,0.034,NA
+sg_beauty_llm_lr1e4_do0.1_seed2026,llm,1e4,0.1,2026,0.0288,0.0165,0.0202,0.0322,NA
+sg_beauty_llm_lr1e4_do0.1_seed42,llm,1e4,0.1,42,0.0288,0.0156,0.0196,0.0326,NA
+sg_beauty_mv_lr5e4_do0.3_seed2024,mv,5e4,0.3,2024,0.0289,0.0153,0.0193,0.0325,NA
+sg_beauty_mv_lr5e4_do0.3_seed2026,mv,5e4,0.3,2026,0.0284,0.0169,0.021,0.0345,NA
+sg_beauty_mv_lr5e4_do0.3_seed42,mv,5e4,0.3,42,0.0285,0.0159,0.0202,0.0342,NA
+sg_beauty_mv_lr5e4_do0.5_seed2024,mv,5e4,0.5,2024,0.0288,0.0156,0.0198,0.0334,NA
+sg_beauty_mv_lr5e4_do0.5_seed2026,mv,5e4,0.5,2026,0.0287,0.0154,0.0193,0.0322,NA
+sg_beauty_mv_lr5e4_do0.5_seed42,mv,5e4,0.5,42,0.0289,0.0154,0.0195,0.0328,NA
+sg_beauty_tf_lr5e4_do0.3_seed2024,tf,5e4,0.3,2024,0.0293,0.0161,0.0204,0.0342,NA
+sg_beauty_tf_lr5e4_do0.3_seed2026,tf,5e4,0.3,2026,0.0288,0.0174,0.0217,0.036,NA
+sg_beauty_tf_lr5e4_do0.3_seed42,tf,5e4,0.3,42,0.0289,0.016,0.0199,0.0329,NA

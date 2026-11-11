@@ -1,0 +1,13 @@
+tag,model,lr,dropout,seed,valid_mrr,test_mrr
+sg_beauty_llm_lr1e4_do0.1_seed42,SASRecAlignV3,0.0001,0.1,42,0.0275,0.0275
+sg_beauty_tf_lr5e4_do0.3_seed42,SASRecAlignV3,0.0005,0.3,42,0.0281,0.0284
+sg_beauty_mv_lr5e4_do0.3_seed42,SASRecAlignMultiViewV3,0.0005,0.3,42,0.0283,0.0279
+sg_beauty_mv_lr5e4_do0.5_seed42,SASRecAlignMultiViewV3,0.0005,0.5,42,0.0285,0.0289
+sg_beauty_llm_lr1e4_do0.1_seed2024,SASRecAlignV3,0.0001,0.1,2024,0.0281,0.0279
+sg_beauty_tf_lr5e4_do0.3_seed2024,SASRecAlignV3,0.0005,0.3,2024,0.0283,0.0283
+sg_beauty_mv_lr5e4_do0.3_seed2024,SASRecAlignMultiViewV3,0.0005,0.3,2024,0.0282,0.0281
+sg_beauty_mv_lr5e4_do0.5_seed2024,SASRecAlignMultiViewV3,0.0005,0.5,2024,0.0285,0.0288
+sg_beauty_llm_lr1e4_do0.1_seed2026,SASRecAlignV3,0.0001,0.1,2026,0.0278,0.0276
+sg_beauty_tf_lr5e4_do0.3_seed2026,SASRecAlignV3,0.0005,0.3,2026,0.0281,0.0281
+sg_beauty_mv_lr5e4_do0.3_seed2026,SASRecAlignMultiViewV3,0.0005,0.3,2026,0.0281,0.028
+sg_beauty_mv_lr5e4_do0.5_seed2026,SASRecAlignMultiViewV3,0.0005,0.5,2026,0.0279,0.0287

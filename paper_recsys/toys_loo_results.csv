@@ -1,0 +1,13 @@
+tag,model,dataset,lr,dropout,seed,valid_mrr,test_mrr
+loo_toys_id_lr1e4_do0.1_seed42,SASRecAlign,Amazon_Toys_and_Games,0.0001,0.1,42,0,0.015
+loo_toys_tfidf_lr5e4_do0.3_seed42,SASRecAlignV3,Amazon_Toys_and_Games,0.0005,0.3,42,0.0314,0.0248
+loo_toys_llm_lr1e4_do0.1_seed42,SASRecAlignV3,Amazon_Toys_and_Games,0.0001,0.1,42,0.0312,0.0251
+loo_toys_mv_lr5e4_do0.3_seed42,SASRecAlignMultiViewV3,Amazon_Toys_and_Games,0.0005,0.3,42,0.0309,0.0243
+loo_toys_id_lr1e4_do0.1_seed2024,SASRecAlign,Amazon_Toys_and_Games,0.0001,0.1,2024,0,0.0158
+loo_toys_tfidf_lr5e4_do0.3_seed2024,SASRecAlignV3,Amazon_Toys_and_Games,0.0005,0.3,2024,0.031,0.0252
+loo_toys_llm_lr1e4_do0.1_seed2024,SASRecAlignV3,Amazon_Toys_and_Games,0.0001,0.1,2024,0.0313,0.025
+loo_toys_mv_lr5e4_do0.3_seed2024,SASRecAlignMultiViewV3,Amazon_Toys_and_Games,0.0005,0.3,2024,0.03,0.024
+loo_toys_id_lr1e4_do0.1_seed2026,SASRecAlign,Amazon_Toys_and_Games,0.0001,0.1,2026,0,0.0148
+loo_toys_tfidf_lr5e4_do0.3_seed2026,SASRecAlignV3,Amazon_Toys_and_Games,0.0005,0.3,2026,0.0309,0.024
+loo_toys_llm_lr1e4_do0.1_seed2026,SASRecAlignV3,Amazon_Toys_and_Games,0.0001,0.1,2026,0.032,0.0272
+loo_toys_mv_lr5e4_do0.3_seed2026,SASRecAlignMultiViewV3,Amazon_Toys_and_Games,0.0005,0.3,2026,0.0305,0.029

@@ -1,0 +1,4 @@
+tag,pth,dataset,model,min_train_interactions,eval_mode,sample_seed,n_users,n_warm,mean_cands_per_user,test_mrr@10_all,test_mrr@10_warm,test_ndcg@10_all,test_ndcg@10_warm,test_hit@10_all,test_hit@10_warm,elapsed_seconds,warm_candidate_scope
+unisrec_beauty_gts_ts_seed42,UniSRec-Aug-23-2026_00-05-33.pth,Amazon_Beauty,UniSRec,5,GTS-Random,456,4520,3056,2.6551,0.005882,0.008699,0.008905,0.013172,0.018805,0.027814,53.1,train_catalog
+unisrec_beauty_gts_ts_seed2024,UniSRec-Aug-23-2026_01-15-17.pth,Amazon_Beauty,UniSRec,5,GTS-Random,456,4520,3056,2.6551,0.005947,0.008796,0.009336,0.013809,0.020575,0.030432,52.9,train_catalog
+unisrec_beauty_gts_ts_seed2026,UniSRec-Aug-23-2026_02-25-04.pth,Amazon_Beauty,UniSRec,5,GTS-Random,456,4520,3056,2.6551,0.005466,0.008085,0.008717,0.012892,0.019469,0.028796,52.9,train_catalog
